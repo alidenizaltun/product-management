@@ -1,0 +1,411 @@
+export type Uuid = string;
+
+export interface ProductDto {
+  id: Uuid;
+  productCode: string;
+  name: string;
+  shortDescription?: string;
+  description?: string;
+  kind: number;
+  status: number;
+  brand?: string;
+  manufacturer?: string;
+  barcode?: string;
+  isActive: boolean;
+  isSellable: boolean;
+  isPurchasable: boolean;
+  trackInventory: boolean;
+  defaultCurrencyCode: string;
+  unitOfMeasure?: string;
+  taxRate?: number;
+  taxCode?: string;
+  tags?: string;
+  metadataJson?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ProductFilterDto {
+  search?: string;
+  kind?: number;
+  status?: number;
+  isActive?: boolean;
+  take?: number;
+  includeLargeFields?: boolean;
+}
+
+export interface CreateProductRequestDto {
+  productCode: string;
+  name: string;
+  shortDescription?: string;
+  description?: string;
+  kind?: number;
+  status?: number;
+  brand?: string;
+  manufacturer?: string;
+  barcode?: string;
+  isActive?: boolean;
+  isSellable?: boolean;
+  isPurchasable?: boolean;
+  trackInventory?: boolean;
+  defaultCurrencyCode?: string;
+  unitOfMeasure?: string;
+  taxRate?: number;
+  taxCode?: string;
+  tags?: string;
+  metadataJson?: string;
+}
+
+export interface UpdateProductRequestDto {
+  productCode: string;
+  name: string;
+  shortDescription?: string;
+  description?: string;
+  kind: number;
+  status: number;
+  brand?: string;
+  manufacturer?: string;
+  barcode?: string;
+  isActive: boolean;
+  isSellable: boolean;
+  isPurchasable: boolean;
+  trackInventory: boolean;
+  defaultCurrencyCode?: string;
+  unitOfMeasure?: string;
+  taxRate?: number;
+  taxCode?: string;
+  tags?: string;
+  metadataJson?: string;
+}
+
+export interface ProductAttributeDefinitionDto {
+  id: Uuid;
+  key: string;
+  displayName: string;
+  dataType: number;
+  isRequired: boolean;
+  isFilterable: boolean;
+  isVariantAxis: boolean;
+  allowedValuesJson?: string;
+  validationRuleJson?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateProductAttributeDefinitionRequestDto {
+  key: string;
+  displayName: string;
+  dataType?: number;
+  isRequired?: boolean;
+  isFilterable?: boolean;
+  isVariantAxis?: boolean;
+  allowedValuesJson?: string;
+  validationRuleJson?: string;
+}
+
+export interface UpdateProductAttributeDefinitionRequestDto {
+  key: string;
+  displayName: string;
+  dataType: number;
+  isRequired: boolean;
+  isFilterable: boolean;
+  isVariantAxis: boolean;
+  allowedValuesJson?: string;
+  validationRuleJson?: string;
+}
+
+export interface ProductCategoryDto {
+  id: Uuid;
+  code: string;
+  name: string;
+  description?: string;
+  parentCategoryId?: Uuid;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateProductCategoryRequestDto {
+  code: string;
+  name: string;
+  description?: string;
+  parentCategoryId?: Uuid;
+}
+
+export interface UpdateProductCategoryRequestDto {
+  code: string;
+  name: string;
+  description?: string;
+  parentCategoryId?: Uuid;
+}
+
+export interface ProductCategoryMapDto {
+  id: Uuid;
+  productId: Uuid;
+  categoryId: Uuid;
+  createdAt?: string;
+}
+
+export interface CreateProductCategoryMapRequestDto {
+  categoryId: Uuid;
+}
+
+export interface ProductSupplierDto {
+  id: Uuid;
+  supplierCode: string;
+  name: string;
+  taxNumber?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateProductSupplierRequestDto {
+  supplierCode: string;
+  name: string;
+  taxNumber?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateProductSupplierRequestDto {
+  supplierCode: string;
+  name: string;
+  taxNumber?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  isActive?: boolean;
+}
+
+export interface WarehouseDto {
+  id: Uuid;
+  code: string;
+  name: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateWarehouseRequestDto {
+  code: string;
+  name: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateWarehouseRequestDto {
+  code: string;
+  name: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  isActive?: boolean;
+}
+
+export interface ProductInventoryDto {
+  id: Uuid;
+  productId: Uuid;
+  productVariantId?: Uuid;
+  warehouseId: Uuid;
+  warehouseCode?: string;
+  quantityOnHand: number;
+  quantityReserved: number;
+  quantityAvailable: number;
+  reorderPoint?: number;
+  reorderQuantity?: number;
+  inventoryPolicy: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ProductInventoryFilterDto {
+  productId?: Uuid;
+  productVariantId?: Uuid;
+  warehouseId?: Uuid;
+  inventoryPolicy?: number;
+  take?: number;
+}
+
+export interface CreateProductInventoryRequestDto {
+  productId: Uuid;
+  productVariantId?: Uuid;
+  warehouseId: Uuid;
+  quantityOnHand?: number;
+  quantityReserved?: number;
+  reorderPoint?: number;
+  reorderQuantity?: number;
+  inventoryPolicy?: number;
+}
+
+export interface UpdateProductInventoryRequestDto {
+  productId: Uuid;
+  productVariantId?: Uuid;
+  warehouseId: Uuid;
+  quantityOnHand?: number;
+  quantityReserved?: number;
+  reorderPoint?: number;
+  reorderQuantity?: number;
+  inventoryPolicy?: number;
+}
+
+export interface InventoryTransactionDto {
+  id: Uuid;
+  productId: Uuid;
+  productVariantId?: Uuid;
+  warehouseId?: Uuid;
+  transactionType: number;
+  quantity: number;
+  unitCost?: number;
+  referenceType?: string;
+  referenceNumber?: string;
+  note?: string;
+  occurredAt: string;
+  createdAt: string;
+}
+
+export interface InventoryTransactionFilterDto {
+  productId?: Uuid;
+  productVariantId?: Uuid;
+  warehouseId?: Uuid;
+  transactionType?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  take?: number;
+}
+
+export interface CreateInventoryTransactionRequestDto {
+  productId: Uuid;
+  productVariantId?: Uuid;
+  warehouseId?: Uuid;
+  transactionType: number;
+  quantity: number;
+  unitCost?: number;
+  referenceType?: string;
+  referenceNumber?: string;
+  note?: string;
+  occurredAt?: string;
+}
+
+export interface InventoryReservationDto {
+  id: Uuid;
+  productId: Uuid;
+  productVariantId?: Uuid;
+  warehouseId?: Uuid;
+  quantity: number;
+  reservationCode: string;
+  reservedUntil?: string;
+  status: number;
+  sourceType?: string;
+  sourceId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface InventoryReservationFilterDto {
+  productId?: Uuid;
+  productVariantId?: Uuid;
+  warehouseId?: Uuid;
+  status?: number;
+  reservedUntilMin?: string;
+  reservedUntilMax?: string;
+  take?: number;
+}
+
+export interface CreateInventoryReservationRequestDto {
+  productId: Uuid;
+  productVariantId?: Uuid;
+  warehouseId?: Uuid;
+  quantity: number;
+  reservationCode: string;
+  reservedUntil?: string;
+  status?: number;
+  sourceType?: string;
+  sourceId?: string;
+}
+
+export interface UpdateInventoryReservationStatusRequestDto {
+  status: number;
+  reservedUntil?: string;
+}
+
+export interface ProductPriceListDto {
+  id: Uuid;
+  code: string;
+  name: string;
+  description?: string;
+  currencyCode: string;
+  isActive: boolean;
+  validFrom?: string;
+  validTo?: string;
+  salesChannel?: string;
+  customerGroupCode?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateProductPriceListRequestDto {
+  code: string;
+  name: string;
+  description?: string;
+  currencyCode?: string;
+  isActive?: boolean;
+  validFrom?: string;
+  validTo?: string;
+  salesChannel?: string;
+  customerGroupCode?: string;
+}
+
+export interface UpdateProductPriceListRequestDto {
+  code: string;
+  name: string;
+  description?: string;
+  currencyCode?: string;
+  isActive?: boolean;
+  validFrom?: string;
+  validTo?: string;
+  salesChannel?: string;
+  customerGroupCode?: string;
+}
+
+export interface ProductPriceListItemDto {
+  id: Uuid;
+  productPriceListId: Uuid;
+  productId: Uuid;
+  productVariantId?: Uuid;
+  amount: number;
+  compareAtAmount?: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateProductPriceListItemRequestDto {
+  productPriceListId: Uuid;
+  productId: Uuid;
+  productVariantId?: Uuid;
+  amount: number;
+  compareAtAmount?: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+}
+
+export interface UpdateProductPriceListItemRequestDto {
+  amount: number;
+  compareAtAmount?: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+}

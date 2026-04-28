@@ -1,0 +1,129 @@
+﻿import React, { useEffect, useState } from "react";
+import { Card, Col, Row } from "reactstrap";
+import Content from "@/layout/content/Content";
+import Head from "@/layout/head/Head";
+import { Block, BlockDes, BlockHead, BlockHeadContent, BlockTitle, Button, Icon } from "@/components/Component";
+import { InventoryReservationDto, InventoryTransactionDto } from "@/domain";
+import { ProductOperationsUseCases } from "@/application/usecases";
+import { productOperationsRepository } from "@/infrastructure/api";
+
+const productOperationsUseCases = new ProductOperationsUseCases(productOperationsRepository);
+
+const InventoryPage = () => {
+  const [transactions, setTransactions] = useState<InventoryTransactionDto[]>([]);
+  const [reservations, setReservations] = useState<InventoryReservationDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const [t, r] = await Promise.all([
+        productOperationsUseCases.getInventoryTransactions({ take: 50 }),
+        productOperationsUseCases.getInventoryReservations({ take: 50 }),
+      ]);
+      setTransactions(t);
+      setReservations(r);
+    } catch (e: any) {
+      setError(e?.message || "Inventory verileri yuklenemedi.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  return (
+    <React.Fragment>
+      <Head title="Inventory" />
+      <Content>
+        <BlockHead size="sm">
+          <BlockHeadContent>
+            <BlockTitle>Inventory</BlockTitle>
+            <BlockDes className="text-soft">
+              <p>`/api/inventory/transactions` ve `/api/inventory/reservations`</p>
+            </BlockDes>
+          </BlockHeadContent>
+          <BlockHeadContent>
+            <Button color="light" onClick={load}>
+              <Icon name="reload" />
+              <span>Yenile</span>
+            </Button>
+          </BlockHeadContent>
+        </BlockHead>
+
+        <Block>
+          {error && <div className="alert alert-danger">{error}</div>}
+          <Row className="g-gs">
+            <Col xl={7}>
+              <Card className="card-bordered">
+                <div className="card-inner border-bottom">
+                  <h6 className="mb-0">Transactions ({transactions.length})</h6>
+                </div>
+                <div className="table-responsive">
+                  <table className="table table-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>ProductId</th>
+                        <th>Type</th>
+                        <th>Qty</th>
+                        <th>Occurred</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isLoading && (
+                        <tr>
+                          <td colSpan={4} className="text-center py-3 text-soft">Yukleniyor...</td>
+                        </tr>
+                      )}
+                      {!isLoading && transactions.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="text-center py-3 text-soft">Kayit yok</td>
+                        </tr>
+                      )}
+                      {!isLoading &&
+                        transactions.map((item) => (
+                          <tr key={item.id}>
+                            <td className="text-truncate" style={{ maxWidth: 160 }}>{item.productId}</td>
+                            <td>{item.transactionType}</td>
+                            <td>{item.quantity}</td>
+                            <td>{new Date(item.occurredAt).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </Col>
+            <Col xl={5}>
+              <Card className="card-bordered">
+                <div className="card-inner border-bottom">
+                  <h6 className="mb-0">Reservations ({reservations.length})</h6>
+                </div>
+                <ul className="list-group list-group-flush">
+                  {isLoading && <li className="list-group-item text-soft">Yukleniyor...</li>}
+                  {!isLoading && reservations.length === 0 && <li className="list-group-item text-soft">Kayit yok</li>}
+                  {!isLoading &&
+                    reservations.map((item) => (
+                      <li className="list-group-item" key={item.id}>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <strong>{item.reservationCode}</strong>
+                          <span className="badge bg-primary">Status: {item.status}</span>
+                        </div>
+                        <div className="text-soft fs-12px mt-1">Qty: {item.quantity}</div>
+                      </li>
+                    ))}
+                </ul>
+              </Card>
+            </Col>
+          </Row>
+        </Block>
+      </Content>
+    </React.Fragment>
+  );
+};
+
+export default InventoryPage;

@@ -1,0 +1,17 @@
+﻿/**
+ * API endpoint mappings for Product Manager backend.
+ */
+export const apiEndpoints = {
+    auth: {
+        login: "/api/auth/login",
+        register: "/api/auth/register",
+        refreshToken: "/api/auth/refresh",
+        forgotPassword: "/api/auth/forgot-password",
+        resetPassword: "/api/auth/reset-password",
+        changePassword: "/api/auth/change-password",
+        logout: "/api/auth/logout",
+        logoutAll: "/api/auth/logout-all",
+        getCurrentUser: "/api/auth/me",
+        confirmEmail: "/api/auth/confirm-email",
+    },
+} as const;

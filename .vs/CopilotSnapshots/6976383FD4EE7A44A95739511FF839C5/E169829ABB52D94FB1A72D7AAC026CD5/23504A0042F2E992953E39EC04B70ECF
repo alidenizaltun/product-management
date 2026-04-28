@@ -1,0 +1,150 @@
+﻿import React, { useEffect, useState } from "react";
+import { Card, Col, Input, Row } from "reactstrap";
+import Content from "@/layout/content/Content";
+import Head from "@/layout/head/Head";
+import { Block, BlockDes, BlockHead, BlockHeadContent, BlockTitle, Button, Icon } from "@/components/Component";
+import { ProductPriceListDto, ProductPriceListItemDto } from "@/domain";
+import { ProductOperationsUseCases } from "@/application/usecases";
+import { productOperationsRepository } from "@/infrastructure/api";
+
+const productOperationsUseCases = new ProductOperationsUseCases(productOperationsRepository);
+
+const PriceListsPage = () => {
+  const [priceLists, setPriceLists] = useState<ProductPriceListDto[]>([]);
+  const [items, setItems] = useState<ProductPriceListItemDto[]>([]);
+  const [selectedPriceListId, setSelectedPriceListId] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadPriceLists = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const lists = await productOperationsUseCases.getPriceLists(false);
+      setPriceLists(lists);
+      const firstId = lists[0]?.id || "";
+      setSelectedPriceListId(firstId);
+
+      if (firstId) {
+        const listItems = await productOperationsUseCases.getPriceListItems(firstId);
+        setItems(listItems);
+      } else {
+        setItems([]);
+      }
+    } catch (e: any) {
+      setError(e?.message || "Price list verileri yuklenemedi.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onPriceListChange = async (id: string) => {
+    setSelectedPriceListId(id);
+    if (!id) {
+      setItems([]);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const listItems = await productOperationsUseCases.getPriceListItems(id);
+      setItems(listItems);
+    } catch (e: any) {
+      setError(e?.message || "Price list itemlari yuklenemedi.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPriceLists();
+  }, []);
+
+  return (
+    <React.Fragment>
+      <Head title="Price Lists" />
+      <Content>
+        <BlockHead size="sm">
+          <BlockHeadContent>
+            <BlockTitle>Price Lists</BlockTitle>
+            <BlockDes className="text-soft">
+              <p>`/api/pricelists` ve `/api/pricelists/{`{priceListId}`}/items`</p>
+            </BlockDes>
+          </BlockHeadContent>
+          <BlockHeadContent>
+            <Button color="light" onClick={loadPriceLists}>
+              <Icon name="reload" />
+              <span>Yenile</span>
+            </Button>
+          </BlockHeadContent>
+        </BlockHead>
+
+        <Block>
+          {error && <div className="alert alert-danger">{error}</div>}
+          <Row className="g-gs">
+            <Col xl={4}>
+              <Card className="card-bordered p-3">
+                <label className="form-label">Price List</label>
+                <Input
+                  type="select"
+                  value={selectedPriceListId}
+                  onChange={(e) => onPriceListChange(e.target.value)}
+                >
+                  <option value="">Seciniz</option>
+                  {priceLists.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.currencyCode})
+                    </option>
+                  ))}
+                </Input>
+                <div className="text-soft fs-12px mt-2">Toplam liste: {priceLists.length}</div>
+              </Card>
+            </Col>
+            <Col xl={8}>
+              <Card className="card-bordered">
+                <div className="card-inner border-bottom">
+                  <h6 className="mb-0">Items ({items.length})</h6>
+                </div>
+                <div className="table-responsive">
+                  <table className="table table-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>ProductId</th>
+                        <th>Amount</th>
+                        <th>Compare</th>
+                        <th>Min - Max Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isLoading && (
+                        <tr>
+                          <td colSpan={4} className="text-center py-3 text-soft">Yukleniyor...</td>
+                        </tr>
+                      )}
+                      {!isLoading && items.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="text-center py-3 text-soft">Kayit yok</td>
+                        </tr>
+                      )}
+                      {!isLoading &&
+                        items.map((item) => (
+                          <tr key={item.id}>
+                            <td className="text-truncate" style={{ maxWidth: 180 }}>{item.productId}</td>
+                            <td>{item.amount}</td>
+                            <td>{item.compareAtAmount ?? "-"}</td>
+                            <td>{item.minQuantity ?? "-"} - {item.maxQuantity ?? "-"}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </Col>
+          </Row>
+        </Block>
+      </Content>
+    </React.Fragment>
+  );
+};
+
+export default PriceListsPage;

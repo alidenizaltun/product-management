@@ -1,0 +1,157 @@
+﻿import React, { useEffect, useMemo, useState } from "react";
+import { Card, Input } from "reactstrap";
+import Content from "@/layout/content/Content";
+import Head from "@/layout/head/Head";
+import {
+  Block,
+  BlockBetween,
+  BlockDes,
+  BlockHead,
+  BlockHeadContent,
+  BlockTitle,
+  Button,
+  Icon,
+} from "@/components/Component";
+import { ProductDto } from "@/domain";
+import { ProductOperationsUseCases } from "@/application/usecases";
+import { productOperationsRepository } from "@/infrastructure/api";
+
+const productOperationsUseCases = new ProductOperationsUseCases(productOperationsRepository);
+
+const ProductsPage = () => {
+  const [items, setItems] = useState<ProductDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [onlyActive, setOnlyActive] = useState(false);
+
+  const load = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const data = await productOperationsUseCases.getProducts({
+        search: search || undefined,
+        isActive: onlyActive ? true : undefined,
+        take: 100,
+        includeLargeFields: false,
+      });
+      setItems(data);
+    } catch (e: any) {
+      setError(e?.message || "Urunler yuklenemedi.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const totalActive = useMemo(() => items.filter((x) => x.isActive).length, [items]);
+
+  return (
+    <React.Fragment>
+      <Head title="Products" />
+      <Content>
+        <BlockHead size="sm">
+          <BlockBetween>
+            <BlockHeadContent>
+              <BlockTitle>Products</BlockTitle>
+              <BlockDes className="text-soft">
+                <p>`GET /api/products` ile gelen urunler</p>
+              </BlockDes>
+            </BlockHeadContent>
+            <BlockHeadContent>
+              <div className="d-flex gap-2">
+                <Button color="light" onClick={load}>
+                  <Icon name="reload" />
+                  <span>Yenile</span>
+                </Button>
+              </div>
+            </BlockHeadContent>
+          </BlockBetween>
+        </BlockHead>
+
+        <Block>
+          <Card className="card-bordered p-3 mb-3">
+            <div className="d-flex flex-wrap gap-2 align-items-center">
+              <Input
+                placeholder="Ad veya kod ile ara"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ maxWidth: 280 }}
+              />
+              <div className="form-check m-0">
+                <Input
+                  id="only-active"
+                  type="checkbox"
+                  checked={onlyActive}
+                  onChange={(e) => setOnlyActive(e.target.checked)}
+                />
+                <label className="form-check-label" htmlFor="only-active">
+                  Sadece aktif
+                </label>
+              </div>
+              <Button color="primary" onClick={load}>
+                Filtrele
+              </Button>
+              <span className="ms-auto text-soft">Toplam: {items.length} / Aktif: {totalActive}</span>
+            </div>
+          </Card>
+
+          {error && <div className="alert alert-danger">{error}</div>}
+
+          <Card className="card-bordered">
+            <div className="table-responsive">
+              <table className="table table-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Kod</th>
+                    <th>Ad</th>
+                    <th>Brand</th>
+                    <th>Status</th>
+                    <th>Aktif</th>
+                    <th>Para Birimi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!isLoading && items.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-4 text-soft">
+                        Kayit bulunamadi
+                      </td>
+                    </tr>
+                  )}
+                  {isLoading && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-4 text-soft">
+                        Yukleniyor...
+                      </td>
+                    </tr>
+                  )}
+                  {!isLoading &&
+                    items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.productCode}</td>
+                        <td>{item.name}</td>
+                        <td>{item.brand || "-"}</td>
+                        <td>{item.status}</td>
+                        <td>
+                          <span className={`badge ${item.isActive ? "bg-success" : "bg-secondary"}`}>
+                            {item.isActive ? "Aktif" : "Pasif"}
+                          </span>
+                        </td>
+                        <td>{item.defaultCurrencyCode}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </Block>
+      </Content>
+    </React.Fragment>
+  );
+};
+
+export default ProductsPage;

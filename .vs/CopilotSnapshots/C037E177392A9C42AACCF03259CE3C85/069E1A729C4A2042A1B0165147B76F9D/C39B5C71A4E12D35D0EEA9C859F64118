@@ -1,0 +1,47 @@
+﻿import React from "react";
+import Content from "@/layout/content/Content";
+import Head from "@/layout/head/Head";
+import { Block, BlockHead, BlockHeadContent, BlockTitle, BlockDes, PreviewAltCard } from "@/components/Component";
+
+interface PmListPageProps {
+  title: string;
+  description: string;
+  endpoint: string;
+  items: string[];
+}
+
+const PmListPage: React.FC<PmListPageProps> = ({ title, description, endpoint, items }) => {
+  return (
+    <React.Fragment>
+      <Head title={title} />
+      <Content>
+        <BlockHead size="sm">
+          <BlockHeadContent>
+            <BlockTitle page tag="h3">
+              {title}
+            </BlockTitle>
+            <BlockDes className="text-soft">
+              <p>{description}</p>
+            </BlockDes>
+          </BlockHeadContent>
+        </BlockHead>
+
+        <Block>
+          <PreviewAltCard className="card-bordered">
+            <h6 className="title mb-2">Endpoint</h6>
+            <code>{endpoint}</code>
+            <hr />
+            <h6 className="title mb-2">Bu sayfada planlanan işlemler</h6>
+            <ul className="list gy-2">
+              {items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </PreviewAltCard>
+        </Block>
+      </Content>
+    </React.Fragment>
+  );
+};
+
+export default PmListPage;

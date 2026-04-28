@@ -1,0 +1,127 @@
+﻿import React, { useEffect, useState } from "react";
+import { Card, Col, Row } from "reactstrap";
+import Content from "@/layout/content/Content";
+import Head from "@/layout/head/Head";
+import { Block, BlockDes, BlockHead, BlockHeadContent, BlockTitle, Button, Icon } from "@/components/Component";
+import { ProductCategoryDto, ProductSupplierDto, WarehouseDto } from "@/domain";
+import { ProductOperationsUseCases } from "@/application/usecases";
+import { productOperationsRepository } from "@/infrastructure/api";
+
+const productOperationsUseCases = new ProductOperationsUseCases(productOperationsRepository);
+
+const CatalogPage = () => {
+  const [categories, setCategories] = useState<ProductCategoryDto[]>([]);
+  const [suppliers, setSuppliers] = useState<ProductSupplierDto[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const [c, s, w] = await Promise.all([
+        productOperationsUseCases.getCategories(),
+        productOperationsUseCases.getSuppliers(false),
+        productOperationsUseCases.getWarehouses(false),
+      ]);
+      setCategories(c);
+      setSuppliers(s);
+      setWarehouses(w);
+    } catch (e: any) {
+      setError(e?.message || "Catalog verileri yuklenemedi.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  return (
+    <React.Fragment>
+      <Head title="Catalog" />
+      <Content>
+        <BlockHead size="sm">
+          <BlockHeadContent>
+            <BlockTitle>Catalog</BlockTitle>
+            <BlockDes className="text-soft">
+              <p>`/api/catalog/categories`, `/api/catalog/suppliers`, `/api/catalog/warehouses`</p>
+            </BlockDes>
+          </BlockHeadContent>
+          <BlockHeadContent>
+            <Button color="light" onClick={load}>
+              <Icon name="reload" />
+              <span>Yenile</span>
+            </Button>
+          </BlockHeadContent>
+        </BlockHead>
+
+        <Block>
+          {error && <div className="alert alert-danger">{error}</div>}
+          <Row className="g-gs">
+            <Col lg={4}>
+              <Card className="card-bordered h-100">
+                <div className="card-inner border-bottom">
+                  <h6 className="mb-0">Categories ({categories.length})</h6>
+                </div>
+                <ul className="list-group list-group-flush">
+                  {isLoading && <li className="list-group-item text-soft">Yukleniyor...</li>}
+                  {!isLoading && categories.length === 0 && <li className="list-group-item text-soft">Kayit yok</li>}
+                  {!isLoading &&
+                    categories.map((item) => (
+                      <li className="list-group-item d-flex justify-content-between" key={item.id}>
+                        <span>{item.name}</span>
+                        <span className="text-soft">{item.code}</span>
+                      </li>
+                    ))}
+                </ul>
+              </Card>
+            </Col>
+            <Col lg={4}>
+              <Card className="card-bordered h-100">
+                <div className="card-inner border-bottom">
+                  <h6 className="mb-0">Suppliers ({suppliers.length})</h6>
+                </div>
+                <ul className="list-group list-group-flush">
+                  {isLoading && <li className="list-group-item text-soft">Yukleniyor...</li>}
+                  {!isLoading && suppliers.length === 0 && <li className="list-group-item text-soft">Kayit yok</li>}
+                  {!isLoading &&
+                    suppliers.map((item) => (
+                      <li className="list-group-item d-flex justify-content-between" key={item.id}>
+                        <span>{item.name}</span>
+                        <span className={`badge ${item.isActive ? "bg-success" : "bg-secondary"}`}>
+                          {item.isActive ? "Aktif" : "Pasif"}
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+              </Card>
+            </Col>
+            <Col lg={4}>
+              <Card className="card-bordered h-100">
+                <div className="card-inner border-bottom">
+                  <h6 className="mb-0">Warehouses ({warehouses.length})</h6>
+                </div>
+                <ul className="list-group list-group-flush">
+                  {isLoading && <li className="list-group-item text-soft">Yukleniyor...</li>}
+                  {!isLoading && warehouses.length === 0 && <li className="list-group-item text-soft">Kayit yok</li>}
+                  {!isLoading &&
+                    warehouses.map((item) => (
+                      <li className="list-group-item" key={item.id}>
+                        <div className="fw-medium">{item.name}</div>
+                        <div className="text-soft fs-12px">{item.city || "-"} / {item.country || "-"}</div>
+                      </li>
+                    ))}
+                </ul>
+              </Card>
+            </Col>
+          </Row>
+        </Block>
+      </Content>
+    </React.Fragment>
+  );
+};
+
+export default CatalogPage;

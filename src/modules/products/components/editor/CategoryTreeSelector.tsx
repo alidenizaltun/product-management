@@ -1,44 +1,119 @@
 import React from "react";
-import Select from "react-select";
-import { Controller, useFormContext } from "react-hook-form";
+import { useFieldArray, useFormContext, Controller } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
+import CategoryTreeSelect from "@/modules/shared/components/selects/CategoryTreeSelect";
 
-const categoryOptions = [
-  { value: "cat-electronics", label: "Elektronik" },
-  { value: "cat-electronics-accessories", label: "Elektronik / Aksesuar" },
-  { value: "cat-fashion", label: "Moda" },
-  { value: "cat-fashion-men", label: "Moda / Erkek" },
-  { value: "cat-fashion-women", label: "Moda / Kadin" },
-  { value: "cat-software", label: "Yazilim" },
-];
+const emptyCategory = () => ({
+  productCategoryId: "",
+  isPrimary: false,
+  sortOrder: undefined as number | undefined,
+});
 
 const CategoryTreeSelector: React.FC = () => {
-  const { control } = useFormContext<ProductFormValues>();
+  const { control, register, formState: { errors } } = useFormContext<ProductFormValues>();
+  const { fields, append, remove } = useFieldArray({ control, name: "categoryMaps" });
 
   return (
-    <div className="card card-bordered">
-      <div className="card-inner border-bottom">
+    <div>
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h6 className="mb-0">Kategoriler</h6>
-          <small className="text-muted">Ana ve ikincil kategorileri secin.</small>
+          <h6 className="overline-title text-primary mb-0">Kategori Atamaları</h6>
+          <p className="text-soft fs-13px mb-0">Ürünü bir veya birden fazla kategoriye atayın.</p>
         </div>
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => append(emptyCategory())}
+        >
+          <em className="icon ni ni-plus me-1" />
+          Kategori Ekle
+        </button>
       </div>
-      <div className="card-inner">
-        <label className="form-label">Kategori Secimi</label>
-        <Controller
-          control={control}
-          name="metadata.categories"
-          render={({ field }) => (
-            <Select
-              isMulti
-              options={categoryOptions}
-              value={categoryOptions.filter((option) => field.value?.includes(option.value))}
-              onChange={(selected) => field.onChange((selected ?? []).map((item) => item.value))}
-              placeholder="Kategori secin"
-            />
-          )}
-        />
-      </div>
+
+      {fields.length === 0 && (
+        <div className="text-center py-5 text-soft">
+          <em className="icon ni ni-layers fs-2 d-block mb-2" />
+          <p className="mb-0">Henüz kategori eklenmedi.</p>
+        </div>
+      )}
+
+      {fields.map((field, index) => (
+        <div key={field.id} className="card card-bordered mb-3">
+          <div className="card-inner">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <span className="badge bg-outline-primary">Kategori #{index + 1}</span>
+              <button
+                type="button"
+                className="btn btn-sm btn-icon btn-trigger text-danger"
+                onClick={() => remove(index)}
+                title="Kategoriyi Kaldır"
+              >
+                <em className="icon ni ni-trash" />
+              </button>
+            </div>
+
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label">
+                  Kategori <span className="text-danger">*</span>
+                </label>
+                <Controller
+                  control={control}
+                  name={`categoryMaps.${index}.productCategoryId`}
+                  rules={{ required: "Kategori seçiniz" }}
+                  render={({ field: f }) => (
+                    <CategoryTreeSelect
+                      value={f.value || null}
+                      onChange={(val) => f.onChange(val ?? "")}
+                    />
+                  )}
+                />
+                {errors.categoryMaps?.[index]?.productCategoryId && (
+                  <div className="text-danger fs-12px mt-1">
+                    {errors.categoryMaps[index]?.productCategoryId?.message}
+                  </div>
+                )}
+              </div>
+
+              <div className="col-md-3">
+                <label className="form-label">Sıralama</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="form-control"
+                  placeholder="0"
+                  {...register(`categoryMaps.${index}.sortOrder`, { valueAsNumber: true })}
+                />
+              </div>
+
+              <div className="col-md-3 d-flex align-items-end pb-1">
+                <div className="form-check form-switch">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id={`cat-primary-${field.id}`}
+                    {...register(`categoryMaps.${index}.isPrimary`)}
+                  />
+                  <label className="form-check-label" htmlFor={`cat-primary-${field.id}`}>
+                    Birincil Kategori
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {fields.length > 0 && (
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => append(emptyCategory())}
+        >
+          <em className="icon ni ni-plus me-1" />
+          Kategori Ekle
+        </button>
+      )}
     </div>
   );
 };

@@ -409,3 +409,129 @@ export interface UpdateProductPriceListItemRequestDto {
   minQuantity?: number;
   maxQuantity?: number;
 }
+
+export interface CreateFullProductRequestDto {
+  product: CreateProductRequestDto;
+  attributeValues?: Array<{
+    attributeDefinitionId: Uuid;
+    valueText: string;
+  }>;
+  variants?: Array<{
+    sku: string;
+    name?: string;
+    optionValuesJson?: string;
+    additionalPrice?: number;
+    additionalCost?: number;
+    isActive?: boolean;
+  }>;
+  prices?: Array<{
+    priceType?: number;
+    amount: number;
+    compareAtAmount?: number;
+    currencyCode: string;
+    minQuantity?: number;
+    maxQuantity?: number;
+    validFrom?: string;
+    validTo?: string;
+    salesChannel?: string;
+    customerGroupCode?: string;
+  }>;
+  inventories?: Array<{
+    warehouseId: Uuid;
+    warehouseCode?: string;
+    quantityOnHand?: number;
+    quantityReserved?: number;
+    reorderPoint?: number;
+    reorderQuantity?: number;
+    inventoryPolicy?: number;
+  }>;
+  mediaItems?: Array<{
+    mediaType?: number;
+    url?: string;
+    thumbnailUrl?: string;
+    mimeType?: string;
+    altText?: string;
+    isPrimary?: boolean;
+    sortOrder?: number;
+  }>;
+  categoryMaps?: Array<{
+    productCategoryId: Uuid;
+    isPrimary?: boolean;
+    sortOrder?: number;
+  }>;
+  bundleItems?: Array<{
+    childProductId: Uuid;
+    quantity: number;
+    isOptional?: boolean;
+  }>;
+  supplierMaps?: Array<{
+    productSupplierId: Uuid;
+    supplierProductCode?: string;
+    supplierCost?: number;
+    leadTimeInDays?: number;
+    minOrderQuantity?: number;
+    isPreferred?: boolean;
+  }>;
+  inventoryTransactions?: Array<{
+    transactionType: number;
+    quantity: number;
+    unitCost?: number;
+    referenceType?: string;
+    referenceNumber?: string;
+    note?: string;
+    occurredAt?: string;
+  }>;
+  inventoryReservations?: Array<{
+    quantity: number;
+    reservationCode: string;
+    reservedUntil?: string;
+    status?: number;
+    sourceType?: string;
+    sourceId?: string;
+  }>;
+  priceListItems?: Array<{
+    productPriceListId: Uuid;
+    amount: number;
+    compareAtAmount?: number;
+    minQuantity?: number;
+    maxQuantity?: number;
+  }>;
+  physicalProfile?: {
+    weight?: number;
+    width?: number;
+    height?: number;
+    length?: number;
+    requiresShipping?: boolean;
+    isFragile?: boolean;
+    isHazardous?: boolean;
+    requiresSerialNumber?: boolean;
+    warrantyInMonths?: number;
+  };
+  softwareProfile?: {
+    version?: string;
+    licenseModel?: number;
+    seatCount?: number;
+    downloadUrl?: string;
+    supportedPlatformsJson?: string;
+    systemRequirementsJson?: string;
+    releaseNotes?: string;
+  };
+  serviceProfile?: {
+    deliveryMode?: number;
+    durationInMinutes?: number;
+    maxConcurrentBooking?: number;
+    serviceAreaJson?: string;
+  };
+  subscriptionProfile?: {
+    billingPeriodUnit?: number;
+    billingPeriodValue?: number;
+    trialDays?: number;
+    autoRenew?: boolean;
+    gracePeriodDays?: number;
+    cancellationPolicy?: string;
+  };
+}
+
+export interface UpdateFullProductRequestDto extends Omit<CreateFullProductRequestDto, "product"> {
+  product: UpdateProductRequestDto;
+}

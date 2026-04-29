@@ -2,7 +2,6 @@ import React from "react";
 import { Link, useParams } from "react-router-dom";
 import Content from "@/layout/content/Content";
 import Head from "@/layout/head/Head";
-import ProductDetailTabs from "@/modules/products/components/ProductDetailTabs";
 import { useProductDetail } from "@/modules/products/hooks/useProductDetail";
 
 const ProductDetailPage: React.FC = () => {
@@ -30,7 +29,6 @@ const ProductDetailPage: React.FC = () => {
                 </div>
               </div>
             </div>
-            {id ? <ProductDetailTabs productId={id} productKind={data?.kind} /> : null}
           </>
         )}
       </Content>

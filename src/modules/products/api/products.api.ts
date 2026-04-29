@@ -1,4 +1,11 @@
-import { ProductDto, ProductFilterDto, CreateProductRequestDto, UpdateProductRequestDto } from "@/domain";
+import {
+  ProductDto,
+  ProductFilterDto,
+  CreateProductRequestDto,
+  UpdateProductRequestDto,
+  CreateFullProductRequestDto,
+  UpdateFullProductRequestDto,
+} from "@/domain";
 import { apiClient } from "@/infrastructure/api";
 import { apiEndpoints } from "@/infrastructure/config";
 
@@ -44,6 +51,14 @@ export const productsApi = {
   },
 
   updateProduct: async (id: string, payload: UpdateProductRequestDto): Promise<void> => {
+    await apiClient.put<void>(apiEndpoints.productOperations.products.byId(id), payload);
+  },
+
+  createFullProduct: async (payload: CreateFullProductRequestDto): Promise<ProductDto> => {
+    return apiClient.post<ProductDto>(apiEndpoints.productOperations.products.list, payload);
+  },
+
+  updateFullProduct: async (id: string, payload: UpdateFullProductRequestDto): Promise<void> => {
     await apiClient.put<void>(apiEndpoints.productOperations.products.byId(id), payload);
   },
 };

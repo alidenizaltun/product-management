@@ -1,88 +1,136 @@
 export type ProductProfileType = "physical" | "software" | "service" | "subscription";
 
-export interface VariantAxisForm {
-  name: string;
-  valuesCsv: string;
+export interface AttributeValueForm {
+  attributeDefinitionId: string;
+  valueText: string;
 }
 
 export interface VariantForm {
   sku: string;
-  barcode?: string;
+  name?: string;
+  optionValuesJson?: string;
+  additionalPrice?: number;
+  additionalCost?: number;
   isActive: boolean;
-  optionSummary?: string;
 }
 
 export interface PriceItemForm {
-  priceListId: string;
-  currency: string;
-  variantSku?: string;
+  priceType: number;
   amount?: number;
-  minQty?: number;
+  compareAtAmount?: number;
+  currencyCode: string;
+  minQuantity?: number;
+  maxQuantity?: number;
   validFrom?: string;
   validTo?: string;
+  salesChannel?: string;
+  customerGroupCode?: string;
 }
 
-export interface AttributeForm {
-  definitionKey: string;
-  value: string;
-  scope: "product" | "variant";
-  variantSku?: string;
+export interface InventoryForm {
+  warehouseId: string;
+  warehouseCode?: string;
+  quantityOnHand?: number;
+  quantityReserved?: number;
+  reorderPoint?: number;
+  reorderQuantity?: number;
+  inventoryPolicy?: number;
 }
 
-export interface SupplierForm {
-  supplierId: string;
-  leadTimeDays?: number;
-  purchasePrice?: number;
-}
-
-export interface MediaForm {
-  fileName?: string;
+export interface MediaItemForm {
+  mediaType: number;
   url?: string;
-  isCover?: boolean;
+  thumbnailUrl?: string;
+  mimeType?: string;
+  altText?: string;
+  isPrimary?: boolean;
   sortOrder?: number;
-  variantSku?: string;
 }
 
-export interface BundleForm {
-  productId: string;
-  variantId?: string;
+export interface CategoryMapForm {
+  productCategoryId: string;
+  isPrimary?: boolean;
+  sortOrder?: number;
+}
+
+export interface BundleItemForm {
+  childProductId: string;
   quantity: number;
+  isOptional?: boolean;
 }
 
-export interface ProductProfileForm {
-  type: ProductProfileType;
-  physical?: {
-    weight?: number;
-    width?: number;
-    height?: number;
-    depth?: number;
-    warrantyMonths?: number;
-  };
-  software?: {
-    licenseType?: string;
-    downloadUrl?: string;
-    platform?: string;
-  };
-  service?: {
-    serviceType?: string;
-    durationMinutes?: number;
-  };
-  subscription?: {
-    billingPeriod?: string;
-    trialDays?: number;
-  };
+export interface SupplierMapForm {
+  productSupplierId: string;
+  supplierProductCode?: string;
+  supplierCost?: number;
+  leadTimeInDays?: number;
+  minOrderQuantity?: number;
+  isPreferred?: boolean;
 }
 
-export interface ProductMetadataForm {
-  variantAxes: VariantAxisForm[];
-  variants: VariantForm[];
-  prices: PriceItemForm[];
-  attributes: AttributeForm[];
-  categories: string[];
-  suppliers: SupplierForm[];
-  media: MediaForm[];
-  bundles: BundleForm[];
-  profile: ProductProfileForm;
+export interface InventoryTransactionForm {
+  transactionType: number;
+  quantity: number;
+  unitCost?: number;
+  referenceType?: string;
+  referenceNumber?: string;
+  note?: string;
+  occurredAt?: string;
+}
+
+export interface InventoryReservationForm {
+  quantity: number;
+  reservationCode: string;
+  reservedUntil?: string;
+  status?: number;
+  sourceType?: string;
+  sourceId?: string;
+}
+
+export interface PriceListItemForm {
+  productPriceListId: string;
+  amount?: number;
+  compareAtAmount?: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+}
+
+export interface PhysicalProfileForm {
+  weight?: number;
+  width?: number;
+  height?: number;
+  length?: number;
+  requiresShipping?: boolean;
+  isFragile?: boolean;
+  isHazardous?: boolean;
+  requiresSerialNumber?: boolean;
+  warrantyInMonths?: number;
+}
+
+export interface SoftwareProfileForm {
+  version?: string;
+  licenseModel?: number;
+  seatCount?: number;
+  downloadUrl?: string;
+  supportedPlatformsJson?: string;
+  systemRequirementsJson?: string;
+  releaseNotes?: string;
+}
+
+export interface ServiceProfileForm {
+  deliveryMode?: number;
+  durationInMinutes?: number;
+  maxConcurrentBooking?: number;
+  serviceAreaJson?: string;
+}
+
+export interface SubscriptionProfileForm {
+  billingPeriodUnit?: number;
+  billingPeriodValue?: number;
+  trialDays?: number;
+  autoRenew?: boolean;
+  gracePeriodDays?: number;
+  cancellationPolicy?: string;
 }
 
 export interface ProductFormValues {
@@ -104,5 +152,22 @@ export interface ProductFormValues {
   taxRate?: number;
   taxCode?: string;
   tags?: string;
-  metadata: ProductMetadataForm;
+  metadataJson?: string;
+
+  attributeValues: AttributeValueForm[];
+  variants: VariantForm[];
+  prices: PriceItemForm[];
+  inventories: InventoryForm[];
+  mediaItems: MediaItemForm[];
+  categoryMaps: CategoryMapForm[];
+  bundleItems: BundleItemForm[];
+  supplierMaps: SupplierMapForm[];
+  inventoryTransactions: InventoryTransactionForm[];
+  inventoryReservations: InventoryReservationForm[];
+  priceListItems: PriceListItemForm[];
+
+  physicalProfile: PhysicalProfileForm;
+  softwareProfile: SoftwareProfileForm;
+  serviceProfile: ServiceProfileForm;
+  subscriptionProfile: SubscriptionProfileForm;
 }

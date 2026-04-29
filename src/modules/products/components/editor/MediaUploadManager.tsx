@@ -1,106 +1,159 @@
-import React, { useState } from "react";
-import { Button } from "reactstrap";
-import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import FileUploadField from "@/modules/shared/components/FileUploadField";
+import React from "react";
+import { useFieldArray, useFormContext } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 
+const MEDIA_TYPES = [
+  { value: 1, label: "Görsel" },
+  { value: 2, label: "Video" },
+  { value: 3, label: "Belge" },
+  { value: 4, label: "3D Model" },
+];
+
+const emptyMedia = () => ({
+  mediaType: 1,
+  url: "",
+  thumbnailUrl: "",
+  mimeType: "image/jpeg",
+  altText: "",
+  isPrimary: false,
+  sortOrder: undefined as number | undefined,
+});
+
 const MediaUploadManager: React.FC = () => {
-  const { control, register, setValue } = useFormContext<ProductFormValues>();
-  const { fields, append, remove } = useFieldArray({ control, name: "metadata.media" });
-  const [files, setFiles] = useState<File[]>([]);
-  const mediaValues = useWatch({ control, name: "metadata.media" }) ?? [];
-
-  const handleFilesChange = (nextFiles: File[]) => {
-    const newFiles = nextFiles.filter(
-      (file) => !files.some((prev) => prev.name === file.name && prev.size === file.size)
-    );
-
-    if (newFiles.length) {
-      newFiles.forEach((file, index) => {
-        append({
-          fileName: file.name,
-          isCover: fields.length === 0 && index === 0,
-          sortOrder: fields.length + index + 1,
-        });
-      });
-    }
-
-    setFiles(nextFiles);
-  };
-
-  const handleCoverChange = (index: number) => {
-    const current = mediaValues ?? [];
-    current.forEach((_item, idx) => {
-      setValue(`metadata.media.${idx}.isCover` as const, idx === index, { shouldDirty: true });
-    });
-  };
-
-  const handleRemove = (index: number) => {
-    const fileName = mediaValues[index]?.fileName;
-    remove(index);
-    if (fileName) {
-      setFiles((prev) => prev.filter((file) => file.name !== fileName));
-    }
-  };
+  const { control, register, formState: { errors } } = useFormContext<ProductFormValues>();
+  const { fields, append, remove } = useFieldArray({ control, name: "mediaItems" });
 
   return (
-    <div className="card card-bordered">
-      <div className="card-inner border-bottom">
+    <div>
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h6 className="mb-0">Medya</h6>
-          <small className="text-muted">Gorselleri yukleyin, kapak ve siralama belirleyin.</small>
+          <h6 className="overline-title text-primary mb-0">Medya Dosyaları</h6>
+          <p className="text-soft fs-13px mb-0">Ürün görselleri, videoları ve belgelerini ekleyin.</p>
         </div>
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => append(emptyMedia())}
+        >
+          <em className="icon ni ni-plus me-1" />
+          Medya Ekle
+        </button>
       </div>
-      <div className="card-inner">
-        <div className="mb-3">
-          <FileUploadField files={files} onFilesChange={handleFilesChange} />
-        </div>
 
-        {fields.length === 0 ? (
-          <div className="alert alert-light mb-0">Henus medya eklenmedi.</div>
-        ) : (
-          <div className="d-flex flex-column gap-2">
-            {fields.map((field, index) => (
-              <div key={field.id} className="border rounded p-3">
-                <div className="row g-3 align-items-end">
-                  <div className="col-md-4">
-                    <label className="form-label">Dosya</label>
-                    <input className="form-control" readOnly value={mediaValues[index]?.fileName ?? ""} />
+      {fields.length === 0 && (
+        <div className="text-center py-5 text-soft">
+          <em className="icon ni ni-img fs-2 d-block mb-2" />
+          <p className="mb-0">Henüz medya eklenmedi.</p>
+        </div>
+      )}
+
+      <div className="row g-3">
+        {fields.map((field, index) => (
+          <div key={field.id} className="col-12">
+            <div className="card card-bordered">
+              <div className="card-inner">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <span className="badge bg-outline-primary">Medya #{index + 1}</span>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-icon btn-trigger text-danger"
+                    onClick={() => remove(index)}
+                    title="Medyayı Sil"
+                  >
+                    <em className="icon ni ni-trash" />
+                  </button>
+                </div>
+
+                <div className="row g-3">
+                  <div className="col-md-3">
+                    <label className="form-label">Medya Tipi</label>
+                    <select
+                      className="form-control form-select"
+                      {...register(`mediaItems.${index}.mediaType`, { valueAsNumber: true })}
+                    >
+                      {MEDIA_TYPES.map((mt) => (
+                        <option key={mt.value} value={mt.value}>{mt.label}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="col-md-2">
-                    <label className="form-label">Sira</label>
+
+                  <div className="col-md-3">
+                    <label className="form-label">MIME Tipi</label>
                     <input
-                      type="number"
                       className="form-control"
-                      {...register(`metadata.media.${index}.sortOrder` as const, { valueAsNumber: true })}
+                      placeholder="image/jpeg"
+                      {...register(`mediaItems.${index}.mimeType`)}
                     />
                   </div>
+
                   <div className="col-md-3">
-                    <label className="form-label">Varyant SKU</label>
-                    <input className="form-control" {...register(`metadata.media.${index}.variantSku` as const)} />
+                    <label className="form-label">Sıralama</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="form-control"
+                      placeholder="1"
+                      {...register(`mediaItems.${index}.sortOrder`, { valueAsNumber: true })}
+                    />
                   </div>
-                  <div className="col-md-2">
-                    <div className="form-check mt-4">
+
+                  <div className="col-md-3 d-flex align-items-end pb-1">
+                    <div className="form-check form-switch">
                       <input
                         type="checkbox"
                         className="form-check-input"
-                        checked={Boolean(mediaValues[index]?.isCover)}
-                        onChange={() => handleCoverChange(index)}
+                        id={`media-primary-${field.id}`}
+                        {...register(`mediaItems.${index}.isPrimary`)}
                       />
-                      <label className="form-check-label">Kapak</label>
+                      <label className="form-check-label" htmlFor={`media-primary-${field.id}`}>
+                        Birincil Görsel
+                      </label>
                     </div>
                   </div>
-                  <div className="col-md-1 text-end">
-                    <Button color="danger" size="sm" type="button" onClick={() => handleRemove(index)}>
-                      Kaldir
-                    </Button>
+
+                  <div className="col-md-6">
+                    <label className="form-label">URL</label>
+                    <input
+                      className={`form-control ${errors.mediaItems?.[index]?.url ? "is-invalid" : ""}`}
+                      placeholder="https://example.com/image.jpg"
+                      {...register(`mediaItems.${index}.url`)}
+                    />
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label">Küçük Resim URL</label>
+                    <input
+                      className="form-control"
+                      placeholder="https://example.com/thumb.jpg"
+                      {...register(`mediaItems.${index}.thumbnailUrl`)}
+                    />
+                  </div>
+
+                  <div className="col-12">
+                    <label className="form-label">Alt Metin</label>
+                    <input
+                      className="form-control"
+                      placeholder="Ürün görseli açıklaması (SEO)"
+                      {...register(`mediaItems.${index}.altText`)}
+                    />
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        )}
+        ))}
       </div>
+
+      {fields.length > 0 && (
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm mt-3"
+          onClick={() => append(emptyMedia())}
+        >
+          <em className="icon ni ni-plus me-1" />
+          Medya Ekle
+        </button>
+      )}
     </div>
   );
 };

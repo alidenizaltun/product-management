@@ -1,210 +1,152 @@
 import React from "react";
-import { Button } from "reactstrap";
 import { useFieldArray, useFormContext } from "react-hook-form";
-import { ProductFormValues, VariantAxisForm } from "@/modules/products/types/productEditor.types";
+import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 
-const parseAxisValues = (valuesCsv: string) =>
-  valuesCsv
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-const buildCombinations = (axes: VariantAxisForm[]) => {
-  const validAxes = axes
-    .map((axis) => ({
-      name: axis.name?.trim(),
-      values: parseAxisValues(axis.valuesCsv ?? ""),
-    }))
-    .filter((axis) => axis.name && axis.values.length);
-
-  if (!validAxes.length) {
-    return [] as Array<Record<string, string>>;
-  }
-
-  return validAxes.reduce<Array<Record<string, string>>>((acc, axis) => {
-    if (acc.length === 0) {
-      return axis.values.map((value) => ({ [axis.name as string]: value }));
-    }
-
-    return acc.flatMap((combo) =>
-      axis.values.map((value) => ({
-        ...combo,
-        [axis.name as string]: value,
-      }))
-    );
-  }, []);
-};
+const emptyVariant = () => ({
+  sku: "",
+  name: "",
+  optionValuesJson: "",
+  additionalPrice: undefined as number | undefined,
+  additionalCost: undefined as number | undefined,
+  isActive: true,
+});
 
 const VariantBuilder: React.FC = () => {
-  const { control, register, getValues } = useFormContext<ProductFormValues>();
-  const {
-    fields: axisFields,
-    append: appendAxis,
-    remove: removeAxis,
-  } = useFieldArray({ control, name: "metadata.variantAxes" });
-  const {
-    fields: variantFields,
-    append: appendVariant,
-    remove: removeVariant,
-    replace: replaceVariants,
-  } = useFieldArray({ control, name: "metadata.variants" });
-
-  const handleGenerate = () => {
-    const axes = getValues("metadata.variantAxes") ?? [];
-    const combos = buildCombinations(axes);
-    if (!combos.length) {
-      return;
-    }
-
-    const existingVariants = getValues("metadata.variants") ?? [];
-    const variantSummaries = new Map(
-      existingVariants.map((variant) => [variant.optionSummary ?? "", variant])
-    );
-
-    const generated = combos.map((combo) => {
-      const optionSummary = Object.entries(combo)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(" | ");
-      const existing = variantSummaries.get(optionSummary);
-      if (existing) {
-        return existing;
-      }
-      return {
-        sku: "",
-        barcode: "",
-        isActive: true,
-        optionSummary,
-      };
-    });
-
-    replaceVariants(generated);
-  };
+  const { control, register, formState: { errors } } = useFormContext<ProductFormValues>();
+  const { fields, append, remove } = useFieldArray({ control, name: "variants" });
 
   return (
-    <div className="d-flex flex-column gap-3">
-      <div className="card card-bordered">
-        <div className="card-inner border-bottom">
-          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div>
-              <h6 className="mb-0">Varyant Akslari</h6>
-              <small className="text-muted">Aks ekleyip kombinasyon uretin.</small>
-            </div>
-            <div className="d-flex gap-2">
-              <Button
-                color="light"
-                size="sm"
-                type="button"
-                onClick={() => appendAxis({ name: "", valuesCsv: "" })}
-              >
-                Aks Ekle
-              </Button>
-              <Button color="primary" size="sm" type="button" onClick={handleGenerate}>
-                Kombinasyon Uret
-              </Button>
-            </div>
-          </div>
+    <div>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h6 className="overline-title text-primary mb-0">Ürün Varyantları</h6>
+          <p className="text-soft fs-13px mb-0">Her varyant için SKU, fiyat farkı ve seçenek değerleri tanımlayın.</p>
         </div>
-        <div className="card-inner">
-          {axisFields.length === 0 ? (
-            <div className="alert alert-light mb-0">Henus varyant akslari eklenmedi.</div>
-          ) : (
-            <div className="d-flex flex-column gap-2">
-              {axisFields.map((axis, index) => (
-                <div key={axis.id} className="border rounded p-3">
-                  <div className="row g-3 align-items-end">
-                    <div className="col-md-4">
-                      <label className="form-label">Aks Adi</label>
-                      <input
-                        className="form-control"
-                        {...register(`metadata.variantAxes.${index}.name` as const, { required: true })}
-                      />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label">Degerler (virgul ile)</label>
-                      <input
-                        className="form-control"
-                        placeholder="Kirmizi, Mavi, Siyah"
-                        {...register(`metadata.variantAxes.${index}.valuesCsv` as const)}
-                      />
-                    </div>
-                    <div className="col-md-2 text-end">
-                      <Button color="danger" size="sm" type="button" onClick={() => removeAxis(index)}>
-                        Kaldir
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => append(emptyVariant())}
+        >
+          <em className="icon ni ni-plus me-1" />
+          Varyant Ekle
+        </button>
       </div>
 
-      <div className="card card-bordered">
-        <div className="card-inner border-bottom">
-          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div>
-              <h6 className="mb-0">Varyantlar</h6>
-              <small className="text-muted">Kombinasyon uretin ya da manuel varyant ekleyin.</small>
+      {fields.length === 0 && (
+        <div className="text-center py-5 text-soft">
+          <em className="icon ni ni-package fs-2 d-block mb-2" />
+          <p className="mb-0">Henüz varyant eklenmedi.</p>
+        </div>
+      )}
+
+      {fields.map((field, index) => (
+        <div key={field.id} className="card card-bordered mb-3">
+          <div className="card-inner">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <span className="badge bg-outline-primary">Varyant #{index + 1}</span>
+              <button
+                type="button"
+                className="btn btn-sm btn-icon btn-trigger text-danger"
+                onClick={() => remove(index)}
+                title="Varyantı Sil"
+              >
+                <em className="icon ni ni-trash" />
+              </button>
             </div>
-            <Button
-              color="light"
-              size="sm"
-              type="button"
-              onClick={() => appendVariant({ sku: "", barcode: "", isActive: true, optionSummary: "" })}
-            >
-              Varyant Ekle
-            </Button>
+
+            <div className="row g-3">
+              <div className="col-md-4">
+                <label className="form-label">
+                  SKU <span className="text-danger">*</span>
+                </label>
+                <input
+                  className={`form-control ${errors.variants?.[index]?.sku ? "is-invalid" : ""}`}
+                  placeholder="PRD-0001-RED-L"
+                  {...register(`variants.${index}.sku`, { required: "SKU zorunludur" })}
+                />
+                {errors.variants?.[index]?.sku && (
+                  <div className="invalid-feedback">{errors.variants[index]?.sku?.message}</div>
+                )}
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label">Varyant Adı</label>
+                <input
+                  className="form-control"
+                  placeholder="Kırmızı / L"
+                  {...register(`variants.${index}.name`)}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label">Seçenek Değerleri (JSON)</label>
+                <input
+                  className="form-control"
+                  placeholder='{"color":"red","size":"L"}'
+                  {...register(`variants.${index}.optionValuesJson`)}
+                />
+              </div>
+
+              <div className="col-md-3">
+                <label className="form-label">Ek Fiyat</label>
+                <div className="form-control-wrap">
+                  <div className="form-icon form-icon-left">
+                    <em className="icon ni ni-sign-turkish-lira" />
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="form-control ps-4"
+                    placeholder="0.00"
+                    {...register(`variants.${index}.additionalPrice`, { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+
+              <div className="col-md-3">
+                <label className="form-label">Ek Maliyet</label>
+                <div className="form-control-wrap">
+                  <div className="form-icon form-icon-left">
+                    <em className="icon ni ni-sign-turkish-lira" />
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="form-control ps-4"
+                    placeholder="0.00"
+                    {...register(`variants.${index}.additionalCost`, { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+
+              <div className="col-md-3 d-flex align-items-end pb-1">
+                <div className="form-check form-switch">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id={`variant-active-${field.id}`}
+                    {...register(`variants.${index}.isActive`)}
+                  />
+                  <label className="form-check-label" htmlFor={`variant-active-${field.id}`}>
+                    Aktif
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="card-inner">
-          {variantFields.length === 0 ? (
-            <div className="alert alert-light mb-0">Varyant bulunmuyor.</div>
-          ) : (
-            <div className="d-flex flex-column gap-2">
-              {variantFields.map((variant, index) => (
-                <div key={variant.id} className="border rounded p-3">
-                  <div className="row g-3 align-items-end">
-                    <div className="col-md-3">
-                      <label className="form-label">SKU</label>
-                      <input
-                        className="form-control"
-                        {...register(`metadata.variants.${index}.sku` as const, { required: true })}
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label">Barkod</label>
-                      <input className="form-control" {...register(`metadata.variants.${index}.barcode` as const)} />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label">Secenek Ozeti</label>
-                      <input
-                        className="form-control"
-                        {...register(`metadata.variants.${index}.optionSummary` as const)}
-                      />
-                    </div>
-                    <div className="col-md-1 d-flex align-items-center">
-                      <div className="form-check">
-                        <input
-                          type="checkbox"
-                          className="form-check-input"
-                          {...register(`metadata.variants.${index}.isActive` as const)}
-                        />
-                        <label className="form-check-label">Aktif</label>
-                      </div>
-                    </div>
-                    <div className="col-md-1 text-end">
-                      <Button color="danger" size="sm" type="button" onClick={() => removeVariant(index)}>
-                        Kaldir
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      ))}
+
+      {fields.length > 0 && (
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => append(emptyVariant())}
+        >
+          <em className="icon ni ni-plus me-1" />
+          Varyant Ekle
+        </button>
+      )}
     </div>
   );
 };

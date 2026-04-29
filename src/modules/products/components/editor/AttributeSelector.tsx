@@ -1,76 +1,109 @@
 import React from "react";
-import { Button } from "reactstrap";
-import { useFieldArray, useFormContext } from "react-hook-form";
+import { useFieldArray, useFormContext, Controller } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
+import AttributeDefinitionSelect from "@/modules/shared/components/selects/AttributeDefinitionSelect";
+
+const emptyAttribute = () => ({
+  attributeDefinitionId: "",
+  valueText: "",
+});
 
 const AttributeSelector: React.FC = () => {
-  const { control, register, watch } = useFormContext<ProductFormValues>();
-  const { fields, append, remove } = useFieldArray({ control, name: "metadata.attributes" });
+  const { control, register, formState: { errors } } = useFormContext<ProductFormValues>();
+  const { fields, append, remove } = useFieldArray({ control, name: "attributeValues" });
 
   return (
-    <div className="card card-bordered">
-      <div className="card-inner border-bottom">
-        <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <div>
-            <h6 className="mb-0">Ozellikler</h6>
-            <small className="text-muted">Urun ve varyant bazli ozellikleri tanimlayin.</small>
-          </div>
-          <Button
-            color="light"
-            size="sm"
-            type="button"
-            onClick={() => append({ definitionKey: "", value: "", scope: "product", variantSku: "" })}
-          >
-            Ozellik Ekle
-          </Button>
+    <div>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h6 className="overline-title text-primary mb-0">Ürün Özellikleri</h6>
+          <p className="text-soft fs-13px mb-0">Ürüne atanacak özellik tanımı ve değerlerini girin.</p>
         </div>
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => append(emptyAttribute())}
+        >
+          <em className="icon ni ni-plus me-1" />
+          Özellik Ekle
+        </button>
       </div>
 
-      <div className="card-inner">
-        {fields.length === 0 ? (
-          <div className="alert alert-light mb-0">Henus ozellik eklenmedi.</div>
-        ) : (
-          <div className="d-flex flex-column gap-2">
-            {fields.map((field, index) => {
-              const scope = watch(`metadata.attributes.${index}.scope` as const);
-              return (
-                <div key={field.id} className="border rounded p-3">
-                  <div className="row g-3 align-items-end">
-                    <div className="col-md-3">
-                      <label className="form-label">Tanim Anahtari</label>
-                      <input className="form-control" {...register(`metadata.attributes.${index}.definitionKey` as const)} />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label">Deger</label>
-                      <input className="form-control" {...register(`metadata.attributes.${index}.value` as const)} />
-                    </div>
-                    <div className="col-md-2">
-                      <label className="form-label">Kapsam</label>
-                      <select className="form-control form-select" {...register(`metadata.attributes.${index}.scope` as const)}>
-                        <option value="product">Urun</option>
-                        <option value="variant">Varyant</option>
-                      </select>
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label">Varyant SKU</label>
-                      <input
-                        className="form-control"
-                        disabled={scope !== "variant"}
-                        {...register(`metadata.attributes.${index}.variantSku` as const)}
-                      />
-                    </div>
-                    <div className="col-md-1 text-end">
-                      <Button color="danger" size="sm" type="button" onClick={() => remove(index)}>
-                        Kaldir
-                      </Button>
-                    </div>
+      {fields.length === 0 && (
+        <div className="text-center py-5 text-soft">
+          <em className="icon ni ni-list-check fs-2 d-block mb-2" />
+          <p className="mb-0">Henüz özellik eklenmedi.</p>
+        </div>
+      )}
+
+      {fields.map((field, index) => (
+        <div key={field.id} className="card card-bordered mb-3">
+          <div className="card-inner">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <span className="badge bg-outline-primary">Özellik #{index + 1}</span>
+              <button
+                type="button"
+                className="btn btn-sm btn-icon btn-trigger text-danger"
+                onClick={() => remove(index)}
+                title="Özelliği Sil"
+              >
+                <em className="icon ni ni-trash" />
+              </button>
+            </div>
+
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label">
+                  Özellik Tanımı <span className="text-danger">*</span>
+                </label>
+                <Controller
+                  control={control}
+                  name={`attributeValues.${index}.attributeDefinitionId`}
+                  rules={{ required: "Özellik tanımı seçiniz" }}
+                  render={({ field: f }) => (
+                    <AttributeDefinitionSelect
+                      value={f.value || null}
+                      onChange={(val) => f.onChange(val ?? "")}
+                    />
+                  )}
+                />
+                {errors.attributeValues?.[index]?.attributeDefinitionId && (
+                  <div className="text-danger fs-12px mt-1">
+                    {errors.attributeValues[index]?.attributeDefinitionId?.message}
                   </div>
-                </div>
-              );
-            })}
+                )}
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label">
+                  Değer <span className="text-danger">*</span>
+                </label>
+                <input
+                  className={`form-control ${errors.attributeValues?.[index]?.valueText ? "is-invalid" : ""}`}
+                  placeholder="Özellik değeri"
+                  {...register(`attributeValues.${index}.valueText`, { required: "Değer zorunludur" })}
+                />
+                {errors.attributeValues?.[index]?.valueText && (
+                  <div className="invalid-feedback">
+                    {errors.attributeValues[index]?.valueText?.message}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      ))}
+
+      {fields.length > 0 && (
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => append(emptyAttribute())}
+        >
+          <em className="icon ni ni-plus me-1" />
+          Özellik Ekle
+        </button>
+      )}
     </div>
   );
 };

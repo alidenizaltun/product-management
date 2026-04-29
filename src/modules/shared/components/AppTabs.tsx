@@ -16,7 +16,7 @@ interface AppTabsProps {
 const AppTabs: React.FC<AppTabsProps> = ({ tabs, activeTab, onTabChange }) => {
   return (
     <div className="card card-bordered">
-      <div className="card-inner border-bottom">
+      <div className="card-inner">
         <ul className="nav nav-tabs card-header-tabs flex-wrap gap-2 h-100">
           {tabs.map((tab) => (
             <li key={tab.id} className="nav-item">

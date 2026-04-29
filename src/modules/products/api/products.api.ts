@@ -1,8 +1,6 @@
 import {
   ProductDto,
   ProductFilterDto,
-  CreateProductRequestDto,
-  UpdateProductRequestDto,
   CreateFullProductRequestDto,
   UpdateFullProductRequestDto,
 } from "@/domain";
@@ -14,10 +12,10 @@ export interface ProductListResponse {
   totalCount: number;
 }
 
-const buildQuery = (params?: ProductFilterDto & { page?: number; pageSize?: number }) => {
-  if (!params) {
-    return "";
-  }
+export type ProductListParams = ProductFilterDto & { page?: number; pageSize?: number };
+
+const buildQuery = (params?: ProductListParams) => {
+  if (!params) return "";
 
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -31,7 +29,7 @@ const buildQuery = (params?: ProductFilterDto & { page?: number; pageSize?: numb
 };
 
 export const productsApi = {
-  getProducts: async (params?: ProductFilterDto & { page?: number; pageSize?: number }): Promise<ProductListResponse> => {
+  getProducts: async (params?: ProductListParams): Promise<ProductListResponse> => {
     const endpoint = `${apiEndpoints.productOperations.products.list}${buildQuery(params)}`;
     const response = await apiClient.get<ProductDto[] | ProductListResponse>(endpoint);
 
@@ -46,19 +44,15 @@ export const productsApi = {
     return apiClient.get<ProductDto>(apiEndpoints.productOperations.products.byId(id));
   },
 
-  createProduct: async (payload: CreateProductRequestDto): Promise<ProductDto> => {
-    return apiClient.post<ProductDto>(apiEndpoints.productOperations.products.list, payload);
-  },
-
-  updateProduct: async (id: string, payload: UpdateProductRequestDto): Promise<void> => {
-    await apiClient.put<void>(apiEndpoints.productOperations.products.byId(id), payload);
-  },
-
   createFullProduct: async (payload: CreateFullProductRequestDto): Promise<ProductDto> => {
-    return apiClient.post<ProductDto>(apiEndpoints.productOperations.products.list, payload);
+    return apiClient.post<ProductDto>(apiEndpoints.productOperations.products.full, payload);
   },
 
   updateFullProduct: async (id: string, payload: UpdateFullProductRequestDto): Promise<void> => {
-    await apiClient.put<void>(apiEndpoints.productOperations.products.byId(id), payload);
+    await apiClient.put<void>(apiEndpoints.productOperations.products.fullById(id), payload);
+  },
+
+  deleteProduct: async (id: string): Promise<void> => {
+    await apiClient.delete<void>(apiEndpoints.productOperations.products.byId(id));
   },
 };

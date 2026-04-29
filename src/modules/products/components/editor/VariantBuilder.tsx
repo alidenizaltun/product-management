@@ -1,6 +1,7 @@
 import React from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
+import JsonFieldEditor from "@/modules/shared/components/JsonFieldEditor";
 
 const emptyVariant = () => ({
   sku: "",
@@ -79,11 +80,10 @@ const VariantBuilder: React.FC = () => {
               </div>
 
               <div className="col-md-4">
-                <label className="form-label">Seçenek Değerleri (JSON)</label>
-                <input
-                  className="form-control"
-                  placeholder='{"color":"red","size":"L"}'
-                  {...register(`variants.${index}.optionValuesJson`)}
+                <JsonFieldEditor
+                  name={`variants.${index}.optionValuesJson`}
+                  label="Seçenek Değerleri"
+                  type="object"
                 />
               </div>
 

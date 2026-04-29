@@ -1,6 +1,16 @@
 import React from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
+import JsonFieldEditor from "@/modules/shared/components/JsonFieldEditor";
+
+const SUPPORTED_PLATFORMS = [
+  "Windows",
+  "macOS",
+  "Linux",
+  "iOS",
+  "Android",
+  "Web",
+];
 
 const PhysicalProfileForm: React.FC = () => {
   const { register } = useFormContext<ProductFormValues>();
@@ -122,12 +132,19 @@ const SoftwareProfileForm: React.FC = () => {
           <input className="form-control" placeholder="https://example.com/download" {...register("softwareProfile.downloadUrl")} />
         </div>
         <div className="col-md-6">
-          <label className="form-label">Desteklenen Platformlar (JSON)</label>
-          <input className="form-control" placeholder='["windows","mac","linux"]' {...register("softwareProfile.supportedPlatformsJson")} />
+          <JsonFieldEditor
+            name="softwareProfile.supportedPlatformsJson"
+            label="Desteklenen Platformlar"
+            type="array"
+            suggestions={SUPPORTED_PLATFORMS}
+          />
         </div>
         <div className="col-md-6">
-          <label className="form-label">Sistem Gereksinimleri (JSON)</label>
-          <input className="form-control" placeholder='{"ram":"8GB","os":"Windows 10+"}' {...register("softwareProfile.systemRequirementsJson")} />
+          <JsonFieldEditor
+            name="softwareProfile.systemRequirementsJson"
+            label="Sistem Gereksinimleri"
+            type="object"
+          />
         </div>
         <div className="col-12">
           <label className="form-label">Sürüm Notları</label>
@@ -167,8 +184,11 @@ const ServiceProfileForm: React.FC = () => {
           <input type="number" min="1" className="form-control" placeholder="1" {...register("serviceProfile.maxConcurrentBooking", { valueAsNumber: true })} />
         </div>
         <div className="col-12">
-          <label className="form-label">Hizmet Alanı (JSON)</label>
-          <input className="form-control" placeholder='{"city":"Istanbul","district":"Kadıköy"}' {...register("serviceProfile.serviceAreaJson")} />
+          <JsonFieldEditor
+            name="serviceProfile.serviceAreaJson"
+            label="Hizmet Alanı"
+            type="object"
+          />
         </div>
       </div>
     </div>

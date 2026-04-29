@@ -1,24 +1,35 @@
 import React from "react";
-import Select from "react-select";
+import { useSupplierLookups } from "@/services/lookup/useLookups";
+import LookupSelect from "./LookupSelect";
 
 interface SupplierSelectProps {
   value: string | null;
   onChange: (value: string | null) => void;
+  placeholder?: string;
+  isInvalid?: boolean;
+  error?: string;
+  includeInactive?: boolean;
 }
 
-const options = [
-  { value: "sup-1", label: "ABC Tedarik" },
-  { value: "sup-2", label: "XYZ Dağıtım" },
-];
+const SupplierSelect: React.FC<SupplierSelectProps> = ({
+  value,
+  onChange,
+  placeholder = "Tedarikçi seçin",
+  isInvalid,
+  error,
+  includeInactive = false,
+}) => {
+  const { data, isLoading } = useSupplierLookups(includeInactive);
 
-const SupplierSelect: React.FC<SupplierSelectProps> = ({ value, onChange }) => {
   return (
-    <Select
-      options={options}
-      value={options.find((item) => item.value === value) ?? null}
-      onChange={(selected) => onChange(selected?.value ?? null)}
-      placeholder="Tedarikçi seçin"
-      isClearable
+    <LookupSelect
+      items={data}
+      isLoading={isLoading}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      isInvalid={isInvalid}
+      error={error}
     />
   );
 };

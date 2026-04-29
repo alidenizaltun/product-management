@@ -14,44 +14,34 @@ import DashboardPage from "@/modules/dashboard/pages/DashboardPage";
 import ProductListPage from "@/modules/products/pages/ProductListPage";
 import ProductFormPage from "@/modules/products/pages/ProductFormPage";
 import ProductDetailPage from "@/modules/products/pages/ProductDetailPage";
+import CategoryListPage from "@/modules/catalog/pages/CategoryListPage";
+import CategoryFormPage from "@/modules/catalog/pages/CategoryFormPage";
+import CategoryDetailPage from "@/modules/catalog/pages/CategoryDetailPage";
+import SupplierListPage from "@/modules/catalog/pages/SupplierListPage";
+import SupplierFormPage from "@/modules/catalog/pages/SupplierFormPage";
+import SupplierDetailPage from "@/modules/catalog/pages/SupplierDetailPage";
+import WarehouseListPage from "@/modules/catalog/pages/WarehouseListPage";
+import WarehouseFormPage from "@/modules/catalog/pages/WarehouseFormPage";
+import WarehouseDetailPage from "@/modules/catalog/pages/WarehouseDetailPage";
+import AttributeDefinitionListPage from "@/modules/attributes/pages/AttributeDefinitionListPage";
+import AttributeDefinitionFormPage from "@/modules/attributes/pages/AttributeDefinitionFormPage";
+import AttributeDefinitionDetailPage from "@/modules/attributes/pages/AttributeDefinitionDetailPage";
 import {
-  CategoryDetailPage,
-  CategoryFormPage,
-  CategoryListPage,
-} from "@/modules/catalog/pages/CategoryPages";
-import {
-  SupplierDetailPage,
-  SupplierFormPage,
-  SupplierListPage,
-} from "@/modules/catalog/pages/SupplierPages";
-import {
-  WarehouseDetailPage,
-  WarehouseFormPage,
-  WarehouseListPage,
-} from "@/modules/catalog/pages/WarehousePages";
-import {
-  AttributeDefinitionDetailPage,
-  AttributeDefinitionFormPage,
-  AttributeDefinitionListPage,
   AttributeSetDetailPage,
   AttributeSetFormPage,
   AttributeSetListPage,
-} from "@/modules/attributes/pages/AttributePages";
-import {
-  CampaignRulesPage,
-  PriceListDetailPage,
-  PriceListFormPage,
-  PriceListListPage,
-} from "@/modules/pricing/pages/PricingPages";
-import {
-  ReservationDetailPage,
-  ReservationListPage,
-  StockListPage,
-  StockTransactionDetailPage,
-  StockTransactionFormPage,
-  StockTransactionListPage,
-  WarehouseStockDetailPage,
-} from "@/modules/inventory/pages/InventoryPages";
+} from "@/modules/attributes/pages/AttributeSetPages";
+import PriceListListPage from "@/modules/pricing/pages/PriceListListPage";
+import PriceListFormPage from "@/modules/pricing/pages/PriceListFormPage";
+import PriceListDetailPage from "@/modules/pricing/pages/PriceListDetailPage";
+import CampaignRulesPage from "@/modules/pricing/pages/CampaignRulesPage";
+import StockListPage from "@/modules/inventory/pages/StockListPage";
+import StockTransactionListPage from "@/modules/inventory/pages/StockTransactionListPage";
+import StockTransactionFormPage from "@/modules/inventory/pages/StockTransactionFormPage";
+import StockTransactionDetailPage from "@/modules/inventory/pages/StockTransactionDetailPage";
+import ReservationListPage from "@/modules/inventory/pages/ReservationListPage";
+import ReservationDetailPage from "@/modules/inventory/pages/ReservationDetailPage";
+import WarehouseStockPage from "@/modules/inventory/pages/WarehouseStockPage";
 import {
   LoginAuditPage,
   PermissionMatrixPage,
@@ -133,7 +123,7 @@ const Pages = () => {
                 <Route path="inventory/transactions/:id" element={<StockTransactionDetailPage />} />
                 <Route path="inventory/reservations" element={<ReservationListPage />} />
                 <Route path="inventory/reservations/:id" element={<ReservationDetailPage />} />
-                <Route path="inventory/warehouse-stock" element={<WarehouseStockDetailPage />} />
+                <Route path="inventory/warehouse-stock" element={<WarehouseStockPage />} />
 
                 <Route path="identity/users" element={<UserListPage />} />
                 <Route path="identity/users/new" element={<UserFormPage />} />

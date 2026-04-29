@@ -1,6 +1,7 @@
 import React from "react";
 import { useFormContext } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
+import JsonFieldEditor from "@/modules/shared/components/JsonFieldEditor";
 
 const GeneralInfoTab: React.FC = () => {
   const {
@@ -152,11 +153,10 @@ const GeneralInfoTab: React.FC = () => {
       </div>
 
       <div className="col-md-6">
-        <label className="form-label">Metadata (JSON)</label>
-        <input
-          className="form-control"
-          placeholder='{"key": "value"}'
-          {...register("metadataJson")}
+        <JsonFieldEditor
+          name="metadataJson"
+          label="Metadata"
+          type="object"
         />
       </div>
 

@@ -1,30 +1,35 @@
 import React from "react";
-import Select from "react-select";
+import { usePriceListLookups } from "@/services/lookup/useLookups";
+import LookupSelect from "./LookupSelect";
 
 interface PriceListSelectProps {
   value: string | null;
   onChange: (value: string | null) => void;
   placeholder?: string;
+  isInvalid?: boolean;
+  error?: string;
+  includeInactive?: boolean;
 }
-
-const options = [
-  { value: "pl-retail", label: "Perakende Fiyat Listesi" },
-  { value: "pl-wholesale", label: "Toptan Fiyat Listesi" },
-  { value: "pl-vip", label: "VIP Fiyat Listesi" },
-];
 
 const PriceListSelect: React.FC<PriceListSelectProps> = ({
   value,
   onChange,
   placeholder = "Fiyat listesi seçin",
+  isInvalid,
+  error,
+  includeInactive = false,
 }) => {
+  const { data, isLoading } = usePriceListLookups(includeInactive);
+
   return (
-    <Select
-      options={options}
-      value={options.find((item) => item.value === value) ?? null}
-      onChange={(selected) => onChange(selected?.value ?? null)}
+    <LookupSelect
+      items={data}
+      isLoading={isLoading}
+      value={value}
+      onChange={onChange}
       placeholder={placeholder}
-      isClearable
+      isInvalid={isInvalid}
+      error={error}
     />
   );
 };

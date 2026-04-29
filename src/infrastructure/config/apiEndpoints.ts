@@ -14,10 +14,20 @@ export const apiEndpoints = {
         getCurrentUser: "/api/auth/me",
         confirmEmail: "/api/auth/confirm-email",
     },
+    lookups: {
+        all: "/api/lookups",
+        products: "/api/lookups/products",
+        categories: "/api/lookups/categories",
+        warehouses: "/api/lookups/warehouses",
+        suppliers: "/api/lookups/suppliers",
+        priceLists: "/api/lookups/price-lists",
+    },
     productOperations: {
         products: {
             list: "/api/products",
             byId: (productId: string) => `/api/products/${productId}`,
+            full: "/api/products/full",
+            fullById: (productId: string) => `/api/products/${productId}/full`,
             categoryMapsByProductId: (productId: string) => `/api/products/${productId}/category-maps`,
         },
         attributes: {

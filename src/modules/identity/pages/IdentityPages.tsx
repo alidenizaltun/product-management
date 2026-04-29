@@ -1,49 +1,111 @@
 import React from "react";
-import ModuleListPage from "@/modules/shared/pages/ModuleListPage";
-import ModuleFormPage from "@/modules/shared/pages/ModuleFormPage";
-import ModuleDetailPage from "@/modules/shared/pages/ModuleDetailPage";
+import { useNavigate } from "react-router-dom";
+import { Button } from "reactstrap";
+import Content from "@/layout/content/Content";
+import Head from "@/layout/head/Head";
+import Icon from "@/components/icon/Icon";
+import { Block } from "@/components/Component";
+import PageHeader from "@/modules/shared/components/PageHeader";
+import EmptyState from "@/modules/shared/components/EmptyState";
+
+interface PlaceholderProps {
+  title: string;
+  description?: string;
+  emptyTitle: string;
+  emptyDescription?: string;
+  emptyIcon?: string;
+}
+
+const IdentityPlaceholder: React.FC<PlaceholderProps> = ({
+  title,
+  description,
+  emptyTitle,
+  emptyDescription,
+  emptyIcon = "users",
+}) => {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Head title={title} />
+      <Content>
+        <PageHeader title={title} description={description} />
+        <Block>
+          <div className="card card-bordered">
+            <EmptyState
+              icon={emptyIcon}
+              title={emptyTitle}
+              description={emptyDescription}
+              action={
+                <Button color="light" onClick={() => navigate("/dashboard")}>
+                  <Icon name="arrow-left" className="me-1" />
+                  Panele Dön
+                </Button>
+              }
+            />
+          </div>
+        </Block>
+      </Content>
+    </>
+  );
+};
 
 export const UserListPage: React.FC = () => (
-  <ModuleListPage
+  <IdentityPlaceholder
     title="Kullanıcılar"
-    description="Sistem kullanıcı hesapları"
-    createPath="/identity/users/new"
-    detailPathSample="/identity/users/sample"
+    description="Sistem kullanıcı hesapları."
+    emptyTitle="Kullanıcı yönetimi yakında"
+    emptyDescription="Bu modül henüz hazırlanma aşamasında."
+    emptyIcon="users"
   />
 );
 
 export const UserFormPage: React.FC = () => (
-  <ModuleFormPage
-    title="Kullanıcı Ekle / Düzenle"
-    fields={[
-      { name: "fullName", label: "Ad Soyad", type: "text" },
-      { name: "email", label: "E-posta", type: "text" },
-      { name: "isActive", label: "Aktif", type: "checkbox" },
-    ]}
+  <IdentityPlaceholder
+    title="Kullanıcı Düzenle"
+    emptyTitle="Kullanıcı yönetimi yakında"
+    emptyIcon="user-add"
   />
 );
 
-export const UserDetailPage: React.FC = () => <ModuleDetailPage title="Kullanıcı Detayı" />;
+export const UserDetailPage: React.FC = () => (
+  <IdentityPlaceholder
+    title="Kullanıcı Detayı"
+    emptyTitle="Kullanıcı yönetimi yakında"
+    emptyIcon="user"
+  />
+);
 
 export const RoleListPage: React.FC = () => (
-  <ModuleListPage
+  <IdentityPlaceholder
     title="Roller"
-    description="Rol ve yetki modeli"
-    createPath="/identity/roles/new"
-    detailPathSample="/identity/roles/sample"
+    description="Rol ve yetki modeli."
+    emptyTitle="Rol yönetimi yakında"
+    emptyIcon="shield-star"
   />
 );
 
 export const RoleFormPage: React.FC = () => (
-  <ModuleFormPage
-    title="Rol Ekle / Düzenle"
-    fields={[
-      { name: "name", label: "Rol Adı", type: "text" },
-      { name: "description", label: "Açıklama", type: "textarea" },
-    ]}
+  <IdentityPlaceholder title="Rol Düzenle" emptyTitle="Rol yönetimi yakında" emptyIcon="shield-star" />
+);
+
+export const RoleDetailPage: React.FC = () => (
+  <IdentityPlaceholder title="Rol Detayı" emptyTitle="Rol yönetimi yakında" emptyIcon="shield-star" />
+);
+
+export const PermissionMatrixPage: React.FC = () => (
+  <IdentityPlaceholder
+    title="Yetki Matrisi"
+    description="Rol-yetki eşleştirmesi."
+    emptyTitle="Yetki matrisi yakında"
+    emptyIcon="shield-check"
   />
 );
 
-export const RoleDetailPage: React.FC = () => <ModuleDetailPage title="Rol Detayı" />;
-export const PermissionMatrixPage: React.FC = () => <ModuleDetailPage title="Yetki Matrisi" />;
-export const LoginAuditPage: React.FC = () => <ModuleDetailPage title="Oturum / Kimlik Logları" />;
+export const LoginAuditPage: React.FC = () => (
+  <IdentityPlaceholder
+    title="Oturum / Kimlik Logları"
+    description="Giriş, çıkış ve kimlik doğrulama olayları."
+    emptyTitle="Audit logları yakında"
+    emptyIcon="activity"
+  />
+);

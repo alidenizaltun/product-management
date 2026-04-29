@@ -2,8 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "reactstrap";
 import { FormProvider, useForm } from "react-hook-form";
+import { parseApiErrors, toFormPath } from "@/utils/apiErrors";
 import Content from "@/layout/content/Content";
 import Head from "@/layout/head/Head";
+import Icon from "@/components/icon/Icon";
+import { Block } from "@/components/Component";
+import PageHeader from "@/modules/shared/components/PageHeader";
 import AppTabs, { TabItem } from "@/modules/shared/components/AppTabs";
 import { useProductDetail } from "@/modules/products/hooks/useProductDetail";
 import { useProductMutations } from "@/modules/products/hooks/useProductMutations";
@@ -169,9 +173,9 @@ const countErrors = (value: unknown): number => {
   ) {
     return 1;
   }
-  if (Array.isArray(value)) return value.reduce((sum, item) => sum + countErrors(item), 0);
+  if (Array.isArray(value)) return value.reduce((sum: number, item) => sum + countErrors(item), 0);
   if (typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).reduce(
+    return Object.values(value as Record<string, unknown>).reduce<number>(
       (sum, item) => sum + countErrors(item),
       0
     );
@@ -187,6 +191,7 @@ const ProductFormPage: React.FC = () => {
   const { data: product, isLoading } = useProductDetail(id);
   const { createFullMutation, updateFullMutation } = useProductMutations();
   const [activeTab, setActiveTab] = useState("general");
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const defaultValues = useMemo(() => buildDefaultValues(), []);
   const form = useForm<ProductFormValues>({
@@ -238,6 +243,7 @@ const ProductFormPage: React.FC = () => {
   const totalErrorCount = Object.values(tabErrorCounts).reduce((a, b) => a + b, 0);
 
   const onSubmit = async (values: ProductFormValues) => {
+    setSubmitError(null);
     const productPayload = {
       productCode: values.productCode,
       name: values.name,
@@ -287,14 +293,35 @@ const ProductFormPage: React.FC = () => {
       subscriptionProfile: values.kind === 4 ? values.subscriptionProfile : undefined,
     };
 
-    if (isEdit && id) {
-      await updateFullMutation.mutateAsync({ id, payload: fullPayload });
-      navigate(`/products/${id}`);
-      return;
-    }
+    try {
+      if (isEdit && id) {
+        await updateFullMutation.mutateAsync({ id, payload: fullPayload });
+        navigate(`/products/${id}`);
+        return;
+      }
 
-    const created = await createFullMutation.mutateAsync(fullPayload);
-    navigate(`/products/${created.id}`);
+      const created = await createFullMutation.mutateAsync(fullPayload);
+      navigate(`/products/${created.id}`);
+    } catch (err: unknown) {
+      const { fieldErrors, generalErrors } = parseApiErrors(err);
+
+      // Map server field paths → form paths and set inline errors
+      let hasFieldErrors = false;
+      for (const [serverKey, messages] of Object.entries(fieldErrors)) {
+        const path = toFormPath(serverKey) as Parameters<typeof form.setError>[0];
+        form.setError(path, {
+          type: "server",
+          message: messages[0] ?? "Geçersiz değer",
+        });
+        hasFieldErrors = true;
+      }
+
+      if (generalErrors.length > 0) {
+        setSubmitError(generalErrors.join(" "));
+      } else if (!hasFieldErrors) {
+        setSubmitError("Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+      }
+    }
   };
 
   const isPending = createFullMutation.isPending || updateFullMutation.isPending;
@@ -386,68 +413,72 @@ const ProductFormPage: React.FC = () => {
       <Content>
         <FormProvider {...form}>
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="nk-block-head nk-block-head-sm">
-              <div className="nk-block-between g-3">
-                <div className="nk-block-head-content">
-                  <h3 className="nk-block-title page-title">
-                    {isEdit ? "Ürün Düzenle" : "Yeni Ürün"}
-                  </h3>
-                  {isEdit && product && (
-                    <p className="text-soft mb-0">
-                      <em className="icon ni ni-tag me-1" />
-                      {product.productCode} — {product.name}
-                    </p>
+            <PageHeader
+              title={isEdit ? "Ürün Düzenle" : "Yeni Ürün"}
+              description={
+                isEdit && product ? `${product.productCode} — ${product.name}` : undefined
+              }
+              actions={
+                <div className="d-flex gap-2">
+                  <Button
+                    color="light py-2"
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => navigate("/products")}
+                  >
+                    İptal
+                  </Button>
+                  <Button color="primary py-2" type="submit" disabled={isPending}>
+                    {isPending ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" />
+                        Kaydediliyor...
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="save" className="me-1" />
+                        Kaydet
+                      </>
+                    )}
+                  </Button>
+                </div>
+              }
+            />
+            <Block>
+              {isEdit && isLoading ? (
+                <div className="card card-bordered">
+                  <div className="card-inner d-flex align-items-center gap-3 py-5">
+                    <span className="spinner-border spinner-border-sm text-primary" />
+                    <span>Ürün yükleniyor...</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {submitError && (
+                    <div className="alert alert-danger d-flex align-items-center gap-2 mb-3">
+                      <Icon name="cross-circle" className="fs-5" id="" style={{}} />
+                      <span>{submitError}</span>
+                      <button
+                        type="button"
+                        className="btn-close ms-auto"
+                        aria-label="Kapat"
+                        onClick={() => setSubmitError(null)}
+                      />
+                    </div>
                   )}
-                </div>
-                <div className="nk-block-head-content">
-                  <div className="d-flex gap-2">
-                    <Button
-                      color="light"
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => navigate("/products")}
-                    >
-                      İptal
-                    </Button>
-                    <Button color="primary" type="submit" disabled={isPending}>
-                      {isPending ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2" />
-                          Kaydediliyor...
-                        </>
-                      ) : (
-                        <>
-                          <em className="icon ni ni-save me-1" />
-                          Kaydet
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {isEdit && isLoading ? (
-              <div className="card card-bordered">
-                <div className="card-inner d-flex align-items-center gap-3 py-5">
-                  <span className="spinner-border spinner-border-sm text-primary" />
-                  <span>Ürün yükleniyor...</span>
-                </div>
-              </div>
-            ) : (
-              <>
-                {totalErrorCount > 0 && (
-                  <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
-                    <em className="icon ni ni-alert-circle fs-5" />
-                    <span>
-                      Formda <strong>{totalErrorCount}</strong> hata bulunuyor. Lütfen kırmızı
-                      sayaçlı sekmelerdeki alanları kontrol edin.
-                    </span>
-                  </div>
-                )}
-                <AppTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-              </>
-            )}
+                  {totalErrorCount > 0 && (
+                    <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
+                      <Icon name="alert-circle" className="fs-5" />
+                      <span>
+                        Formda <strong>{totalErrorCount}</strong> hata bulunuyor. Lütfen kırmızı
+                        sayaçlı sekmelerdeki alanları kontrol edin.
+                      </span>
+                    </div>
+                  )}
+                  <AppTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+                </>
+              )}
+            </Block>
           </form>
         </FormProvider>
       </Content>

@@ -7,7 +7,7 @@ import {
   UpdateProductCategoryRequestDto,
   UpdateProductSupplierRequestDto,
   UpdateWarehouseRequestDto,
-} from "@/domain";
+} from "@/shared/types/productOperations.types";
 
 export const catalogKeys = {
   categories: ["catalog", "categories"] as const,

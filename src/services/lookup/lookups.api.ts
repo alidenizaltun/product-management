@@ -1,5 +1,5 @@
-import { apiClient } from "@/infrastructure/api";
-import { apiEndpoints } from "@/infrastructure/config";
+import { apiClient } from "@/shared/api/apiClient";
+import { apiEndpoints } from "@/shared/config/apiEndpoints";
 
 export interface LookupItem {
   id: string;

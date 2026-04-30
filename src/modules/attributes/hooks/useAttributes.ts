@@ -3,7 +3,7 @@ import { attributeDefinitionsApi } from "@/modules/attributes/api/attributes.api
 import {
   CreateProductAttributeDefinitionRequestDto,
   UpdateProductAttributeDefinitionRequestDto,
-} from "@/domain";
+} from "@/shared/types/productOperations.types";
 
 export const attributeKeys = {
   definitions: ["attributes", "definitions"] as const,

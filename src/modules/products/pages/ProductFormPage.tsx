@@ -11,7 +11,7 @@ import PageHeader from "@/modules/shared/components/PageHeader";
 import AppTabs, { TabItem } from "@/modules/shared/components/AppTabs";
 import { useProductDetail } from "@/modules/products/hooks/useProductDetail";
 import { useProductMutations } from "@/modules/products/hooks/useProductMutations";
-import { ProductDto } from "@/domain";
+import { ProductDto } from "@/shared/types/productOperations.types";
 import {
   ProductFormValues,
   PhysicalProfileForm,

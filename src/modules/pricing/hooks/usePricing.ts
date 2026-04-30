@@ -3,7 +3,7 @@ import { priceListsApi } from "@/modules/pricing/api/pricing.api";
 import {
   CreateProductPriceListRequestDto,
   UpdateProductPriceListRequestDto,
-} from "@/domain";
+} from "@/shared/types/productOperations.types";
 
 export const pricingKeys = {
   priceLists: ["pricing", "priceLists"] as const,

@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownToggle, UncontrolledDropdown } from "reactstrap";
 import { Link, useLocation } from "react-router";
 import { UserAvatar, LinkList, LinkItem, Icon, TooltipComponent } from "@/components/Component";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "@/application/stores";
+import { useAuthStore } from "@/modules/auth/stores/authStore";
 
 import { useTheme } from '@/layout/provider/Theme';
 

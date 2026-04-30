@@ -9,7 +9,7 @@ import PageHeader from "@/modules/shared/components/PageHeader";
 import DataTableServer, { DataColumn } from "@/modules/shared/components/DataTableServer";
 import StatusBadge from "@/modules/shared/components/StatusBadge";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
-import { WarehouseDto } from "@/domain";
+import { WarehouseDto } from "@/shared/types/productOperations.types";
 import { useWarehouses, useWarehouseMutations } from "@/modules/catalog/hooks/useCatalog";
 
 const PAGE_SIZE = 10;

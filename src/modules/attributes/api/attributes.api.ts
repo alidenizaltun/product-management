@@ -2,11 +2,11 @@ import {
   ProductAttributeDefinitionDto,
   CreateProductAttributeDefinitionRequestDto,
   UpdateProductAttributeDefinitionRequestDto,
-} from "@/domain";
-import { apiClient } from "@/infrastructure/api";
-import { apiEndpoints } from "@/infrastructure/config";
+} from "@/shared/types/productOperations.types";
+import { apiClient } from "@/shared/api/apiClient";
+import { apiEndpoints } from "@/shared/config/apiEndpoints";
 
-const attr = apiEndpoints.productOperations.attributes;
+const attr = apiEndpoints.attributes;
 
 export const attributeDefinitionsApi = {
   list: () => apiClient.get<ProductAttributeDefinitionDto[]>(attr.list),

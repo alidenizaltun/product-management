@@ -8,7 +8,7 @@ import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import DataTableServer, { DataColumn } from "@/modules/shared/components/DataTableServer";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
-import { ProductAttributeDefinitionDto } from "@/domain";
+import { ProductAttributeDefinitionDto } from "@/shared/types/productOperations.types";
 import {
   useAttributeDefinitions,
   useAttributeDefinitionMutations,

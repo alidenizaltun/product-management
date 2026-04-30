@@ -8,7 +8,7 @@ import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import DataTableServer, { DataColumn } from "@/modules/shared/components/DataTableServer";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
-import { ProductCategoryDto } from "@/domain";
+import { ProductCategoryDto } from "@/shared/types/productOperations.types";
 import { useCategories, useCategoryMutations } from "@/modules/catalog/hooks/useCatalog";
 
 const PAGE_SIZE = 10;

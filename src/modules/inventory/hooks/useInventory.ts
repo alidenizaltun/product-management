@@ -6,7 +6,7 @@ import {
   CreateInventoryTransactionRequestDto,
   InventoryReservationFilterDto,
   UpdateInventoryReservationStatusRequestDto,
-} from "@/domain";
+} from "@/shared/types/productOperations.types";
 
 export const inventoryKeys = {
   inventories: (filter?: ProductInventoryFilterDto) =>

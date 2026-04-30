@@ -4,7 +4,7 @@ import Head from "@/layout/head/Head";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import DataTableServer, { DataColumn } from "@/modules/shared/components/DataTableServer";
-import { ProductInventoryDto } from "@/domain";
+import { ProductInventoryDto } from "@/shared/types/productOperations.types";
 import { useInventories } from "@/modules/inventory/hooks/useInventory";
 
 const PAGE_SIZE = 10;

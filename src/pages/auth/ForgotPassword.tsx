@@ -17,8 +17,8 @@ import {
   Icon,
   PreviewCard,
 } from "@/components/Component";
-import { useAuthStore } from "@/application/stores";
-import { config } from "@/infrastructure/config";
+import { useAuthStore } from "@/modules/auth/stores/authStore";
+import { config } from "@/shared/config/appConfig";
 import { ForgotPasswordFormData, forgotPasswordSchema } from "@/shared/validations";
 
 const ForgotPassword = () => {

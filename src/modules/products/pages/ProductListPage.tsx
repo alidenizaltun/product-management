@@ -9,7 +9,7 @@ import PageHeader from "@/modules/shared/components/PageHeader";
 import DataTableServer, { DataColumn } from "@/modules/shared/components/DataTableServer";
 import StatusBadge from "@/modules/shared/components/StatusBadge";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
-import { ProductDto } from "@/domain";
+import { ProductDto } from "@/shared/types/productOperations.types";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import { useProductMutations } from "@/modules/products/hooks/useProductMutations";
 

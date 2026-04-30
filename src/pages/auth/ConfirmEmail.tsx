@@ -3,8 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Alert, Spinner } from "reactstrap";
 import { Block, BlockContent, BlockTitle, Icon } from "@/components/Component";
 import Head from "@/layout/head/Head";
-import { useAuthStore } from "@/application/stores";
-import { config } from "@/infrastructure/config";
+import { useAuthStore } from "@/modules/auth/stores/authStore";
+import { config } from "@/shared/config/appConfig";
 
 const ConfirmEmail = () => {
   const [searchParams] = useSearchParams();

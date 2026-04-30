@@ -3,11 +3,11 @@ import {
   CreateProductPriceListRequestDto,
   UpdateProductPriceListRequestDto,
   ProductPriceListItemDto,
-} from "@/domain";
-import { apiClient } from "@/infrastructure/api";
-import { apiEndpoints } from "@/infrastructure/config";
+} from "@/shared/types/productOperations.types";
+import { apiClient } from "@/shared/api/apiClient";
+import { apiEndpoints } from "@/shared/config/apiEndpoints";
 
-const pl = apiEndpoints.productOperations.priceLists;
+const pl = apiEndpoints.priceLists;
 
 export const priceListsApi = {
   list: () => apiClient.get<ProductPriceListDto[]>(pl.list),

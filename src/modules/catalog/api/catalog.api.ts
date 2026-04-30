@@ -8,11 +8,11 @@ import {
   WarehouseDto,
   CreateWarehouseRequestDto,
   UpdateWarehouseRequestDto,
-} from "@/domain";
-import { apiClient } from "@/infrastructure/api";
-import { apiEndpoints } from "@/infrastructure/config";
+} from "@/shared/types/productOperations.types";
+import { apiClient } from "@/shared/api/apiClient";
+import { apiEndpoints } from "@/shared/config/apiEndpoints";
 
-const cat = apiEndpoints.productOperations.catalog;
+const cat = apiEndpoints.catalog;
 
 export const categoriesApi = {
   list: () => apiClient.get<ProductCategoryDto[]>(cat.categories),

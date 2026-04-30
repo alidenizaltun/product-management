@@ -1,11 +1,12 @@
 import {
   ProductDto,
+  ProductDetailDto,
   ProductFilterDto,
   CreateFullProductRequestDto,
   UpdateFullProductRequestDto,
-} from "@/domain";
-import { apiClient } from "@/infrastructure/api";
-import { apiEndpoints } from "@/infrastructure/config";
+} from "@/shared/types/productOperations.types";
+import { apiClient } from "@/shared/api/apiClient";
+import { apiEndpoints } from "@/shared/config/apiEndpoints";
 
 export interface ProductListResponse {
   items: ProductDto[];
@@ -30,7 +31,7 @@ const buildQuery = (params?: ProductListParams) => {
 
 export const productsApi = {
   getProducts: async (params?: ProductListParams): Promise<ProductListResponse> => {
-    const endpoint = `${apiEndpoints.productOperations.products.list}${buildQuery(params)}`;
+    const endpoint = `${apiEndpoints.products.list}${buildQuery(params)}`;
     const response = await apiClient.get<ProductDto[] | ProductListResponse>(endpoint);
 
     if (Array.isArray(response)) {
@@ -41,18 +42,22 @@ export const productsApi = {
   },
 
   getProductById: async (id: string): Promise<ProductDto> => {
-    return apiClient.get<ProductDto>(apiEndpoints.productOperations.products.byId(id));
+    return apiClient.get<ProductDto>(apiEndpoints.products.byId(id));
+  },
+
+  getProductDetail: async (id: string): Promise<ProductDetailDto> => {
+    return apiClient.get<ProductDetailDto>(apiEndpoints.products.detail(id));
   },
 
   createFullProduct: async (payload: CreateFullProductRequestDto): Promise<ProductDto> => {
-    return apiClient.post<ProductDto>(apiEndpoints.productOperations.products.full, payload);
+    return apiClient.post<ProductDto>(apiEndpoints.products.full, payload);
   },
 
   updateFullProduct: async (id: string, payload: UpdateFullProductRequestDto): Promise<void> => {
-    await apiClient.put<void>(apiEndpoints.productOperations.products.fullById(id), payload);
+    await apiClient.put<void>(apiEndpoints.products.fullById(id), payload);
   },
 
   deleteProduct: async (id: string): Promise<void> => {
-    await apiClient.delete<void>(apiEndpoints.productOperations.products.byId(id));
+    await apiClient.delete<void>(apiEndpoints.products.byId(id));
   },
 };

@@ -6,7 +6,7 @@ import { Icon } from "@/components/Component";
 import { LinkList, LinkItem } from "@/components/links/Links";
 import UserAvatar from "@/components/user/UserAvatar";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "@/application/stores";
+import { useAuthStore } from "@/modules/auth/stores/authStore";
 import { useTheme, useThemeUpdate } from "@/layout/provider/Theme";
 
 const User = () => {

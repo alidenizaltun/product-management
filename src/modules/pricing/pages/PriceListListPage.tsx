@@ -9,7 +9,7 @@ import PageHeader from "@/modules/shared/components/PageHeader";
 import DataTableServer, { DataColumn } from "@/modules/shared/components/DataTableServer";
 import StatusBadge from "@/modules/shared/components/StatusBadge";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
-import { ProductPriceListDto } from "@/domain";
+import { ProductPriceListDto } from "@/shared/types/productOperations.types";
 import { usePriceLists, usePriceListMutations } from "@/modules/pricing/hooks/usePricing";
 
 const PAGE_SIZE = 10;

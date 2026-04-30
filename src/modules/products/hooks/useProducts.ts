@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { productsApi } from "@/modules/products/api/products.api";
 import { queryKeys } from "@/services/query/queryKeys";
-import { ProductFilterDto } from "@/domain";
+import { ProductFilterDto } from "@/shared/types/productOperations.types";
 
 export const useProducts = (params?: ProductFilterDto & { page?: number; pageSize?: number }) => {
   return useQuery({

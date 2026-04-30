@@ -7,11 +7,11 @@ import {
   InventoryReservationDto,
   InventoryReservationFilterDto,
   UpdateInventoryReservationStatusRequestDto,
-} from "@/domain";
-import { apiClient } from "@/infrastructure/api";
-import { apiEndpoints } from "@/infrastructure/config";
+} from "@/shared/types/productOperations.types";
+import { apiClient } from "@/shared/api/apiClient";
+import { apiEndpoints } from "@/shared/config/apiEndpoints";
 
-const inv = apiEndpoints.productOperations.inventory;
+const inv = apiEndpoints.inventory;
 
 const buildQuery = (params?: Record<string, unknown>) => {
   if (!params) return "";

@@ -7,7 +7,7 @@ import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import DataTableServer, { DataColumn } from "@/modules/shared/components/DataTableServer";
-import { InventoryTransactionDto } from "@/domain";
+import { InventoryTransactionDto } from "@/shared/types/productOperations.types";
 import { useInventoryTransactions } from "@/modules/inventory/hooks/useInventory";
 
 const PAGE_SIZE = 10;

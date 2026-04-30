@@ -5,7 +5,7 @@ import { queryKeys } from "@/services/query/queryKeys";
 export const useProductDetail = (id?: string) => {
   return useQuery({
     queryKey: id ? queryKeys.products.detail(id) : ["products", "detail", "missing"],
-    queryFn: () => productsApi.getProductById(id as string),
+    queryFn: () => productsApi.getProductDetail(id as string),
     enabled: Boolean(id),
   });
 };

@@ -4,6 +4,9 @@ import {
   ProductFilterDto,
   CreateFullProductRequestDto,
   UpdateFullProductRequestDto,
+  ProductModuleDto,
+  SoftwarePricingTierDto,
+  ProductLicenseOfferingDto,
 } from "@/shared/types/productOperations.types";
 import { apiClient } from "@/shared/api/apiClient";
 import { apiEndpoints } from "@/shared/config/apiEndpoints";
@@ -59,5 +62,56 @@ export const productsApi = {
 
   deleteProduct: async (id: string): Promise<void> => {
     await apiClient.delete<void>(apiEndpoints.products.byId(id));
+  },
+
+  // --- Modules ---
+  getModules: async (productId: string): Promise<ProductModuleDto[]> => {
+    return apiClient.get<ProductModuleDto[]>(apiEndpoints.products.modules(productId));
+  },
+
+  createModule: async (productId: string, payload: Omit<ProductModuleDto, "id" | "productId" | "createdAt" | "updatedAt">): Promise<ProductModuleDto> => {
+    return apiClient.post<ProductModuleDto>(apiEndpoints.products.modules(productId), payload);
+  },
+
+  updateModule: async (productId: string, moduleId: string, payload: Partial<ProductModuleDto>): Promise<void> => {
+    await apiClient.put<void>(apiEndpoints.products.moduleById(productId, moduleId), payload);
+  },
+
+  deleteModule: async (productId: string, moduleId: string): Promise<void> => {
+    await apiClient.delete<void>(apiEndpoints.products.moduleById(productId, moduleId));
+  },
+
+  // --- Pricing Tiers ---
+  getPricingTiers: async (productId: string): Promise<SoftwarePricingTierDto[]> => {
+    return apiClient.get<SoftwarePricingTierDto[]>(apiEndpoints.products.pricingTiers(productId));
+  },
+
+  createPricingTier: async (productId: string, payload: Omit<SoftwarePricingTierDto, "id" | "productId" | "createdAt" | "updatedAt">): Promise<SoftwarePricingTierDto> => {
+    return apiClient.post<SoftwarePricingTierDto>(apiEndpoints.products.pricingTiers(productId), payload);
+  },
+
+  updatePricingTier: async (productId: string, tierId: string, payload: Partial<SoftwarePricingTierDto>): Promise<void> => {
+    await apiClient.put<void>(apiEndpoints.products.pricingTierById(productId, tierId), payload);
+  },
+
+  deletePricingTier: async (productId: string, tierId: string): Promise<void> => {
+    await apiClient.delete<void>(apiEndpoints.products.pricingTierById(productId, tierId));
+  },
+
+  // --- License Offerings ---
+  getLicenseOfferings: async (productId: string): Promise<ProductLicenseOfferingDto[]> => {
+    return apiClient.get<ProductLicenseOfferingDto[]>(apiEndpoints.products.licenseOfferings(productId));
+  },
+
+  createLicenseOffering: async (productId: string, payload: Omit<ProductLicenseOfferingDto, "id" | "productId" | "createdAt" | "updatedAt">): Promise<ProductLicenseOfferingDto> => {
+    return apiClient.post<ProductLicenseOfferingDto>(apiEndpoints.products.licenseOfferings(productId), payload);
+  },
+
+  updateLicenseOffering: async (productId: string, offeringId: string, payload: Partial<ProductLicenseOfferingDto>): Promise<void> => {
+    await apiClient.put<void>(apiEndpoints.products.licenseOfferingById(productId, offeringId), payload);
+  },
+
+  deleteLicenseOffering: async (productId: string, offeringId: string): Promise<void> => {
+    await apiClient.delete<void>(apiEndpoints.products.licenseOfferingById(productId, offeringId));
   },
 };

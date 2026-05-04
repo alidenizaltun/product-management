@@ -133,6 +133,47 @@ export interface SubscriptionProfileForm {
   cancellationPolicy?: string;
 }
 
+export interface ProductModuleForm {
+  moduleCode: string;
+  name: string;
+  description?: string;
+  additionalPrice: number;
+  currencyCode: string;
+  isOptional: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface SoftwarePricingTierForm {
+  licenseModel: number;
+  unit: string;
+  minUnits: number;
+  maxUnits?: number;
+  pricePerUnit: number;
+  flatFee: number;
+  currencyCode: string;
+  isActive: boolean;
+}
+
+export interface LicenseOfferingForm {
+  licenseModel: number;
+  name: string;
+  description?: string;
+  basePrice: number;
+  currencyCode: string;
+  billingPeriodUnit?: number;
+  billingPeriodValue?: number;
+  autoRenew: boolean;
+  gracePeriodDays?: number;
+  trialDays?: number;
+  convertToOfferingId?: string;
+  maxSeats?: number;
+  validFrom?: string;
+  validTo?: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
 export interface ProductFormValues {
   productCode: string;
   name: string;
@@ -170,4 +211,8 @@ export interface ProductFormValues {
   softwareProfile: SoftwareProfileForm;
   serviceProfile: ServiceProfileForm;
   subscriptionProfile: SubscriptionProfileForm;
+
+  modules: ProductModuleForm[];
+  softwarePricingTiers: SoftwarePricingTierForm[];
+  licenseOfferings: LicenseOfferingForm[];
 }

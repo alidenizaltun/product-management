@@ -100,12 +100,13 @@ const PhysicalProfileForm: React.FC = () => {
 
 const SoftwareProfileForm: React.FC = () => {
   const { register } = useFormContext<ProductFormValues>();
-  const LICENSE_MODELS = [
-    { value: 1, label: "Tek Seferlik" },
-    { value: 2, label: "Abonelik" },
-    { value: 3, label: "Açık Kaynak" },
-    { value: 4, label: "Deneme" },
-  ];
+ const LICENSE_MODELS = [
+ { value: 1, label: "Tek Seferlik (Perpetual)" },
+ { value: 2, label: "Abonelik (Subscription)" },
+ { value: 3, label: "Kullanım Bazlı (Usage-Based)" },
+ { value: 4, label: "Koltuk Bazlı (Seat-Based)" },
+ { value: 5, label: "Deneme (Trial)" },
+ ];
   return (
     <div>
       <h6 className="overline-title text-primary mb-3">Yazılım Profili</h6>

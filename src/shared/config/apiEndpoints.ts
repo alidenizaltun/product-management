@@ -26,6 +26,12 @@ export const apiEndpoints = {
     full: "/api/products/full",
     fullById: (id: string) => `/api/products/${id}/full`,
     categoryMaps: (id: string) => `/api/products/${id}/category-maps`,
+    modules: (id: string) => `/api/products/${id}/modules`,
+    moduleById: (productId: string, moduleId: string) => `/api/products/${productId}/modules/${moduleId}`,
+    pricingTiers: (id: string) => `/api/products/${id}/pricing-tiers`,
+    pricingTierById: (productId: string, tierId: string) => `/api/products/${productId}/pricing-tiers/${tierId}`,
+    licenseOfferings: (id: string) => `/api/products/${id}/license-offerings`,
+    licenseOfferingById: (productId: string, offeringId: string) => `/api/products/${productId}/license-offerings/${offeringId}`,
   },
   attributes: {
     list: "/api/attributes",

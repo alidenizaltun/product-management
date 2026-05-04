@@ -188,6 +188,59 @@ export interface ProductSubscriptionProfileDto {
   updatedAt?: string;
 }
 
+export interface ProductModuleDto {
+  id: Uuid;
+  productId: Uuid;
+  moduleCode: string;
+  name: string;
+  description?: string;
+  additionalPrice: number;
+  currencyCode: string;
+  isOptional: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface SoftwarePricingTierDto {
+  id: Uuid;
+  productId: Uuid;
+  licenseModel: number;
+  unit: string;
+  minUnits: number;
+  maxUnits?: number;
+  pricePerUnit: number;
+  flatFee: number;
+  currencyCode: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ProductLicenseOfferingDto {
+  id: Uuid;
+  productId: Uuid;
+  licenseModel: number;
+  name: string;
+  description?: string;
+  basePrice: number;
+  currencyCode: string;
+  billingPeriodUnit?: number;
+  billingPeriodValue?: number;
+  autoRenew: boolean;
+  gracePeriodDays?: number;
+  trialDays?: number;
+  convertToOfferingId?: Uuid;
+  maxSeats?: number;
+  validFrom?: string;
+  validTo?: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface ProductDetailDto extends ProductDto {
   attributeValues: ProductAttributeValueDto[];
   variants: ProductVariantDto[];
@@ -201,6 +254,9 @@ export interface ProductDetailDto extends ProductDto {
   softwareProfile?: ProductSoftwareProfileDto;
   serviceProfile?: ProductServiceProfileDto;
   subscriptionProfile?: ProductSubscriptionProfileDto;
+  modules?: ProductModuleDto[];
+  softwarePricingTiers?: SoftwarePricingTierDto[];
+  licenseOfferings?: ProductLicenseOfferingDto[];
 }
 
 export interface ProductFilterDto {
@@ -708,6 +764,44 @@ export interface CreateFullProductRequestDto {
     gracePeriodDays?: number;
     cancellationPolicy?: string;
   };
+  modules?: Array<{
+    moduleCode: string;
+    name: string;
+    description?: string;
+    additionalPrice?: number;
+    currencyCode: string;
+    isOptional?: boolean;
+    isActive?: boolean;
+    sortOrder?: number;
+  }>;
+  softwarePricingTiers?: Array<{
+    licenseModel: number;
+    unit: string;
+    minUnits: number;
+    maxUnits?: number;
+    pricePerUnit: number;
+    flatFee?: number;
+    currencyCode: string;
+    isActive?: boolean;
+  }>;
+  licenseOfferings?: Array<{
+    licenseModel: number;
+    name: string;
+    description?: string;
+    basePrice: number;
+    currencyCode: string;
+    billingPeriodUnit?: number;
+    billingPeriodValue?: number;
+    autoRenew?: boolean;
+    gracePeriodDays?: number;
+    trialDays?: number;
+    convertToOfferingId?: Uuid;
+    maxSeats?: number;
+    validFrom?: string;
+    validTo?: string;
+    isActive?: boolean;
+    sortOrder?: number;
+  }>;
 }
 
 export interface UpdateFullProductRequestDto extends Omit<CreateFullProductRequestDto, "product"> {

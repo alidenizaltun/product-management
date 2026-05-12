@@ -11,7 +11,7 @@ import PageHeader from "@/modules/shared/components/PageHeader";
 import AppTabs, { TabItem } from "@/modules/shared/components/AppTabs";
 import { useProductDetail } from "@/modules/products/hooks/useProductDetail";
 import { useProductMutations } from "@/modules/products/hooks/useProductMutations";
-import { ProductDto } from "@/shared/types/productOperations.types";
+import { ProductDetailDto } from "@/shared/types/productOperations.types";
 import {
     ProductFormValues,
     PhysicalProfileForm,
@@ -117,20 +117,12 @@ const buildDefaultValues = (): ProductFormValues => ({
     licenseOfferings: [],
 });
 
-const mapProductToForm = (product: ProductDto): ProductFormValues => {
+const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
     const base = buildDefaultValues();
-
-    let parsed: Partial<ProductFormValues> = {};
-    if (product.metadataJson) {
-        try {
-            parsed = JSON.parse(product.metadataJson) as Partial<ProductFormValues>;
-        } catch {
-            // ignore parse errors
-        }
-    }
 
     return {
         ...base,
+        // Temel ürün alanları
         productCode: product.productCode ?? "",
         name: product.name ?? "",
         shortDescription: product.shortDescription ?? "",
@@ -149,27 +141,170 @@ const mapProductToForm = (product: ProductDto): ProductFormValues => {
         taxRate: product.taxRate ?? undefined,
         taxCode: product.taxCode ?? "",
         tags: product.tags ?? "",
+        metadataJson: product.metadataJson ?? "",
 
-        attributeValues: Array.isArray(parsed.attributeValues) ? parsed.attributeValues : [],
-        variants: Array.isArray(parsed.variants) ? parsed.variants : [],
-        prices: Array.isArray(parsed.prices) ? parsed.prices : [],
-        inventories: Array.isArray(parsed.inventories) ? parsed.inventories : [],
-        mediaItems: Array.isArray(parsed.mediaItems) ? parsed.mediaItems : [],
-        categoryMaps: Array.isArray(parsed.categoryMaps) ? parsed.categoryMaps : [],
-        bundleItems: Array.isArray(parsed.bundleItems) ? parsed.bundleItems : [],
-        supplierMaps: Array.isArray(parsed.supplierMaps) ? parsed.supplierMaps : [],
-        inventoryTransactions: Array.isArray(parsed.inventoryTransactions) ? parsed.inventoryTransactions : [],
-        inventoryReservations: Array.isArray(parsed.inventoryReservations) ? parsed.inventoryReservations : [],
-        priceListItems: Array.isArray(parsed.priceListItems) ? parsed.priceListItems : [],
+        // İlişkili veriler — ProductDetailDto'nun kendi alanlarından okunur
+        attributeValues: (product.attributeValues ?? []).map((av) => ({
+            attributeDefinitionId: av.attributeDefinitionId,
+            valueText: av.valueText ?? "",
+        })),
 
-        physicalProfile: (parsed.physicalProfile as PhysicalProfileForm) ?? buildDefaultPhysical(),
-        softwareProfile: (parsed.softwareProfile as SoftwareProfileForm) ?? buildDefaultSoftware(),
-        serviceProfile: (parsed.serviceProfile as ServiceProfileForm) ?? buildDefaultService(),
-        subscriptionProfile: (parsed.subscriptionProfile as SubscriptionProfileForm) ?? buildDefaultSubscription(),
+        variants: (product.variants ?? []).map((v) => ({
+            sku: v.sku,
+            name: v.name,
+            optionValuesJson: v.optionValuesJson,
+            additionalPrice: v.additionalPrice,
+            additionalCost: v.additionalCost,
+            isActive: v.isActive,
+        })),
 
-        modules: Array.isArray(parsed.modules) ? parsed.modules : [],
-        softwarePricingTiers: Array.isArray(parsed.softwarePricingTiers) ? parsed.softwarePricingTiers : [],
-        licenseOfferings: Array.isArray(parsed.licenseOfferings) ? parsed.licenseOfferings : [],
+        prices: (product.prices ?? []).map((p) => ({
+            priceType: p.priceType,
+            amount: p.amount,
+            compareAtAmount: p.compareAtAmount,
+            currencyCode: p.currencyCode,
+            minQuantity: p.minQuantity,
+            maxQuantity: p.maxQuantity,
+            validFrom: p.validFrom,
+            validTo: p.validTo,
+            salesChannel: p.salesChannel,
+            customerGroupCode: p.customerGroupCode,
+        })),
+
+        inventories: (product.inventories ?? []).map((inv) => ({
+            warehouseId: inv.warehouseId,
+            warehouseCode: inv.warehouseCode,
+            quantityOnHand: inv.quantityOnHand,
+            quantityReserved: inv.quantityReserved,
+            reorderPoint: inv.reorderPoint,
+            reorderQuantity: inv.reorderQuantity,
+            inventoryPolicy: inv.inventoryPolicy,
+        })),
+
+        mediaItems: (product.mediaItems ?? []).map((m) => ({
+            mediaType: m.mediaType,
+            url: m.url,
+            thumbnailUrl: m.thumbnailUrl,
+            mimeType: m.mimeType,
+            altText: m.altText,
+            isPrimary: m.isPrimary,
+            sortOrder: m.sortOrder,
+        })),
+
+        categoryMaps: (product.categoryMaps ?? []).map((cm) => ({
+            productCategoryId: cm.productCategoryId,
+            isPrimary: cm.isPrimary,
+            sortOrder: cm.sortOrder,
+        })),
+
+        bundleItems: (product.bundleItems ?? []).map((bi) => ({
+            childProductId: bi.childProductId,
+            quantity: bi.quantity,
+            isOptional: bi.isOptional,
+        })),
+
+        supplierMaps: (product.supplierMaps ?? []).map((sm) => ({
+            productSupplierId: sm.productSupplierId,
+            supplierProductCode: sm.supplierProductCode,
+            supplierCost: sm.supplierCost,
+            leadTimeInDays: sm.leadTimeInDays,
+            minOrderQuantity: sm.minOrderQuantity,
+            isPreferred: sm.isPreferred,
+        })),
+
+        // Bu alanlar ProductDetailDto içinde gelmiyor, boş bırakılır
+        inventoryTransactions: [],
+        inventoryReservations: [],
+        priceListItems: [],
+
+        // Profil alanları
+        physicalProfile: product.physicalProfile
+            ? {
+                weight: product.physicalProfile.weight,
+                width: product.physicalProfile.width,
+                height: product.physicalProfile.height,
+                length: product.physicalProfile.length,
+                requiresShipping: product.physicalProfile.requiresShipping,
+                isFragile: product.physicalProfile.isFragile,
+                isHazardous: product.physicalProfile.isHazardous,
+                requiresSerialNumber: product.physicalProfile.requiresSerialNumber,
+                warrantyInMonths: product.physicalProfile.warrantyInMonths,
+            }
+            : buildDefaultPhysical(),
+
+        softwareProfile: product.softwareProfile
+            ? {
+                version: product.softwareProfile.version,
+                licenseModel: product.softwareProfile.licenseModel,
+                seatCount: product.softwareProfile.seatCount,
+                downloadUrl: product.softwareProfile.downloadUrl,
+                supportedPlatformsJson: product.softwareProfile.supportedPlatformsJson,
+                systemRequirementsJson: product.softwareProfile.systemRequirementsJson,
+                releaseNotes: product.softwareProfile.releaseNotes,
+            }
+            : buildDefaultSoftware(),
+
+        serviceProfile: product.serviceProfile
+            ? {
+                deliveryMode: product.serviceProfile.deliveryMode,
+                durationInMinutes: product.serviceProfile.durationInMinutes,
+                maxConcurrentBooking: product.serviceProfile.maxConcurrentBooking,
+                serviceAreaJson: product.serviceProfile.serviceAreaJson,
+            }
+            : buildDefaultService(),
+
+        subscriptionProfile: product.subscriptionProfile
+            ? {
+                billingPeriodUnit: product.subscriptionProfile.billingPeriodUnit,
+                billingPeriodValue: product.subscriptionProfile.billingPeriodValue,
+                trialDays: product.subscriptionProfile.trialDays,
+                autoRenew: product.subscriptionProfile.autoRenew,
+                gracePeriodDays: product.subscriptionProfile.gracePeriodDays,
+                cancellationPolicy: product.subscriptionProfile.cancellationPolicy,
+            }
+            : buildDefaultSubscription(),
+
+        // Yazılım modülleri ve lisans alanları
+        modules: (product.modules ?? []).map((m) => ({
+            moduleCode: m.moduleCode,
+            name: m.name,
+            description: m.description,
+            additionalPrice: m.additionalPrice,
+            currencyCode: m.currencyCode,
+            isOptional: m.isOptional,
+            isActive: m.isActive,
+            sortOrder: m.sortOrder,
+        })),
+
+        softwarePricingTiers: (product.softwarePricingTiers ?? []).map((t) => ({
+            licenseModel: t.licenseModel,
+            unit: t.unit,
+            minUnits: t.minUnits,
+            maxUnits: t.maxUnits,
+            pricePerUnit: t.pricePerUnit,
+            flatFee: t.flatFee,
+            currencyCode: t.currencyCode,
+            isActive: t.isActive,
+        })),
+
+        licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
+            licenseModel: lo.licenseModel,
+            name: lo.name,
+            description: lo.description,
+            basePrice: lo.basePrice,
+            currencyCode: lo.currencyCode,
+            billingPeriodUnit: lo.billingPeriodUnit,
+            billingPeriodValue: lo.billingPeriodValue,
+            autoRenew: lo.autoRenew,
+            gracePeriodDays: lo.gracePeriodDays,
+            trialDays: lo.trialDays,
+            convertToOfferingId: lo.convertToOfferingId,
+            maxSeats: lo.maxSeats,
+            validFrom: lo.validFrom,
+            validTo: lo.validTo,
+            isActive: lo.isActive,
+            sortOrder: lo.sortOrder,
+        })),
     };
 };
 
@@ -303,14 +438,16 @@ const ProductFormPage: React.FC = () => {
             serviceProfile: values.kind === 3 ? values.serviceProfile : undefined,
             subscriptionProfile: values.kind === 4 ? values.subscriptionProfile : undefined,
             // Yazılım ürünü (kind=2) için ek lisans alanları
-            modules: values.kind === 2 && values.modules?.length ? values.modules : undefined,
+            modules: values.kind === 2 && values.modules?.length
+                ? values.modules.map((m) => ({ ...m, productId: id ?? undefined }))
+                : undefined,
             softwarePricingTiers:
                 values.kind === 2 && values.softwarePricingTiers?.length
-                    ? values.softwarePricingTiers
+                    ? values.softwarePricingTiers.map((t) => ({ ...t, productId: id ?? undefined }))
                     : undefined,
             licenseOfferings:
                 values.kind === 2 && values.licenseOfferings?.length
-                    ? values.licenseOfferings
+                    ? values.licenseOfferings.map((lo) => ({ ...lo, productId: id ?? undefined }))
                     : undefined,
         };
 

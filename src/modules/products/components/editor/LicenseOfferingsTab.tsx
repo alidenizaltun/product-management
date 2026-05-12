@@ -36,12 +36,7 @@ const EMPTY_OFFERING = {
     sortOrder: 0,
 };
 
-interface OfferingRowProps {
-    index: number;
-    remove: (index: number) => void;
-}
-
-const OfferingRow: React.FC<OfferingRowProps> = ({ index, remove }) => {
+const OfferingFields: React.FC<{ index: number }> = ({ index }) => {
     const {
         register,
         control,
@@ -55,197 +50,202 @@ const OfferingRow: React.FC<OfferingRowProps> = ({ index, remove }) => {
     const showSeats = model === 4;
 
     return (
-        <div className="card card-bordered">
-            <div className="card-inner h-100">
-                <div className="d-flex align-items-center justify-content-between mb-3">
-                    <span className="badge bg-warning-soft text-warning">Teklif #{index + 1}</span>
-                    <button
-                        type="button"
-                        className="btn btn-sm btn-icon btn-outline-danger"
-                        onClick={() => remove(index)}
-                        title="Teklifi Kaldır"
-                    >
-                        <em className="icon ni ni-trash" />
-                    </button>
+        <div className="row g-3">
+            {/* Lisans Modeli */}
+            <div className="col-md-4">
+                <label className="form-label">Lisans Modeli</label>
+                <select
+                    className="form-control form-select"
+                    {...register(`licenseOfferings.${index}.licenseModel`, { valueAsNumber: true })}
+                >
+                    {LICENSE_MODELS.map((lm) => (
+                        <option key={lm.value} value={lm.value}>
+                            {lm.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Teklif Adı */}
+            <div className="col-md-5">
+                <label className="form-label">
+                    Teklif Adı <span className="text-danger">*</span>
+                </label>
+                <input
+                    className="form-control"
+                    placeholder="Yıllık Abonelik"
+                    {...register(`licenseOfferings.${index}.name`)}
+                />
+                {errors.licenseOfferings?.[index]?.name && (
+                    <span className="text-danger fs-12">
+                        {errors.licenseOfferings[index]?.name?.message}
+                    </span>
+                )}
+            </div>
+
+            {/* Sıra */}
+            <div className="col-md-3">
+                <label className="form-label">Sıra</label>
+                <input
+                    type="number"
+                    min="0"
+                    className="form-control"
+                    placeholder="1"
+                    {...register(`licenseOfferings.${index}.sortOrder`, { valueAsNumber: true })}
+                />
+            </div>
+
+            {/* Taban Fiyat */}
+            <div className="col-md-4">
+                <label className="form-label">
+                    Taban Fiyat <span className="text-danger">*</span>
+                </label>
+                <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="form-control"
+                    placeholder="0.00"
+                    {...register(`licenseOfferings.${index}.basePrice`, { valueAsNumber: true })}
+                />
+                {errors.licenseOfferings?.[index]?.basePrice && (
+                    <span className="text-danger fs-12">
+                        {errors.licenseOfferings[index]?.basePrice?.message}
+                    </span>
+                )}
+            </div>
+
+            {/* Para Birimi */}
+            <div className="col-md-3">
+                <label className="form-label">Para Birimi</label>
+                <input
+                    className="form-control"
+                    placeholder="TRY"
+                    {...register(`licenseOfferings.${index}.currencyCode`)}
+                />
+            </div>
+
+            {/* Koltuk Bazlı */}
+            {showSeats && (
+                <div className="col-md-3">
+                    <label className="form-label">Maks. Koltuk</label>
+                    <input
+                        type="number"
+                        min="1"
+                        className="form-control"
+                        placeholder="Sınırsız"
+                        {...register(`licenseOfferings.${index}.maxSeats`, { valueAsNumber: true })}
+                    />
                 </div>
-                <div className="row g-3">
-                    <div className="col-md-4">
-                        <label className="form-label">Lisans Modeli</label>
+            )}
+
+            {/* Abonelik alanları */}
+            {showBilling && (
+                <>
+                    <div className="col-md-3">
+                        <label className="form-label">Faturalama Periyodu</label>
                         <select
                             className="form-control form-select"
-                            {...register(`licenseOfferings.${index}.licenseModel`, { valueAsNumber: true })}
+                            {...register(`licenseOfferings.${index}.billingPeriodUnit`, { valueAsNumber: true })}
                         >
-                            {LICENSE_MODELS.map((lm) => (
-                                <option key={lm.value} value={lm.value}>
-                                    {lm.label}
+                            <option value="">Seçiniz</option>
+                            {BILLING_UNITS.map((bu) => (
+                                <option key={bu.value} value={bu.value}>
+                                    {bu.label}
                                 </option>
                             ))}
                         </select>
                     </div>
-                    <div className="col-md-5">
-                        <label className="form-label">
-                            Teklif Adı <span className="text-danger">*</span>
-                        </label>
-                        <input
-                            className="form-control"
-                            placeholder="Yıllık Abonelik"
-                            {...register(`licenseOfferings.${index}.name`)}
-                        />
-                        {errors.licenseOfferings?.[index]?.name && (
-                            <span className="text-danger fs-12">
-                                {errors.licenseOfferings[index]?.name?.message}
-                            </span>
-                        )}
-                    </div>
                     <div className="col-md-3">
-                        <label className="form-label">Sıra</label>
+                        <label className="form-label">Periyot Değeri</label>
                         <input
                             type="number"
-                            min="0"
+                            min="1"
                             className="form-control"
                             placeholder="1"
-                            {...register(`licenseOfferings.${index}.sortOrder`, { valueAsNumber: true })}
+                            {...register(`licenseOfferings.${index}.billingPeriodValue`, { valueAsNumber: true })}
                         />
                     </div>
-                    <div className="col-md-4">
-                        <label className="form-label">
-                            Taban Fiyat <span className="text-danger">*</span>
-                        </label>
+                    <div className="col-md-3">
+                        <label className="form-label">İzin Süresi (gün)</label>
                         <input
                             type="number"
-                            step="0.01"
                             min="0"
                             className="form-control"
-                            placeholder="0.00"
-                            {...register(`licenseOfferings.${index}.basePrice`, { valueAsNumber: true })}
+                            placeholder="7"
+                            {...register(`licenseOfferings.${index}.gracePeriodDays`, { valueAsNumber: true })}
                         />
                     </div>
-                    <div className="col-md-3">
-                        <label className="form-label">Para Birimi</label>
+                </>
+            )}
+
+            {/* Deneme */}
+            {showTrial && (
+                <div className="col-md-3">
+                    <label className="form-label">Deneme Süresi (gün)</label>
+                    <input
+                        type="number"
+                        min="1"
+                        className="form-control"
+                        placeholder="30"
+                        {...register(`licenseOfferings.${index}.trialDays`, { valueAsNumber: true })}
+                    />
+                </div>
+            )}
+
+            {/* Açıklama */}
+            <div className="col-12">
+                <label className="form-label">Açıklama</label>
+                <input
+                    className="form-control"
+                    placeholder="Teklif hakkında kısa açıklama..."
+                    {...register(`licenseOfferings.${index}.description`)}
+                />
+            </div>
+
+            {/* Geçerlilik tarihleri */}
+            <div className="col-md-3">
+                <label className="form-label">Geçerlilik Başlangıcı</label>
+                <input
+                    type="date"
+                    className="form-control"
+                    {...register(`licenseOfferings.${index}.validFrom`)}
+                />
+            </div>
+            <div className="col-md-3">
+                <label className="form-label">Geçerlilik Bitişi</label>
+                <input
+                    type="date"
+                    className="form-control"
+                    {...register(`licenseOfferings.${index}.validTo`)}
+                />
+            </div>
+
+            {/* Switchler */}
+            <div className="col-md-6 d-flex align-items-end pb-1 gap-4">
+                {model !== 5 && (
+                    <div className="form-check form-switch">
                         <input
-                            className="form-control"
-                            placeholder="TRY"
-                            {...register(`licenseOfferings.${index}.currencyCode`)}
+                            type="checkbox"
+                            className="form-check-input"
+                            id={`offering-autorenew-${index}`}
+                            {...register(`licenseOfferings.${index}.autoRenew`)}
                         />
+                        <label className="form-check-label" htmlFor={`offering-autorenew-${index}`}>
+                            Otomatik Yenileme
+                        </label>
                     </div>
-                    {showSeats && (
-                        <div className="col-md-3">
-                            <label className="form-label">Maks. Koltuk</label>
-                            <input
-                                type="number"
-                                min="1"
-                                className="form-control"
-                                placeholder="Sınırsız"
-                                {...register(`licenseOfferings.${index}.maxSeats`, { valueAsNumber: true })}
-                            />
-                        </div>
-                    )}
-                    {showBilling && (
-                        <>
-                            <div className="col-md-3">
-                                <label className="form-label">Faturalama Periyodu</label>
-                                <select
-                                    className="form-control form-select"
-                                    {...register(`licenseOfferings.${index}.billingPeriodUnit`, {
-                                        valueAsNumber: true,
-                                    })}
-                                >
-                                    <option value="">Seçiniz</option>
-                                    {BILLING_UNITS.map((bu) => (
-                                        <option key={bu.value} value={bu.value}>
-                                            {bu.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="col-md-3">
-                                <label className="form-label">Periyot Değeri</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    className="form-control"
-                                    placeholder="1"
-                                    {...register(`licenseOfferings.${index}.billingPeriodValue`, {
-                                        valueAsNumber: true,
-                                    })}
-                                />
-                            </div>
-                            <div className="col-md-3">
-                                <label className="form-label">İzin Süresi (gün)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    className="form-control"
-                                    placeholder="7"
-                                    {...register(`licenseOfferings.${index}.gracePeriodDays`, {
-                                        valueAsNumber: true,
-                                    })}
-                                />
-                            </div>
-                        </>
-                    )}
-                    {showTrial && (
-                        <div className="col-md-3">
-                            <label className="form-label">Deneme Süresi (gün)</label>
-                            <input
-                                type="number"
-                                min="1"
-                                className="form-control"
-                                placeholder="30"
-                                {...register(`licenseOfferings.${index}.trialDays`, { valueAsNumber: true })}
-                            />
-                        </div>
-                    )}
-                    <div className="col-12">
-                        <label className="form-label">Açıklama</label>
-                        <input
-                            className="form-control"
-                            placeholder="Teklif hakkında kısa açıklama..."
-                            {...register(`licenseOfferings.${index}.description`)}
-                        />
-                    </div>
-                    <div className="col-md-3">
-                        <label className="form-label">Geçerlilik Başlangıcı</label>
-                        <input
-                            type="date"
-                            className="form-control"
-                            {...register(`licenseOfferings.${index}.validFrom`)}
-                        />
-                    </div>
-                    <div className="col-md-3">
-                        <label className="form-label">Geçerlilik Bitişi</label>
-                        <input
-                            type="date"
-                            className="form-control"
-                            {...register(`licenseOfferings.${index}.validTo`)}
-                        />
-                    </div>
-                    <div className="col-md-6 d-flex align-items-end pb-1 gap-4">
-                        {model !== 5 && (
-                            <div className="form-check form-switch">
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id={`offering-autorenew-${index}`}
-                                    {...register(`licenseOfferings.${index}.autoRenew`)}
-                                />
-                                <label className="form-check-label" htmlFor={`offering-autorenew-${index}`}>
-                                    Otomatik Yenileme
-                                </label>
-                            </div>
-                        )}
-                        <div className="form-check form-switch">
-                            <input
-                                type="checkbox"
-                                className="form-check-input"
-                                id={`offering-active-${index}`}
-                                {...register(`licenseOfferings.${index}.isActive`)}
-                            />
-                            <label className="form-check-label" htmlFor={`offering-active-${index}`}>
-                                Aktif
-                            </label>
-                        </div>
-                    </div>
+                )}
+                <div className="form-check form-switch">
+                    <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id={`offering-active-${index}`}
+                        {...register(`licenseOfferings.${index}.isActive`)}
+                    />
+                    <label className="form-check-label" htmlFor={`offering-active-${index}`}>
+                        Aktif
+                    </label>
                 </div>
             </div>
         </div>
@@ -279,14 +279,28 @@ const LicenseOfferingsTab: React.FC = () => {
                 <div className="text-center py-5 text-soft">
                     <em className="icon ni ni-tag fs-2 d-block mb-2" />
                     <p className="mb-0">
-                        Henüz lisans teklifi eklenmemiş. Perpetual, Subscription ve Trial teklifleri aynı anda
-                        eklenebilir.
+                        Henüz lisans teklifi eklenmemiş. Perpetual, Subscription ve Trial teklifleri aynı anda eklenebilir.
                     </p>
                 </div>
             ) : (
                 <div className="d-flex flex-column gap-3">
                     {fields.map((field, index) => (
-                        <OfferingRow key={field.id} index={index} remove={remove} />
+                        <div key={field.id} className="card card-bordered">
+                            <div className="card-inner">
+                                <div className="d-flex align-items-center justify-content-between mb-3">
+                                    <span className="badge bg-warning-soft text-warning">Teklif #{index + 1}</span>
+                                    <button
+                                        type="button"
+                                        className="btn btn-sm btn-icon btn-outline-danger"
+                                        onClick={() => remove(index)}
+                                        title="Teklifi Kaldır"
+                                    >
+                                        <em className="icon ni ni-trash" />
+                                    </button>
+                                </div>
+                                <OfferingFields index={index} />
+                            </div>
+                        </div>
                     ))}
                 </div>
             )}

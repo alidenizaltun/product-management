@@ -114,9 +114,12 @@ export interface ProductCategoryMapDetailDto {
 
 export interface ProductBundleItemDto {
   id: Uuid;
-  productId: Uuid;
-  bundledProductId: Uuid;
+  bundleProductId: Uuid;
+  childProductId: Uuid;
+  childVariantId?: Uuid;
   quantity: number;
+  isOptional: boolean;
+  ruleJson?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -765,6 +768,7 @@ export interface CreateFullProductRequestDto {
     cancellationPolicy?: string;
   };
   modules?: Array<{
+    productId?: Uuid;
     moduleCode: string;
     name: string;
     description?: string;
@@ -775,6 +779,7 @@ export interface CreateFullProductRequestDto {
     sortOrder?: number;
   }>;
   softwarePricingTiers?: Array<{
+    productId?: Uuid;
     licenseModel: number;
     unit: string;
     minUnits: number;
@@ -785,6 +790,7 @@ export interface CreateFullProductRequestDto {
     isActive?: boolean;
   }>;
   licenseOfferings?: Array<{
+    productId?: Uuid;
     licenseModel: number;
     name: string;
     description?: string;

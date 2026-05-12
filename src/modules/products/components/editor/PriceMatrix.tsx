@@ -146,21 +146,35 @@ const PriceMatrix: React.FC = () => {
               </div>
 
               <div className="col-md-3">
-                <label className="form-label">Geçerlilik Başlangıcı</label>
+                <label className="form-label">
+                  Geçerlilik Başlangıcı <span className="text-danger">*</span>
+                </label>
                 <input
                   type="datetime-local"
-                  className="form-control"
-                  {...register(`prices.${index}.validFrom`)}
+                  className={`form-control ${errors.prices?.[index]?.validFrom ? "is-invalid" : ""}`}
+                  {...register(`prices.${index}.validFrom`, {
+                    required: "Başlangıç tarihi zorunludur",
+                  })}
                 />
+                {errors.prices?.[index]?.validFrom && (
+                  <div className="invalid-feedback">{errors.prices[index]?.validFrom?.message}</div>
+                )}
               </div>
 
               <div className="col-md-3">
-                <label className="form-label">Geçerlilik Bitişi</label>
+                <label className="form-label">
+                  Geçerlilik Bitişi <span className="text-danger">*</span>
+                </label>
                 <input
                   type="datetime-local"
-                  className="form-control"
-                  {...register(`prices.${index}.validTo`)}
+                  className={`form-control ${errors.prices?.[index]?.validTo ? "is-invalid" : ""}`}
+                  {...register(`prices.${index}.validTo`, {
+                    required: "Bitiş tarihi zorunludur",
+                  })}
                 />
+                {errors.prices?.[index]?.validTo && (
+                  <div className="invalid-feedback">{errors.prices[index]?.validTo?.message}</div>
+                )}
               </div>
 
               <div className="col-md-6">

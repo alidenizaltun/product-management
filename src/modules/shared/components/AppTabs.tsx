@@ -16,23 +16,27 @@ interface AppTabsProps {
 const AppTabs: React.FC<AppTabsProps> = ({ tabs, activeTab, onTabChange }) => {
   return (
     <div className="card card-bordered">
-      <div className="card-inner">
-        <ul className="nav nav-tabs card-header-tabs flex-wrap gap-2 h-100">
+      <div className="card-header p-0 border-bottom-0">
+        <ul className="nav nav-tabs nav-tabs-card flex-wrap">
           {tabs.map((tab) => (
             <li key={tab.id} className="nav-item">
               <button
                 type="button"
-                className={`nav-link ${activeTab === tab.id ? "active" : ""}`}
+                className={`nav-link px-3 py-3${activeTab === tab.id ? " active" : ""}`}
                 onClick={() => onTabChange(tab.id)}
               >
                 {tab.label}
-                {tab.badge ? <span className="badge bg-danger ms-2">{tab.badge}</span> : null}
+                {tab.badge != null ? (
+                  <span className="badge bg-primary ms-1" style={{ fontSize: "10px" }}>
+                    {tab.badge}
+                  </span>
+                ) : null}
               </button>
             </li>
           ))}
         </ul>
       </div>
-      <div className="card-inner">
+      <div className="card-inner pt-4">
         {tabs.find((tab) => tab.id === activeTab)?.content}
       </div>
     </div>

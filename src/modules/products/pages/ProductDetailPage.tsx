@@ -11,596 +11,1244 @@ import AppTabs, { TabItem } from "@/modules/shared/components/AppTabs";
 import { useProductDetail } from "@/modules/products/hooks/useProductDetail";
 import { useProductMutations } from "@/modules/products/hooks/useProductMutations";
 import type {
-  ProductDetailDto,
-  ProductAttributeValueDto,
-  ProductVariantDto,
-  ProductPriceDto,
-  ProductInventoryDetailDto,
-  ProductMediaItemDto,
-  ProductCategoryMapDetailDto,
-  ProductSupplierMapDto,
-  ProductPhysicalProfileDto,
-  ProductSoftwareProfileDto,
-  ProductServiceProfileDto,
-  ProductSubscriptionProfileDto,
+    ProductDetailDto,
+    ProductAttributeValueDto,
+    ProductVariantDto,
+    ProductPriceDto,
+    ProductInventoryDetailDto,
+    ProductMediaItemDto,
+    ProductCategoryMapDetailDto,
+    ProductBundleItemDto,
+    ProductSupplierMapDto,
+    ProductModuleDto,
+    SoftwarePricingTierDto,
+    ProductLicenseOfferingDto,
 } from "@/shared/types/productOperations.types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const KIND_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: "Fiziksel", color: "primary" },
-  2: { label: "Yazılım", color: "info" },
-  3: { label: "Hizmet", color: "success" },
-  4: { label: "Abonelik", color: "warning" },
+const KIND_LABELS: Record<number, { label: string; color: string; icon: string }> = {
+    1: { label: "Fiziksel", color: "primary", icon: "box" },
+    2: { label: "Yazılım", color: "info", icon: "laptop" },
+    3: { label: "Hizmet", color: "success", icon: "briefcase" },
+    4: { label: "Abonelik", color: "warning", icon: "repeat" },
 };
 
 const STATUS_LABELS: Record<number, { label: string; color: string }> = {
-  0: { label: "Taslak", color: "secondary" },
-  1: { label: "Aktif", color: "success" },
-  2: { label: "Pasif", color: "warning" },
-  3: { label: "Arşivlendi", color: "danger" },
+    0: { label: "Taslak", color: "secondary" },
+    1: { label: "Aktif", color: "success" },
+    2: { label: "Pasif", color: "warning" },
+    3: { label: "Arşivlendi", color: "danger" },
 };
 
-const PRICE_TYPE_LABELS: Record<number, string> = {
-  1: "Satış",
-  2: "Kurumsal",
-  3: "Toptan",
-  4: "Özel",
+const PRICE_TYPE_LABELS: Record<number, { label: string; color: string }> = {
+    1: { label: "Satış", color: "primary" },
+    2: { label: "Kurumsal", color: "info" },
+    3: { label: "Toptan", color: "warning" },
+    4: { label: "Özel", color: "success" },
+};
+
+const LICENSE_MODEL_LABELS: Record<number, { label: string; color: string }> = {
+    1: { label: "Tek Seferlik", color: "primary" },
+    2: { label: "Abonelik", color: "info" },
+    3: { label: "Kullanım Bazlı", color: "warning" },
+    4: { label: "Koltuk Bazlı", color: "success" },
+    5: { label: "Deneme", color: "secondary" },
+};
+
+const BILLING_UNIT_LABELS: Record<number, string> = {
+    1: "Gün",
+    2: "Hafta",
+    3: "Ay",
+    4: "Yıl",
+};
+
+const INVENTORY_POLICY_LABELS: Record<number, string> = {
+    0: "İzin Ver",
+    1: "Reddet",
+    2: "Beklet",
 };
 
 // ─── Shared UI Helpers ────────────────────────────────────────────────────────
 
-const InfoRow: React.FC<{ label: string; value?: React.ReactNode }> = ({ label, value }) => (
-  <div className="profile-ud-item">
-    <div className="profile-ud wider">
-      <span className="profile-ud-label">{label}</span>
-      <span className="profile-ud-value">{value ?? <span className="text-muted">—</span>}</span>
+const SectionCard: React.FC<{
+    title: string;
+    subtitle?: string;
+    icon?: string;
+    children: React.ReactNode;
+    actions?: React.ReactNode;
+    fullHeight?: boolean;
+}> = ({ title, subtitle, icon, children, actions, fullHeight = true }) => (
+    <div className={`card card-bordered${fullHeight ? " h-100" : ""}`}>
+        <div className="card-inner">
+            <div className="d-flex align-items-start justify-content-between mb-3">
+                <div className="d-flex align-items-center gap-2">
+                    {icon && <em className={`icon ni ni-${icon} fs-4 text-primary`} />}
+                    <div>
+                        <h6 className="title mb-0">{title}</h6>
+                        {subtitle && <p className="text-soft fs-12 mb-0">{subtitle}</p>}
+                    </div>
+                </div>
+                {actions}
+            </div>
+            {children}
+        </div>
     </div>
-  </div>
 );
 
-const SectionCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="card card-bordered mb-3">
-    <div className="card-inner">
-      <h6 className="title mb-3">{title}</h6>
-      {children}
+const EmptyState: React.FC<{ icon?: string; text: string }> = ({ icon = "inbox", text }) => (
+    <div className="text-center py-4">
+        <em className={`icon ni ni-${icon} fs-1 text-soft d-block mb-2`} />
+        <p className="text-soft mb-0 fs-13px">{text}</p>
     </div>
-  </div>
 );
 
-const EmptyMessage: React.FC<{ text?: string }> = ({ text = "Kayıt bulunamadı." }) => (
-  <p className="text-soft text-center py-3">{text}</p>
-);
+const fmt = (n?: number | null, currency?: string) =>
+    n != null
+        ? n.toLocaleString("tr-TR", currency ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : undefined) +
+        (currency ? ` ${currency}` : "")
+        : "—";
 
-// ─── Tab Components ────────────────────────────────────────────────────────────
+const fmtDate = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString("tr-TR") : "—";
+
+const fmtDateTime = (d?: string | null) =>
+    d ? new Date(d).toLocaleString("tr-TR") : "—";
+
+// ─── General Tab ─────────────────────────────────────────────────────────────
 
 const GeneralTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
-  const kind = KIND_LABELS[product.kind];
-  const status = STATUS_LABELS[product.status];
+    const kind = KIND_LABELS[product.kind];
+    const status = STATUS_LABELS[product.status];
+    const primaryImage = product.mediaItems?.find((m) => m.isPrimary) ?? product.mediaItems?.[0];
 
-  return (
-    <div className="row g-3">
-      <div className="col-lg-6">
-        <SectionCard title="Temel Bilgiler">
-          <div className="profile-ud-list">
-            <InfoRow label="Ürün Kodu" value={<span className="fw-medium">{product.productCode}</span>} />
-            <InfoRow label="Adı" value={product.name} />
-            <InfoRow label="Kısa Açıklama" value={product.shortDescription} />
-            <InfoRow
-              label="Tür"
-              value={kind ? <span className={`badge badge-dim bg-${kind.color}`}>{kind.label}</span> : product.kind}
-            />
-            <InfoRow
-              label="Durum"
-              value={status ? <span className={`badge badge-dim bg-${status.color}`}>{status.label}</span> : product.status}
-            />
-            <InfoRow label="Aktif" value={<StatusBadge active={product.isActive} />} />
-          </div>
-        </SectionCard>
-      </div>
-      <div className="col-lg-6">
-        <SectionCard title="Özellikler">
-          <div className="profile-ud-list">
-            <InfoRow label="Marka" value={product.brand} />
-            <InfoRow label="Üretici" value={product.manufacturer} />
-            <InfoRow label="Barkod" value={product.barcode} />
-            <InfoRow label="Para Birimi" value={product.defaultCurrencyCode} />
-            <InfoRow label="Ölçü Birimi" value={product.unitOfMeasure} />
-            <InfoRow label="Vergi Oranı" value={product.taxRate != null ? `%${product.taxRate}` : undefined} />
-            <InfoRow label="Vergi Kodu" value={product.taxCode} />
-          </div>
-        </SectionCard>
-      </div>
-      <div className="col-lg-6">
-        <SectionCard title="Satış Ayarları">
-          <div className="profile-ud-list">
-            <InfoRow label="Satılabilir" value={<StatusBadge active={product.isSellable} />} />
-            <InfoRow label="Satın Alınabilir" value={<StatusBadge active={product.isPurchasable} />} />
-            <InfoRow label="Stok Takibi" value={<StatusBadge active={product.trackInventory} />} />
-          </div>
-        </SectionCard>
-      </div>
-      {product.tags && (
-        <div className="col-lg-6">
-          <SectionCard title="Etiketler">
-            <div className="d-flex flex-wrap gap-1">
-              {product.tags.split(",").map((tag) => (
-                <span key={tag.trim()} className="badge bg-outline-primary">{tag.trim()}</span>
-              ))}
+    return (
+        <div className="row g-4">
+            {/* Sol: Görsel + Durum */}
+            <div className="col-lg-4">
+                <div className="card card-bordered mb-3">
+                    <div className="card-inner text-center py-4">
+                        {primaryImage?.url ? (
+                            <img
+                                src={primaryImage.thumbnailUrl ?? primaryImage.url}
+                                alt={primaryImage.altText ?? product.name}
+                                className="img-fluid rounded"
+                                style={{ maxHeight: 220, objectFit: "contain" }}
+                            />
+                        ) : (
+                            <div
+                                className="d-flex flex-column align-items-center justify-content-center text-soft rounded bg-light"
+                                style={{ height: 180 }}
+                            >
+                                <em className="icon ni ni-img fs-1 mb-2" />
+                                <span className="fs-12">Görsel Yok</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="card card-bordered">
+                    <div className="card-inner">
+                        <div className="d-flex flex-column gap-2">
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-soft fs-12">Tür</span>
+                                {kind ? (
+                                    <span className={`badge bg-${kind.color}`}>
+                                        <em className={`icon ni ni-${kind.icon} me-1`} />
+                                        {kind.label}
+                                    </span>
+                                ) : (
+                                    <span className="text-muted">—</span>
+                                )}
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-soft fs-12">Durum</span>
+                                {status ? (
+                                    <span className={`badge badge-dim bg-${status.color}`}>{status.label}</span>
+                                ) : (
+                                    <span className="text-muted">—</span>
+                                )}
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-soft fs-12">Aktif</span>
+                                <StatusBadge active={product.isActive} />
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-soft fs-12">Satılabilir</span>
+                                <StatusBadge active={product.isSellable} />
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-soft fs-12">Satın Alınabilir</span>
+                                <StatusBadge active={product.isPurchasable} />
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-soft fs-12">Stok Takibi</span>
+                                <StatusBadge active={product.trackInventory} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </SectionCard>
+
+            {/* Sağ: Detaylar */}
+            <div className="col-lg-8">
+                <div className="card card-bordered mb-3">
+                    <div className="card-inner">
+                        <h5 className="fw-bold mb-1">{product.name}</h5>
+                        <p className="text-primary fs-13px mb-2">
+                            <em className="icon ni ni-tag me-1" />
+                            {product.productCode}
+                        </p>
+                        {product.shortDescription && (
+                            <p className="text-soft mb-0">{product.shortDescription}</p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="row g-3">
+                    <div className="col-md-6">
+                        <SectionCard title="Ürün Bilgileri" icon="package" fullHeight={false}>
+                            <div className="d-flex flex-column gap-2">
+                                {[
+                                    { label: "Marka", value: product.brand },
+                                    { label: "Üretici", value: product.manufacturer },
+                                    { label: "Barkod", value: product.barcode ? <code>{product.barcode}</code> : undefined },
+                                    { label: "Para Birimi", value: product.defaultCurrencyCode },
+                                    { label: "Ölçü Birimi", value: product.unitOfMeasure },
+                                ].map(({ label, value }) => (
+                                    <div key={label} className="d-flex justify-content-between align-items-center border-bottom pb-2">
+                                        <span className="text-soft fs-12">{label}</span>
+                                        <span className="fw-medium fs-13px">{value ?? <span className="text-muted">—</span>}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </SectionCard>
+                    </div>
+                    <div className="col-md-6">
+                        <SectionCard title="Vergi & Fiyatlandırma" icon="money" fullHeight={false}>
+                            <div className="d-flex flex-column gap-2">
+                                {[
+                                    {
+                                        label: "Vergi Oranı",
+                                        value:
+                                            product.taxRate != null ? (
+                                                <span className="badge bg-outline-info">%{product.taxRate}</span>
+                                            ) : undefined,
+                                    },
+                                    { label: "Vergi Kodu", value: product.taxCode },
+                                ].map(({ label, value }) => (
+                                    <div key={label} className="d-flex justify-content-between align-items-center border-bottom pb-2">
+                                        <span className="text-soft fs-12">{label}</span>
+                                        <span className="fw-medium fs-13px">{value ?? <span className="text-muted">—</span>}</span>
+                                    </div>
+                                ))}
+                                <div className="d-flex justify-content-between align-items-center pt-1">
+                                    <span className="text-soft fs-12">Toplam Fiyat Tanımı</span>
+                                    <span className="badge bg-primary">{product.prices.length}</span>
+                                </div>
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <span className="text-soft fs-12">Toplam Stok Kaydı</span>
+                                    <span className="badge bg-success">{product.inventories.length}</span>
+                                </div>
+                            </div>
+                        </SectionCard>
+                    </div>
+                </div>
+
+                {product.tags && (
+                    <div className="card card-bordered mt-3">
+                        <div className="card-inner py-3">
+                            <span className="text-soft fs-12 me-2">Etiketler:</span>
+                            {product.tags.split(",").map((tag) => (
+                                <span key={tag.trim()} className="badge bg-outline-primary me-1 mb-1">
+                                    {tag.trim()}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {product.description && (
+                    <div className="card card-bordered mt-3">
+                        <div className="card-inner">
+                            <h6 className="overline-title text-soft mb-2">Açıklama</h6>
+                            <p className="text-base mb-0" style={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+                                {product.description}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                <div className="card card-bordered mt-3">
+                    <div className="card-inner py-2">
+                        <div className="d-flex gap-4 flex-wrap">
+                            <div>
+                                <span className="text-soft fs-11 d-block">Oluşturulma</span>
+                                <span className="fs-12 fw-medium">{fmtDateTime(product.createdAt)}</span>
+                            </div>
+                            <div>
+                                <span className="text-soft fs-11 d-block">Son Güncelleme</span>
+                                <span className="fs-12 fw-medium">{fmtDateTime(product.updatedAt)}</span>
+                            </div>
+                            <div>
+                                <span className="text-soft fs-11 d-block">ID</span>
+                                <code className="fs-11">{product.id}</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      )}
-      {product.description && (
-        <div className="col-12">
-          <SectionCard title="Açıklama">
-            <p className="text-soft mb-0" style={{ whiteSpace: "pre-wrap" }}>{product.description}</p>
-          </SectionCard>
-        </div>
-      )}
-      <div className="col-12">
-        <SectionCard title="Sistem Bilgileri">
-          <div className="profile-ud-list">
-            <InfoRow label="Oluşturulma" value={new Date(product.createdAt).toLocaleString("tr-TR")} />
-            <InfoRow
-              label="Güncellenme"
-              value={product.updatedAt ? new Date(product.updatedAt).toLocaleString("tr-TR") : undefined}
-            />
-          </div>
-        </SectionCard>
-      </div>
-    </div>
-  );
+    );
 };
+
+// ─── Attributes Tab ───────────────────────────────────────────────────────────
 
 const AttributesTab: React.FC<{ items: ProductAttributeValueDto[] }> = ({ items }) => {
-  if (!items.length) return <EmptyMessage text="Bu ürüne atanmış özellik değeri yok." />;
-  return (
-    <div className="table-responsive">
-      <table className="table table-sm">
-        <thead className="table-light">
-          <tr>
-            <th>Özellik ID</th>
-            <th>Metin</th>
-            <th>Sayı</th>
-            <th>Boolean</th>
-            <th>Tarih</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((it) => (
-            <tr key={it.id}>
-              <td><code className="fs-12px">{it.attributeDefinitionId.slice(0, 8)}…</code></td>
-              <td>{it.valueText ?? <span className="text-muted">—</span>}</td>
-              <td>{it.valueNumber != null ? it.valueNumber : <span className="text-muted">—</span>}</td>
-              <td>
-                {it.valueBool != null
-                  ? <StatusBadge active={it.valueBool} />
-                  : <span className="text-muted">—</span>}
-              </td>
-              <td>{it.valueDate ?? <span className="text-muted">—</span>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+    if (!items.length) return <EmptyState icon="list" text="Bu ürüne atanmış özellik değeri yok." />;
+    return (
+        <div className="row g-3">
+            {items.map((it) => (
+                <div key={it.id} className="col-md-6 col-lg-4">
+                    <div className="card card-bordered h-100">
+                        <div className="card-inner py-3">
+                            <p className="text-soft fs-11 mb-1">Özellik ID</p>
+                            <code className="fs-12 text-primary">{it.attributeDefinitionId.slice(0, 8)}…</code>
+                            <div className="mt-2 d-flex flex-column gap-1">
+                                {it.valueText && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft fs-12">Metin</span>
+                                        <span className="fw-medium fs-12">{it.valueText}</span>
+                                    </div>
+                                )}
+                                {it.valueNumber != null && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft fs-12">Sayı</span>
+                                        <span className="fw-medium fs-12">{it.valueNumber}</span>
+                                    </div>
+                                )}
+                                {it.valueBool != null && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft fs-12">Boolean</span>
+                                        <StatusBadge active={it.valueBool} />
+                                    </div>
+                                )}
+                                {it.valueDate && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft fs-12">Tarih</span>
+                                        <span className="fw-medium fs-12">{fmtDate(it.valueDate)}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 };
+
+// ─── Variants Tab ─────────────────────────────────────────────────────────────
 
 const VariantsTab: React.FC<{ items: ProductVariantDto[] }> = ({ items }) => {
-  if (!items.length) return <EmptyMessage text="Bu ürüne ait varyant yok." />;
-  return (
-    <div className="table-responsive">
-      <table className="table table-sm">
-        <thead className="table-light">
-          <tr>
-            <th>SKU</th>
-            <th>Ad</th>
-            <th>Barkod</th>
-            <th>Ek Fiyat</th>
-            <th>Ek Maliyet</th>
-            <th>Durum</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((v) => (
-            <tr key={v.id}>
-              <td><span className="fw-medium">{v.sku}</span></td>
-              <td>{v.name}</td>
-              <td>{v.barcode ?? <span className="text-muted">—</span>}</td>
-              <td>{v.additionalPrice != null ? v.additionalPrice.toLocaleString("tr-TR") : "—"}</td>
-              <td>{v.additionalCost != null ? v.additionalCost.toLocaleString("tr-TR") : "—"}</td>
-              <td><StatusBadge active={v.isActive} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+    if (!items.length) return <EmptyState icon="layers" text="Bu ürüne ait varyant yok." />;
+    return (
+        <div className="row g-3">
+            {items.map((v) => (
+                <div key={v.id} className="col-md-6 col-lg-4">
+                    <div className="card card-bordered">
+                        <div className="card-inner">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span className="fw-bold fs-14px">{v.name}</span>
+                                    <br />
+                                    <code className="fs-11 text-primary">{v.sku}</code>
+                                </div>
+                                <StatusBadge active={v.isActive} />
+                            </div>
+                            <div className="d-flex flex-column gap-1">
+                                {v.barcode && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft fs-12">Barkod</span>
+                                        <code className="fs-12">{v.barcode}</code>
+                                    </div>
+                                )}
+                                {v.additionalPrice != null && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft fs-12">Ek Fiyat</span>
+                                        <span className="text-success fw-medium fs-12">+{fmt(v.additionalPrice)}</span>
+                                    </div>
+                                )}
+                                {v.additionalCost != null && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft fs-12">Ek Maliyet</span>
+                                        <span className="text-warning fw-medium fs-12">+{fmt(v.additionalCost)}</span>
+                                    </div>
+                                )}
+                                {v.optionValuesJson && (
+                                    <div className="mt-1 pt-1 border-top">
+                                        <span className="text-soft fs-11">Seçenekler</span>
+                                        <p className="mb-0 fs-11 text-soft">{v.optionValuesJson}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 };
 
-const PricesTab: React.FC<{ items: ProductPriceDto[] }> = ({ items }) => {
-  if (!items.length) return <EmptyMessage text="Bu ürüne ait fiyat tanımı yok." />;
-  return (
-    <div className="table-responsive">
-      <table className="table table-sm">
-        <thead className="table-light">
-          <tr>
-            <th>Tip</th>
-            <th>Tutar</th>
-            <th>Karşılaştırma</th>
-            <th>Para Birimi</th>
-            <th>Kanal</th>
-            <th>Müşteri Grubu</th>
-            <th>Geçerlilik</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((p) => (
-            <tr key={p.id}>
-              <td>
-                <span className="badge badge-dim bg-primary">
-                  {PRICE_TYPE_LABELS[p.priceType] ?? p.priceType}
-                </span>
-              </td>
-              <td><span className="fw-medium">{p.amount.toLocaleString("tr-TR")}</span></td>
-              <td>
-                {p.compareAtAmount != null
-                  ? <span className="text-soft text-decoration-line-through">{p.compareAtAmount.toLocaleString("tr-TR")}</span>
-                  : <span className="text-muted">—</span>}
-              </td>
-              <td>{p.currencyCode}</td>
-              <td>{p.salesChannel ?? <span className="text-muted">—</span>}</td>
-              <td>{p.customerGroupCode ?? <span className="text-muted">—</span>}</td>
-              <td className="text-soft" style={{ fontSize: 12 }}>
-                {p.validFrom ? new Date(p.validFrom).toLocaleDateString("tr-TR") : ""}
-                {p.validTo ? ` – ${new Date(p.validTo).toLocaleDateString("tr-TR")}` : ""}
-                {!p.validFrom && !p.validTo ? "—" : ""}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+// ─── Prices Tab ───────────────────────────────────────────────────────────────
+
+const PricesTab: React.FC<{ items: ProductPriceDto[]; currencyCode: string }> = ({ items }) => {
+    if (!items.length) return <EmptyState icon="sign-turkish-lira" text="Bu ürüne ait fiyat tanımı yok." />;
+    return (
+        <div className="row g-3">
+            {items.map((p) => {
+                const pt = PRICE_TYPE_LABELS[p.priceType];
+                return (
+                    <div key={p.id} className="col-md-6 col-xl-4">
+                        <div className="card card-bordered h-100">
+                            <div className="card-inner">
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <span className={`badge bg-${pt?.color ?? "secondary"}`}>{pt?.label ?? p.priceType}</span>
+                                    <span className="text-soft fs-11">{p.currencyCode}</span>
+                                </div>
+                                <div className="text-center mb-3">
+                                    <span className="fs-1 fw-bold text-dark">{fmt(p.amount)}</span>
+                                    {p.compareAtAmount != null && (
+                                        <span className="text-soft text-decoration-line-through ms-2 fs-14px">
+                                            {fmt(p.compareAtAmount)}
+                                        </span>
+                                    )}
+                                    {p.compareAtAmount != null && p.compareAtAmount > 0 && p.amount != null && (
+                                        <div>
+                                            <span className="badge bg-danger-soft text-danger fs-11">
+                                                %{Math.round(((p.compareAtAmount - p.amount) / p.compareAtAmount) * 100)} indirim
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="d-flex flex-column gap-1 fs-12">
+                                    {(p.minQuantity != null || p.maxQuantity != null) && (
+                                        <div className="d-flex justify-content-between">
+                                            <span className="text-soft">Miktar Aralığı</span>
+                                            <span>
+                                                {p.minQuantity ?? "—"} – {p.maxQuantity ?? "∞"}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {p.salesChannel && (
+                                        <div className="d-flex justify-content-between">
+                                            <span className="text-soft">Satış Kanalı</span>
+                                            <span className="badge bg-outline-info">{p.salesChannel}</span>
+                                        </div>
+                                    )}
+                                    {p.customerGroupCode && (
+                                        <div className="d-flex justify-content-between">
+                                            <span className="text-soft">Müşteri Grubu</span>
+                                            <span className="badge bg-outline-warning">{p.customerGroupCode}</span>
+                                        </div>
+                                    )}
+                                    {(p.validFrom || p.validTo) && (
+                                        <div className="border-top pt-1 mt-1">
+                                            <span className="text-soft d-block">Geçerlilik</span>
+                                            <span className="text-soft fs-11">
+                                                {fmtDate(p.validFrom)} – {fmtDate(p.validTo)}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
 };
+
+// ─── Inventory Tab ────────────────────────────────────────────────────────────
 
 const InventoryTab: React.FC<{ items: ProductInventoryDetailDto[] }> = ({ items }) => {
-  if (!items.length) return <EmptyMessage text="Stok kaydı bulunamadı." />;
-  return (
-    <div className="table-responsive">
-      <table className="table table-sm">
-        <thead className="table-light">
-          <tr>
-            <th>Depo</th>
-            <th>Eldeki</th>
-            <th>Rezerve</th>
-            <th>Mevcut</th>
-            <th>Sipariş Noktası</th>
-            <th>Sipariş Miktarı</th>
-            <th>Durum</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((inv) => {
-            const isLow = inv.reorderPoint != null && inv.quantityAvailable <= inv.reorderPoint;
-            const isEmpty = inv.quantityAvailable <= 0;
-            return (
-              <tr key={inv.id}>
-                <td><span className="fw-medium">{inv.warehouseCode ?? inv.warehouseId.slice(0, 8)}</span></td>
-                <td>{inv.quantityOnHand}</td>
-                <td className="text-soft">{inv.quantityReserved}</td>
-                <td className={isEmpty ? "text-danger fw-medium" : isLow ? "text-warning fw-medium" : "text-success fw-medium"}>
-                  {inv.quantityAvailable}
-                </td>
-                <td className="text-soft">{inv.reorderPoint ?? "—"}</td>
-                <td className="text-soft">{inv.reorderQuantity ?? "—"}</td>
-                <td>
-                  {isEmpty
-                    ? <span className="badge badge-dim bg-danger">Stoksuz</span>
-                    : isLow
-                    ? <span className="badge badge-dim bg-warning">Düşük</span>
-                    : <span className="badge badge-dim bg-success">Normal</span>}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
+    if (!items.length) return <EmptyState icon="package" text="Stok kaydı bulunamadı." />;
+
+    const totalOnHand = items.reduce((s, i) => s + i.quantityOnHand, 0);
+    const totalReserved = items.reduce((s, i) => s + i.quantityReserved, 0);
+    const totalAvailable = items.reduce((s, i) => s + i.quantityAvailable, 0);
+
+    return (
+        <div>
+            <div className="row g-3 mb-4">
+                {[
+                    { label: "Toplam Eldeki", value: totalOnHand, color: "primary", icon: "box" },
+                    { label: "Toplam Rezerve", value: totalReserved, color: "warning", icon: "lock" },
+                    {
+                        label: "Toplam Mevcut",
+                        value: totalAvailable,
+                        color: totalAvailable <= 0 ? "danger" : "success",
+                        icon: "check-circle",
+                    },
+                ].map(({ label, value, color, icon }) => (
+                    <div key={label} className="col-sm-4">
+                        <div className={`card card-bordered border-${color}`}>
+                            <div className="card-inner py-3 text-center">
+                                <em className={`icon ni ni-${icon} fs-2 text-${color} d-block mb-1`} />
+                                <div className={`fs-2 fw-bold text-${color}`}>{value}</div>
+                                <div className="text-soft fs-12">{label}</div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="row g-3">
+                {items.map((inv) => {
+                    const isEmpty = inv.quantityAvailable <= 0;
+                    const isLow =
+                        inv.reorderPoint != null && inv.quantityAvailable <= inv.reorderPoint && !isEmpty;
+                    const statusColor = isEmpty ? "danger" : isLow ? "warning" : "success";
+                    const statusLabel = isEmpty ? "Stoksuz" : isLow ? "Düşük Stok" : "Normal";
+
+                    return (
+                        <div key={inv.id} className="col-md-6 col-xl-4">
+                            <div className={`card card-bordered border-${statusColor} h-100`}>
+                                <div className="card-inner">
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <span className="fw-bold fs-14px">
+                                            <em className="icon ni ni-building me-1 text-soft" />
+                                            {inv.warehouseCode ?? inv.warehouseId.slice(0, 8) + "…"}
+                                        </span>
+                                        <span className={`badge bg-${statusColor}`}>{statusLabel}</span>
+                                    </div>
+                                    <div className="row g-2 text-center">
+                                        <div className="col-4">
+                                            <div className="fs-4 fw-bold text-primary">{inv.quantityOnHand}</div>
+                                            <div className="text-soft fs-11">Eldeki</div>
+                                        </div>
+                                        <div className="col-4">
+                                            <div className="fs-4 fw-bold text-warning">{inv.quantityReserved}</div>
+                                            <div className="text-soft fs-11">Rezerve</div>
+                                        </div>
+                                        <div className="col-4">
+                                            <div className={`fs-4 fw-bold text-${statusColor}`}>{inv.quantityAvailable}</div>
+                                            <div className="text-soft fs-11">Mevcut</div>
+                                        </div>
+                                    </div>
+                                    {(inv.reorderPoint != null || inv.reorderQuantity != null) && (
+                                        <div className="border-top pt-2 mt-2 d-flex justify-content-between fs-12">
+                                            <span className="text-soft">Sipariş Noktası / Miktarı</span>
+                                            <span>
+                                                {inv.reorderPoint ?? "—"} / {inv.reorderQuantity ?? "—"}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {inv.inventoryPolicy != null && (
+                                        <div className="d-flex justify-content-between fs-12 mt-1">
+                                            <span className="text-soft">Stok Politikası</span>
+                                            <span>{INVENTORY_POLICY_LABELS[inv.inventoryPolicy] ?? inv.inventoryPolicy}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
 };
+
+// ─── Media Tab ────────────────────────────────────────────────────────────────
 
 const MediaTab: React.FC<{ items: ProductMediaItemDto[] }> = ({ items }) => {
-  if (!items.length) return <EmptyMessage text="Medya dosyası bulunamadı." />;
-  return (
-    <div className="row g-3">
-      {items.map((m) => (
-        <div key={m.id} className="col-6 col-md-4 col-lg-3">
-          <div className={`card card-bordered h-100 ${m.isPrimary ? "border-primary" : ""}`}>
-            <div className="card-inner p-2 text-center">
-              {m.thumbnailUrl || m.url ? (
-                <img
-                  src={m.thumbnailUrl ?? m.url}
-                  alt={m.altText ?? "Ürün görseli"}
-                  className="img-fluid rounded mb-2"
-                  style={{ maxHeight: 120, objectFit: "contain" }}
-                />
-              ) : (
-                <div
-                  className="d-flex align-items-center justify-content-center bg-light rounded mb-2"
-                  style={{ height: 120 }}
-                >
-                  <span className="text-muted">Görsel Yok</span>
+    if (!items.length) return <EmptyState icon="img" text="Medya dosyası bulunamadı." />;
+    return (
+        <div className="row g-3">
+            {items.map((m) => (
+                <div key={m.id} className="col-6 col-md-4 col-lg-3">
+                    <div className={`card card-bordered h-100 ${m.isPrimary ? "border-primary" : ""}`}>
+                        {m.isPrimary && (
+                            <div className="card-header py-1 bg-primary text-white text-center fs-11">
+                                <em className="icon ni ni-star me-1" />
+                                Ana Görsel
+                            </div>
+                        )}
+                        <div className="card-inner p-2 text-center">
+                            {m.thumbnailUrl || m.url ? (
+                                <a href={m.url} target="_blank" rel="noreferrer">
+                                    <img
+                                        src={m.thumbnailUrl ?? m.url}
+                                        alt={m.altText ?? "Ürün görseli"}
+                                        className="img-fluid rounded mb-2"
+                                        style={{ maxHeight: 150, objectFit: "contain" }}
+                                    />
+                                </a>
+                            ) : (
+                                <div
+                                    className="d-flex align-items-center justify-content-center bg-light rounded mb-2"
+                                    style={{ height: 120 }}
+                                >
+                                    <em className="icon ni ni-img fs-2 text-soft" />
+                                </div>
+                            )}
+                            <div className="d-flex flex-column gap-1">
+                                {m.altText && <p className="text-soft mb-0 fs-11">{m.altText}</p>}
+                                {m.mimeType && <span className="badge bg-outline-secondary fs-10">{m.mimeType}</span>}
+                                <span className="text-soft fs-11">Sıra: {m.sortOrder ?? "—"}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              )}
-              {m.isPrimary && <span className="badge bg-primary mb-1">Ana Görsel</span>}
-              <p className="text-soft mb-0" style={{ fontSize: 11 }}>{m.altText ?? m.mimeType ?? "—"}</p>
-              <p className="text-soft mb-0" style={{ fontSize: 11 }}>Sıra: {m.sortOrder ?? "—"}</p>
-            </div>
-          </div>
+            ))}
         </div>
-      ))}
-    </div>
-  );
+    );
 };
+
+// ─── Categories Tab ───────────────────────────────────────────────────────────
 
 const CategoriesTab: React.FC<{ items: ProductCategoryMapDetailDto[] }> = ({ items }) => {
-  if (!items.length) return <EmptyMessage text="Kategori ataması yok." />;
-  return (
-    <div className="table-responsive">
-      <table className="table table-sm">
-        <thead className="table-light">
-          <tr>
-            <th>Kategori ID</th>
-            <th>Tür</th>
-            <th>Sıra</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((c) => (
-            <tr key={c.id}>
-              <td><code className="fs-12px">{c.productCategoryId.slice(0, 8)}…</code></td>
-              <td>
-                {c.isPrimary
-                  ? <span className="badge bg-primary">Ana</span>
-                  : <span className="text-muted">İkincil</span>}
-              </td>
-              <td>{c.sortOrder ?? "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+    if (!items.length) return <EmptyState icon="folder" text="Kategori ataması yok." />;
+    return (
+        <div className="row g-3">
+            {items.map((c) => (
+                <div key={c.id} className="col-md-6 col-lg-4">
+                    <div className={`card card-bordered h-100 ${c.isPrimary ? "border-primary" : ""}`}>
+                        <div className="card-inner py-3">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                {c.isPrimary ? (
+                                    <span className="badge bg-primary">
+                                        <em className="icon ni ni-star-fill me-1" />
+                                        Ana Kategori
+                                    </span>
+                                ) : (
+                                    <span className="badge bg-outline-secondary">İkincil</span>
+                                )}
+                                <span className="text-soft fs-11">Sıra: {c.sortOrder ?? "—"}</span>
+                            </div>
+                            <code className="fs-12 text-primary d-block">{c.productCategoryId.slice(0, 8)}…</code>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 };
+
+// ─── Bundles Tab ──────────────────────────────────────────────────────────────
+
+const BundlesTab: React.FC<{ items: ProductBundleItemDto[] }> = ({ items }) => {
+    if (!items.length) return <EmptyState icon="grid-sq" text="Bundle ürünü eklenmemiş." />;
+    return (
+        <div className="row g-3">
+            {items.map((bi) => (
+                <div key={bi.id} className="col-md-6 col-lg-4">
+                    <div className="card card-bordered h-100">
+                        <div className="card-inner py-3">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <span className="badge bg-info">Bundle Ürün</span>
+                                {bi.isOptional && <span className="badge bg-outline-warning">Opsiyonel</span>}
+                            </div>
+                            <code className="fs-12 text-primary d-block mb-2">{bi.childProductId.slice(0, 8)}…</code>
+                            <div className="d-flex justify-content-between align-items-center fs-12">
+                                <span className="text-soft">Miktar</span>
+                                <span className="badge bg-primary fs-13px">{bi.quantity}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// ─── Suppliers Tab ────────────────────────────────────────────────────────────
 
 const SuppliersTab: React.FC<{ items: ProductSupplierMapDto[] }> = ({ items }) => {
-  if (!items.length) return <EmptyMessage text="Tedarikçi ataması yok." />;
-  return (
-    <div className="table-responsive">
-      <table className="table table-sm">
-        <thead className="table-light">
-          <tr>
-            <th>Tedarikçi ID</th>
-            <th>Tedarikçi Ürün Kodu</th>
-            <th>Maliyet</th>
-            <th>Tesl. Süre (gün)</th>
-            <th>Min. Sipariş</th>
-            <th>Tercih</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((s) => (
-            <tr key={s.id}>
-              <td><code className="fs-12px">{s.productSupplierId.slice(0, 8)}…</code></td>
-              <td>{s.supplierProductCode ?? <span className="text-muted">—</span>}</td>
-              <td>{s.supplierCost != null ? s.supplierCost.toLocaleString("tr-TR") : "—"}</td>
-              <td>{s.leadTimeInDays ?? "—"}</td>
-              <td>{s.minOrderQuantity ?? "—"}</td>
-              <td>
-                {s.isPreferred
-                  ? <span className="badge bg-success">Tercih</span>
-                  : <span className="text-muted">—</span>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+    if (!items.length) return <EmptyState icon="truck" text="Tedarikçi ataması yok." />;
+    return (
+        <div className="row g-3">
+            {items.map((s) => (
+                <div key={s.id} className="col-md-6 col-lg-4">
+                    <div className={`card card-bordered h-100 ${s.isPreferred ? "border-success" : ""}`}>
+                        <div className="card-inner">
+                            <div className="d-flex justify-content-between align-items-center mb-3">
+                                <code className="fs-12 text-primary">{s.productSupplierId.slice(0, 8)}…</code>
+                                {s.isPreferred && (
+                                    <span className="badge bg-success">
+                                        <em className="icon ni ni-star-fill me-1" />
+                                        Tercih
+                                    </span>
+                                )}
+                            </div>
+                            <div className="d-flex flex-column gap-2 fs-12">
+                                {s.supplierProductCode && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft">Tedarikçi Ürün Kodu</span>
+                                        <code>{s.supplierProductCode}</code>
+                                    </div>
+                                )}
+                                {s.supplierCost != null && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft">Maliyet</span>
+                                        <span className="fw-medium text-warning">{fmt(s.supplierCost)}</span>
+                                    </div>
+                                )}
+                                {s.leadTimeInDays != null && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft">Teslimat Süresi</span>
+                                        <span>{s.leadTimeInDays} gün</span>
+                                    </div>
+                                )}
+                                {s.minOrderQuantity != null && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft">Min. Sipariş</span>
+                                        <span>{s.minOrderQuantity} adet</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 };
 
-const PhysicalProfileTab: React.FC<{ p: ProductPhysicalProfileDto }> = ({ p }) => (
-  <div className="profile-ud-list">
-    <InfoRow label="Ağırlık (kg)" value={p.weight} />
-    <InfoRow label="Genişlik (cm)" value={p.width} />
-    <InfoRow label="Yükseklik (cm)" value={p.height} />
-    <InfoRow label="Uzunluk (cm)" value={p.length} />
-    <InfoRow label="Kargoya Verilir" value={<StatusBadge active={p.requiresShipping} />} />
-    <InfoRow label="Kırılgan" value={<StatusBadge active={p.isFragile} />} />
-    <InfoRow label="Tehlikeli Madde" value={<StatusBadge active={p.isHazardous} />} />
-    <InfoRow label="Seri No Gerekli" value={<StatusBadge active={p.requiresSerialNumber} />} />
-    <InfoRow label="Garanti (ay)" value={p.warrantyInMonths} />
-  </div>
-);
-
-const SoftwareProfileTab: React.FC<{ p: ProductSoftwareProfileDto }> = ({ p }) => (
-  <div className="profile-ud-list">
-    <InfoRow label="Versiyon" value={p.version} />
-    <InfoRow label="Koltuk Sayısı" value={p.seatCount} />
-    <InfoRow
-      label="İndirme URL"
-      value={p.downloadUrl ? <a href={p.downloadUrl} target="_blank" rel="noreferrer">{p.downloadUrl}</a> : undefined}
-    />
-    <InfoRow label="Release Notes" value={p.releaseNotes} />
-  </div>
-);
-
-const ServiceProfileTab: React.FC<{ p: ProductServiceProfileDto }> = ({ p }) => (
-  <div className="profile-ud-list">
-    <InfoRow label="Süre (dk)" value={p.durationInMinutes} />
-    <InfoRow label="Maks. Eş Zamanlı" value={p.maxConcurrentBooking} />
-  </div>
-);
-
-const SubscriptionProfileTab: React.FC<{ p: ProductSubscriptionProfileDto }> = ({ p }) => (
-  <div className="profile-ud-list">
-    <InfoRow label="Faturalama Birimi" value={p.billingPeriodUnit} />
-    <InfoRow label="Faturalama Değeri" value={p.billingPeriodValue} />
-    <InfoRow label="Deneme Süresi (gün)" value={p.trialDays} />
-    <InfoRow label="Otomatik Yenileme" value={<StatusBadge active={p.autoRenew} />} />
-    <InfoRow label="İptal Politikası" value={p.cancellationPolicy} />
-  </div>
-);
+// ─── Profile Tab ──────────────────────────────────────────────────────────────
 
 const ProfileTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
-  const { kind, physicalProfile, softwareProfile, serviceProfile, subscriptionProfile } = product;
-  if (kind === 1 && physicalProfile) return <PhysicalProfileTab p={physicalProfile} />;
-  if (kind === 2 && softwareProfile) return <SoftwareProfileTab p={softwareProfile} />;
-  if (kind === 3 && serviceProfile) return <ServiceProfileTab p={serviceProfile} />;
-  if (kind === 4 && subscriptionProfile) return <SubscriptionProfileTab p={subscriptionProfile} />;
-  return <EmptyMessage text="Bu ürün türü için profil bilgisi yok." />;
+    const { kind, physicalProfile: phys, softwareProfile: sw, serviceProfile: svc, subscriptionProfile: sub } = product;
+
+    if (kind === 1 && phys) {
+        return (
+            <div className="row g-3">
+                <div className="col-md-6">
+                    <SectionCard title="Boyutlar & Ağırlık" icon="package">
+                        <div className="row g-3 text-center">
+                            {[
+                                { label: "Ağırlık", value: phys.weight, unit: "kg" },
+                                { label: "Genişlik", value: phys.width, unit: "cm" },
+                                { label: "Yükseklik", value: phys.height, unit: "cm" },
+                                { label: "Uzunluk", value: phys.length, unit: "cm" },
+                            ].map(({ label, value, unit }) => (
+                                <div key={label} className="col-6">
+                                    <div className="card bg-light border-0">
+                                        <div className="card-inner py-3">
+                                            <div className="fs-3 fw-bold text-primary">{value ?? "—"}</div>
+                                            <div className="text-soft fs-11">
+                                                {label} {value != null ? `(${unit})` : ""}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </SectionCard>
+                </div>
+                <div className="col-md-6">
+                    <SectionCard title="Kargo & Özellikler" icon="truck">
+                        <div className="d-flex flex-column gap-2">
+                            {[
+                                { label: "Kargoya Verilir", value: phys.requiresShipping },
+                                { label: "Kırılgan", value: phys.isFragile },
+                                { label: "Tehlikeli Madde", value: phys.isHazardous },
+                                { label: "Seri No Gerekli", value: phys.requiresSerialNumber },
+                            ].map(({ label, value }) => (
+                                <div key={label} className="d-flex justify-content-between align-items-center border-bottom pb-2">
+                                    <span className="text-soft fs-12">{label}</span>
+                                    <StatusBadge active={value} />
+                                </div>
+                            ))}
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-soft fs-12">Garanti Süresi</span>
+                                <span className="fw-medium">
+                                    {phys.warrantyInMonths != null ? `${phys.warrantyInMonths} ay` : "—"}
+                                </span>
+                            </div>
+                        </div>
+                    </SectionCard>
+                </div>
+            </div>
+        );
+    }
+
+    if (kind === 2 && sw) {
+        return (
+            <div className="row g-3">
+                <div className="col-md-6">
+                    <SectionCard title="Yazılım Bilgileri" icon="laptop">
+                        <div className="d-flex flex-column gap-2">
+                            {[
+                                {
+                                    label: "Versiyon",
+                                    value: sw.version ? <span className="badge bg-outline-info">{sw.version}</span> : null,
+                                },
+                                {
+                                    label: "Koltuk Sayısı",
+                                    value: sw.seatCount != null ? <span className="fw-bold text-primary">{sw.seatCount}</span> : null,
+                                },
+                                {
+                                    label: "İndirme URL",
+                                    value: sw.downloadUrl ? (
+                                        <a href={sw.downloadUrl} target="_blank" rel="noreferrer" className="text-primary fs-12">
+                                            {sw.downloadUrl}
+                                        </a>
+                                    ) : null,
+                                },
+                            ].map(({ label, value }) => (
+                                <div key={label} className="d-flex justify-content-between align-items-center border-bottom pb-2">
+                                    <span className="text-soft fs-12">{label}</span>
+                                    {value ?? <span className="text-muted">—</span>}
+                                </div>
+                            ))}
+                        </div>
+                    </SectionCard>
+                </div>
+                {(sw.supportedPlatformsJson || sw.systemRequirementsJson || sw.releaseNotes) && (
+                    <div className="col-md-6">
+                        <SectionCard title="Teknik Detaylar" icon="code">
+                            <div className="d-flex flex-column gap-3">
+                                {sw.releaseNotes && (
+                                    <div>
+                                        <p className="text-soft fs-11 mb-1">Sürüm Notları</p>
+                                        <p className="mb-0 fs-13px" style={{ whiteSpace: "pre-wrap" }}>
+                                            {sw.releaseNotes}
+                                        </p>
+                                    </div>
+                                )}
+                                {sw.supportedPlatformsJson && (
+                                    <div>
+                                        <p className="text-soft fs-11 mb-1">Desteklenen Platformlar</p>
+                                        <code className="fs-11">{sw.supportedPlatformsJson}</code>
+                                    </div>
+                                )}
+                                {sw.systemRequirementsJson && (
+                                    <div>
+                                        <p className="text-soft fs-11 mb-1">Sistem Gereksinimleri</p>
+                                        <code className="fs-11">{sw.systemRequirementsJson}</code>
+                                    </div>
+                                )}
+                            </div>
+                        </SectionCard>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    if (kind === 3 && svc) {
+        return (
+            <div className="row g-3">
+                <div className="col-md-6">
+                    <SectionCard title="Hizmet Profili" icon="briefcase">
+                        <div className="row g-3 text-center">
+                            {[
+                                { label: "Süre", value: svc.durationInMinutes, unit: "dk" },
+                                { label: "Maks. Eş Zamanlı", value: svc.maxConcurrentBooking, unit: "kişi" },
+                            ].map(({ label, value, unit }) => (
+                                <div key={label} className="col-6">
+                                    <div className="card bg-light border-0">
+                                        <div className="card-inner py-3">
+                                            <div className="fs-2 fw-bold text-success">{value ?? "—"}</div>
+                                            <div className="text-soft fs-11">
+                                                {label} {value != null ? `(${unit})` : ""}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {svc.serviceAreaJson && (
+                            <div className="mt-3">
+                                <p className="text-soft fs-11 mb-1">Hizmet Bölgesi</p>
+                                <code className="fs-11">{svc.serviceAreaJson}</code>
+                            </div>
+                        )}
+                    </SectionCard>
+                </div>
+            </div>
+        );
+    }
+
+    if (kind === 4 && sub) {
+        return (
+            <div className="row g-3">
+                <div className="col-md-6">
+                    <SectionCard title="Abonelik Profili" icon="repeat">
+                        <div className="d-flex flex-column gap-2">
+                            {[
+                                {
+                                    label: "Faturalama Periyodu",
+                                    value:
+                                        sub.billingPeriodValue && sub.billingPeriodUnit
+                                            ? `${sub.billingPeriodValue} ${BILLING_UNIT_LABELS[sub.billingPeriodUnit] ?? ""}`
+                                            : null,
+                                },
+                                { label: "Deneme Süresi", value: sub.trialDays != null ? `${sub.trialDays} gün` : null },
+                                { label: "İzin Süresi", value: sub.gracePeriodDays != null ? `${sub.gracePeriodDays} gün` : null },
+                                { label: "Otomatik Yenileme", value: <StatusBadge active={sub.autoRenew} /> },
+                                { label: "İptal Politikası", value: sub.cancellationPolicy },
+                            ].map(({ label, value }) => (
+                                <div key={label} className="d-flex justify-content-between align-items-center border-bottom pb-2">
+                                    <span className="text-soft fs-12">{label}</span>
+                                    <span className="fw-medium">{value ?? <span className="text-muted">—</span>}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </SectionCard>
+                </div>
+            </div>
+        );
+    }
+
+    return <EmptyState icon="info" text="Bu ürün türü için profil bilgisi yok." />;
+};
+
+// ─── Modules Tab ──────────────────────────────────────────────────────────────
+
+const ModulesTab: React.FC<{ items: ProductModuleDto[] }> = ({ items }) => {
+    if (!items.length) return <EmptyState icon="grid-sq" text="Bu ürüne ait modül yok." />;
+    return (
+        <div className="row g-3">
+            {items.map((m) => (
+                <div key={m.id} className="col-md-6 col-lg-4">
+                    <div className="card card-bordered h-100">
+                        <div className="card-inner">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span className="fw-bold fs-14px">{m.name}</span>
+                                    <br />
+                                    <code className="fs-11 text-primary">{m.moduleCode}</code>
+                                </div>
+                                <div className="d-flex flex-column gap-1 align-items-end">
+                                    <StatusBadge active={m.isActive} />
+                                    {m.isOptional && <span className="badge bg-outline-warning fs-10">Opsiyonel</span>}
+                                </div>
+                            </div>
+                            {m.description && <p className="text-soft fs-12 mb-2">{m.description}</p>}
+                            <div className="d-flex justify-content-between align-items-center border-top pt-2">
+                                <span className="text-soft fs-12">Ek Fiyat</span>
+                                <span className="fw-bold text-primary">{fmt(m.additionalPrice, m.currencyCode)}</span>
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center mt-1">
+                                <span className="text-soft fs-12">Sıra</span>
+                                <span className="badge bg-outline-secondary">{m.sortOrder}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// ─── Pricing Tiers Tab ────────────────────────────────────────────────────────
+
+const PricingTiersTab: React.FC<{ items: SoftwarePricingTierDto[] }> = ({ items }) => {
+    if (!items.length) return <EmptyState icon="layers" text="Fiyat kademesi tanımlanmamış." />;
+    return (
+        <div className="row g-3">
+            {items.map((t, idx) => {
+                const lm = LICENSE_MODEL_LABELS[t.licenseModel];
+                return (
+                    <div key={t.id} className="col-md-6 col-xl-4">
+                        <div className="card card-bordered h-100">
+                            <div className="card-inner">
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <span className={`badge bg-${lm?.color ?? "secondary"}`}>
+                                        Kademe #{idx + 1} · {lm?.label ?? t.licenseModel}
+                                    </span>
+                                    <StatusBadge active={t.isActive} />
+                                </div>
+                                <div className="text-center mb-3">
+                                    <span className="text-soft fs-12 d-block">Birim Fiyatı</span>
+                                    <span className="fs-1 fw-bold text-primary">{fmt(t.pricePerUnit)}</span>
+                                    <span className="text-soft ms-1 fs-12">
+                                        {t.currencyCode} / {t.unit}
+                                    </span>
+                                </div>
+                                <div className="d-flex flex-column gap-1 fs-12">
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft">Birim Aralığı</span>
+                                        <span className="fw-medium">
+                                            {t.minUnits} – {t.maxUnits ?? "∞"}
+                                        </span>
+                                    </div>
+                                    {t.flatFee > 0 && (
+                                        <div className="d-flex justify-content-between">
+                                            <span className="text-soft">Sabit Ücret</span>
+                                            <span className="fw-medium text-warning">
+                                                {fmt(t.flatFee)} {t.currencyCode}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+// ─── License Offerings Tab ────────────────────────────────────────────────────
+
+const LicenseOfferingsDetailTab: React.FC<{ items: ProductLicenseOfferingDto[] }> = ({ items }) => {
+    if (!items.length) return <EmptyState icon="tag" text="Lisans teklifi tanımlanmamış." />;
+    return (
+        <div className="row g-3">
+            {items.map((lo) => {
+                const lm = LICENSE_MODEL_LABELS[lo.licenseModel];
+                return (
+                    <div key={lo.id} className="col-md-6 col-xl-4">
+                        <div className={`card card-bordered h-100 ${lo.isActive ? "border-" + (lm?.color ?? "secondary") : ""}`}>
+                            <div className="card-inner">
+                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span className="fw-bold fs-14px">{lo.name}</span>
+                                        <br />
+                                        <span className={`badge bg-${lm?.color ?? "secondary"} mt-1`}>{lm?.label ?? lo.licenseModel}</span>
+                                    </div>
+                                    <div className="d-flex flex-column align-items-end gap-1">
+                                        <StatusBadge active={lo.isActive} />
+                                        <span className="text-soft fs-11">#{lo.sortOrder}</span>
+                                    </div>
+                                </div>
+
+                                {lo.description && <p className="text-soft fs-12 mb-2">{lo.description}</p>}
+
+                                <div className="text-center my-3 py-2 bg-light rounded">
+                                    <span className="text-soft fs-11 d-block">Taban Fiyat</span>
+                                    <span className="fs-1 fw-bold text-dark">{fmt(lo.basePrice)}</span>
+                                    <span className="text-soft ms-1 fs-12">{lo.currencyCode}</span>
+                                    {lo.billingPeriodValue && lo.billingPeriodUnit && (
+                                        <span className="text-soft fs-11 d-block">
+                                            / {lo.billingPeriodValue} {BILLING_UNIT_LABELS[lo.billingPeriodUnit]}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="d-flex flex-column gap-1 fs-12">
+                                    {lo.maxSeats != null && (
+                                        <div className="d-flex justify-content-between">
+                                            <span className="text-soft">Maks. Koltuk</span>
+                                            <span className="fw-medium">{lo.maxSeats}</span>
+                                        </div>
+                                    )}
+                                    {lo.trialDays != null && (
+                                        <div className="d-flex justify-content-between">
+                                            <span className="text-soft">Deneme Süresi</span>
+                                            <span className="badge bg-outline-secondary">{lo.trialDays} gün</span>
+                                        </div>
+                                    )}
+                                    {lo.gracePeriodDays != null && (
+                                        <div className="d-flex justify-content-between">
+                                            <span className="text-soft">İzin Süresi</span>
+                                            <span>{lo.gracePeriodDays} gün</span>
+                                        </div>
+                                    )}
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft">Oto. Yenileme</span>
+                                        <StatusBadge active={lo.autoRenew} />
+                                    </div>
+                                    {(lo.validFrom || lo.validTo) && (
+                                        <div className="border-top pt-1 mt-1">
+                                            <span className="text-soft d-block">Geçerlilik</span>
+                                            <span className="text-soft fs-11">
+                                                {fmtDate(lo.validFrom)} – {fmtDate(lo.validTo)}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+// ─── Tab Builder ──────────────────────────────────────────────────────────────
+
+const buildTabs = (product: ProductDetailDto): TabItem[] => {
+    const isSoftware = product.kind === 2;
+    const isLicensable = product.kind === 2 || product.kind === 3 || product.kind === 4;
+
+    const tabs: TabItem[] = [
+        { id: "general", label: "Genel Bilgi", content: <GeneralTab product={product} /> },
+        {
+            id: "attributes",
+            label: "Özellikler",
+            badge: product.attributeValues.length || undefined,
+            content: <AttributesTab items={product.attributeValues} />,
+        },
+        {
+            id: "variants",
+            label: "Varyantlar",
+            badge: product.variants.length || undefined,
+            content: <VariantsTab items={product.variants} />,
+        },
+        {
+            id: "prices",
+            label: "Fiyatlar",
+            badge: product.prices.length || undefined,
+            content: <PricesTab items={product.prices} currencyCode={product.defaultCurrencyCode} />,
+        },
+        {
+            id: "inventory",
+            label: "Stok",
+            badge: product.inventories.length || undefined,
+            content: <InventoryTab items={product.inventories} />,
+        },
+        {
+            id: "media",
+            label: "Medya",
+            badge: product.mediaItems.length || undefined,
+            content: <MediaTab items={product.mediaItems} />,
+        },
+        {
+            id: "categories",
+            label: "Kategoriler",
+            badge: product.categoryMaps.length || undefined,
+            content: <CategoriesTab items={product.categoryMaps} />,
+        },
+        {
+            id: "bundles",
+            label: "Bundle",
+            badge: product.bundleItems?.length || undefined,
+            content: <BundlesTab items={product.bundleItems ?? []} />,
+        },
+        {
+            id: "suppliers",
+            label: "Tedarikçiler",
+            badge: product.supplierMaps.length || undefined,
+            content: <SuppliersTab items={product.supplierMaps} />,
+        },
+        { id: "profile", label: "Profil", content: <ProfileTab product={product} /> },
+    ];
+
+    if (isSoftware) {
+        tabs.push({
+            id: "modules",
+            label: "Modüller",
+            badge: product.modules?.length || undefined,
+            content: <ModulesTab items={product.modules ?? []} />,
+        });
+    }
+
+    if (isLicensable) {
+        tabs.push({
+            id: "pricing-tiers",
+            label: "Fiyat Kademeleri",
+            badge: product.softwarePricingTiers?.length || undefined,
+            content: <PricingTiersTab items={product.softwarePricingTiers ?? []} />,
+        });
+        tabs.push({
+            id: "license-offerings",
+            label: "Lisans Teklifleri",
+            badge: product.licenseOfferings?.length || undefined,
+            content: <LicenseOfferingsDetailTab items={product.licenseOfferings ?? []} />,
+        });
+    }
+
+    return tabs;
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-const buildTabs = (product: ProductDetailDto): TabItem[] => [
-  {
-    id: "general",
-    label: "Genel Bilgi",
-    content: <GeneralTab product={product} />,
-  },
-  {
-    id: "attributes",
-    label: "Özellikler",
-    badge: product.attributeValues.length || undefined,
-    content: <AttributesTab items={product.attributeValues} />,
-  },
-  {
-    id: "variants",
-    label: "Varyantlar",
-    badge: product.variants.length || undefined,
-    content: <VariantsTab items={product.variants} />,
-  },
-  {
-    id: "prices",
-    label: "Fiyatlar",
-    badge: product.prices.length || undefined,
-    content: <PricesTab items={product.prices} />,
-  },
-  {
-    id: "inventory",
-    label: "Stok",
-    badge: product.inventories.length || undefined,
-    content: <InventoryTab items={product.inventories} />,
-  },
-  {
-    id: "media",
-    label: "Medya",
-    badge: product.mediaItems.length || undefined,
-    content: <MediaTab items={product.mediaItems} />,
-  },
-  {
-    id: "categories",
-    label: "Kategoriler",
-    badge: product.categoryMaps.length || undefined,
-    content: <CategoriesTab items={product.categoryMaps} />,
-  },
-  {
-    id: "suppliers",
-    label: "Tedarikçiler",
-    badge: product.supplierMaps.length || undefined,
-    content: <SuppliersTab items={product.supplierMaps} />,
-  },
-  {
-    id: "profile",
-    label: "Profil",
-    content: <ProfileTab product={product} />,
-  },
-];
-
 const ProductDetailPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const { data: product, isLoading } = useProductDetail(id);
-  const { deleteMutation } = useProductMutations();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("general");
+    const navigate = useNavigate();
+    const { id } = useParams();
+    const { data: product, isLoading } = useProductDetail(id);
+    const { deleteMutation } = useProductMutations();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState("general");
 
-  const handleDelete = async () => {
-    if (!id) return;
-    await deleteMutation.mutateAsync(id);
-    navigate("/products");
-  };
+    const handleDelete = async () => {
+        if (!id) return;
+        await deleteMutation.mutateAsync(id);
+        navigate("/products");
+    };
 
-  const kind = product ? KIND_LABELS[product.kind] : undefined;
-  const status = product ? STATUS_LABELS[product.status] : undefined;
+    const kind = product ? KIND_LABELS[product.kind] : undefined;
+    const status = product ? STATUS_LABELS[product.status] : undefined;
 
-  return (
-    <>
-      <Head title={product ? `${product.productCode} – ${product.name}` : "Ürün Detay"} />
-      <Content>
-        <PageHeader
-          title={product ? product.name : "Yükleniyor…"}
-          description={
-            product ? `${product.productCode}${product.brand ? ` · ${product.brand}` : ""}` : undefined
-          }
-          actions={
-            product ? (
-              <div className="d-flex gap-2 align-items-center flex-wrap">
-                {kind && <span className={`badge badge-dim bg-${kind.color}`}>{kind.label}</span>}
-                {status && <span className={`badge badge-dim bg-${status.color}`}>{status.label}</span>}
-                <StatusBadge active={product.isActive} />
-                <Button color="primary" size="sm" onClick={() => navigate(`/products/${id}/edit`)}>
-                  Düzenle
-                </Button>
-                <Button color="danger" outline size="sm" onClick={() => setConfirmOpen(true)}>
-                  Sil
-                </Button>
-              </div>
-            ) : undefined
-          }
-        />
+    return (
+        <>
+            <Head title={product ? `${product.productCode} – ${product.name}` : "Ürün Detay"} />
+            <Content>
+                <PageHeader
+                    title={product ? product.name : "Yükleniyor…"}
+                    description={
+                        product
+                            ? `${product.productCode}${product.brand ? ` · ${product.brand}` : ""}${product.manufacturer ? ` · ${product.manufacturer}` : ""}`
+                            : undefined
+                    }
+                    actions={
+                        product ? (
+                            <div className="d-flex gap-2 align-items-center flex-wrap">
+                                {kind && (
+                                    <span className={`badge bg-${kind.color}`}>
+                                        <em className={`icon ni ni-${kind.icon} me-1`} />
+                                        {kind.label}
+                                    </span>
+                                )}
+                                {status && <span className={`badge badge-dim bg-${status.color}`}>{status.label}</span>}
+                                <StatusBadge active={product.isActive} />
+                                <Button color="primary" size="sm" onClick={() => navigate(`/products/${id}/edit`)}>
+                                    <em className="icon ni ni-edit me-1" />
+                                    Düzenle
+                                </Button>
+                                <Button color="danger" outline size="sm" onClick={() => setConfirmOpen(true)}>
+                                    <em className="icon ni ni-trash me-1" />
+                                    Sil
+                                </Button>
+                            </div>
+                        ) : undefined
+                    }
+                />
 
-        <Block>
-          {isLoading ? (
-            <div className="card card-bordered">
-              <div className="card-inner d-flex align-items-center gap-3 py-5">
-                <span className="spinner-border spinner-border-sm text-primary" />
-                <span>Ürün yükleniyor…</span>
-              </div>
-            </div>
-          ) : !product ? (
-            <div className="card card-bordered">
-              <div className="card-inner text-center py-5">
-                <p className="text-soft mb-3">Ürün bulunamadı veya yüklenirken hata oluştu.</p>
-                <Button color="light" size="sm" className="" onClick={() => navigate("/products")}>
-                  Listeye Dön
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <AppTabs
-              tabs={buildTabs(product)}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
+                <Block className="" size="">
+                    {isLoading ? (
+                        <div className="card card-bordered">
+                            <div className="card-inner d-flex align-items-center gap-3 py-5">
+                                <span className="spinner-border spinner-border-sm text-primary" />
+                                <span>Ürün yükleniyor…</span>
+                            </div>
+                        </div>
+                    ) : !product ? (
+                        <div className="card card-bordered">
+                            <div className="card-inner text-center py-5">
+                                <em className="icon ni ni-cross-circle fs-1 text-danger d-block mb-3" />
+                                <p className="text-soft mb-3">Ürün bulunamadı veya yüklenirken hata oluştu.</p>
+                                <Button color="light" size="sm" onClick={() => navigate("/products")}>
+                                    <em className="icon ni ni-arrow-left me-1" />
+                                    Listeye Dön
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <AppTabs tabs={buildTabs(product)} activeTab={activeTab} onTabChange={setActiveTab} />
+                    )}
+                </Block>
+            </Content>
+
+            <ConfirmDialog
+                open={confirmOpen}
+                title="Ürün Silinsin mi?"
+                message={`"${product?.name}" ürünü kalıcı olarak silinecek. Bu işlem geri alınamaz.`}
+                variant="danger"
+                loading={deleteMutation.isPending}
+                onCancel={() => setConfirmOpen(false)}
+                onConfirm={handleDelete}
             />
-          )}
-        </Block>
-      </Content>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title="Ürün Silinsin mi?"
-        message={`"${product?.name}" ürünü kalıcı olarak silinecek. Bu işlem geri alınamaz.`}
-        variant="danger"
-        loading={deleteMutation.isPending}
-        onCancel={() => setConfirmOpen(false)}
-        onConfirm={handleDelete}
-      />
-    </>
-  );
+        </>
+    );
 };
 
 export default ProductDetailPage;

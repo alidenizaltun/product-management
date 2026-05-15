@@ -154,6 +154,8 @@ export interface SoftwarePricingTierForm {
 }
 
 export interface LicenseOfferingForm {
+  id?: string;
+  _tempId?: string;
   licenseModel: number;
   name: string;
   description?: string;

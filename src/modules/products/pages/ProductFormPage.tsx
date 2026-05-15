@@ -284,6 +284,7 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
         })),
 
         licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
+            id: lo.id,
             licenseModel: lo.licenseModel,
             name: lo.name,
             description: lo.description,
@@ -416,8 +417,18 @@ const ProductFormPage: React.FC = () => {
                 ? values.prices.map((p) => ({ ...p, amount: p.amount ?? 0 }))
                 : undefined,
             inventories: values.inventories?.length ? values.inventories : undefined,
-            mediaItems: values.mediaItems?.length ? values.mediaItems : undefined,
-            categoryMaps: values.categoryMaps?.length ? values.categoryMaps : undefined,
+            mediaItems: values.mediaItems?.length
+                ? values.mediaItems.map((m) => ({
+                    ...m,
+                    sortOrder: Number.isFinite(m.sortOrder) ? m.sortOrder : 0,
+                }))
+                : undefined,
+            categoryMaps: values.categoryMaps?.length
+                ? values.categoryMaps.map((cm) => ({
+                    ...cm,
+                    sortOrder: Number.isFinite(cm.sortOrder) ? cm.sortOrder : 0,
+                }))
+                : undefined,
             bundleItems: values.bundleItems?.length ? values.bundleItems : undefined,
             supplierMaps: values.supplierMaps?.length ? values.supplierMaps : undefined,
             inventoryTransactions: values.inventoryTransactions?.length
@@ -443,7 +454,8 @@ const ProductFormPage: React.FC = () => {
                     : undefined,
             licenseOfferings:
                 values.kind === 2 && values.licenseOfferings?.length
-                    ? values.licenseOfferings.map((lo) => ({ ...lo, productId: id ?? undefined }))
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    ? values.licenseOfferings.map(({ _tempId, ...lo }) => ({ ...lo, productId: id ?? undefined }))
                     : undefined,
         };
 

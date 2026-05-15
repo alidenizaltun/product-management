@@ -27,6 +27,7 @@ const menu = [
       { text: "Kategoriler", link: "/catalog/categories" },
       { text: "Tedarikçiler", link: "/catalog/suppliers" },
       { text: "Depolar", link: "/catalog/warehouses" },
+      { text: "Birim Tanımları", link: "/catalog/unit-definitions" },
     ],
   },
   {

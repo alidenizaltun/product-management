@@ -2,6 +2,9 @@ import React from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 
+const generateTempId = () =>
+    `temp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
 const LICENSE_MODELS = [
     { value: 1, label: "Tek Seferlik (Perpetual)" },
     { value: 2, label: "Abonelik (Subscription)" },
@@ -268,7 +271,7 @@ const LicenseOfferingsTab: React.FC = () => {
                 <button
                     type="button"
                     className="btn btn-sm btn-outline-primary"
-                    onClick={() => append({ ...EMPTY_OFFERING, sortOrder: fields.length + 1 })}
+                    onClick={() => append({ ...EMPTY_OFFERING, _tempId: generateTempId(), sortOrder: fields.length + 1 })}
                 >
                     <em className="icon ni ni-plus me-1" />
                     Teklif Ekle
@@ -283,7 +286,7 @@ const LicenseOfferingsTab: React.FC = () => {
                     </p>
                 </div>
             ) : (
-                <div className="d-flex flex-column gap-3">
+                <div className="d-flex flex-column gap-3 h-100">
                     {fields.map((field, index) => (
                         <div key={field.id} className="card card-bordered">
                             <div className="card-inner">

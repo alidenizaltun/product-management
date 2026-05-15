@@ -58,6 +58,8 @@ import {
   SystemLogsPage,
   SystemSettingsPage,
 } from "@/modules/system/pages/SystemPages";
+import UnitDefinitionListPage from "@/modules/catalog/pages/UnitDefinitionListPage";
+import UnitDefinitionFormPage from "@/modules/catalog/pages/UnitDefinitionFormPage";
 
 const ScrollToTop = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -100,6 +102,10 @@ const Pages = () => {
                 <Route path="catalog/warehouses/new" element={<WarehouseFormPage />} />
                 <Route path="catalog/warehouses/:id/edit" element={<WarehouseFormPage />} />
                 <Route path="catalog/warehouses/:id" element={<WarehouseDetailPage />} />
+
+                <Route path="catalog/unit-definitions" element={<UnitDefinitionListPage />} />
+                <Route path="catalog/unit-definitions/new" element={<UnitDefinitionFormPage />} />
+                <Route path="catalog/unit-definitions/:id/edit" element={<UnitDefinitionFormPage />} />
 
                 <Route path="attributes/definitions" element={<AttributeDefinitionListPage />} />
                 <Route path="attributes/definitions/new" element={<AttributeDefinitionFormPage />} />

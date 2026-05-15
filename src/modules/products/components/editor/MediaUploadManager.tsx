@@ -16,7 +16,7 @@ const emptyMedia = () => ({
   mimeType: "image/jpeg",
   altText: "",
   isPrimary: false,
-  sortOrder: undefined as number | undefined,
+  sortOrder: 0,
 });
 
 const MediaUploadManager: React.FC = () => {

@@ -12,5 +12,7 @@ export const queryKeys = {
     categories: ["catalog", "categories"] as const,
     suppliers: ["catalog", "suppliers"] as const,
     warehouses: ["catalog", "warehouses"] as const,
+    unitDefinitions: ["catalog", "unitDefinitions"] as const,
+    unitDefinition: (id: string) => ["catalog", "unitDefinitions", id] as const,
   },
 };

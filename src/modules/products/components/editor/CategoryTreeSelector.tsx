@@ -6,7 +6,7 @@ import CategoryTreeSelect from "@/modules/shared/components/selects/CategoryTree
 const emptyCategory = () => ({
   productCategoryId: "",
   isPrimary: false,
-  sortOrder: undefined as number | undefined,
+  sortOrder: 0,
 });
 
 const CategoryTreeSelector: React.FC = () => {

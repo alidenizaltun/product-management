@@ -79,14 +79,14 @@ const SectionCard: React.FC<{
     actions?: React.ReactNode;
     fullHeight?: boolean;
 }> = ({ title, subtitle, icon, children, actions, fullHeight = true }) => (
-    <div className={`card card-bordered${fullHeight ? " h-100" : ""}`}>
-        <div className="card-inner">
+    <div className={`card card-bordered${fullHeight ? " h-100" : ""}`} style={{ overflow: "hidden" }}>
+        <div className="card-inner" style={{ overflow: "hidden" }}>
             <div className="d-flex align-items-start justify-content-between mb-3">
-                <div className="d-flex align-items-center gap-2">
-                    {icon && <em className={`icon ni ni-${icon} fs-4 text-primary`} />}
-                    <div>
-                        <h6 className="title mb-0">{title}</h6>
-                        {subtitle && <p className="text-soft fs-12 mb-0">{subtitle}</p>}
+                <div className="d-flex align-items-center gap-2 min-w-0">
+                    {icon && <em className={`icon ni ni-${icon} fs-4 text-primary flex-shrink-0`} />}
+                    <div className="min-w-0">
+                        <h6 className="title mb-0 text-truncate">{title}</h6>
+                        {subtitle && <p className="text-soft fs-12 mb-0 text-truncate">{subtitle}</p>}
                     </div>
                 </div>
                 {actions}
@@ -126,14 +126,14 @@ const GeneralTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
         <div className="row g-4">
             {/* Sol: Görsel + Durum */}
             <div className="col-lg-4">
-                <div className="card card-bordered mb-3">
-                    <div className="card-inner text-center py-4">
+                <div className="card card-bordered mb-3" style={{ overflow: "hidden" }}>
+                    <div className="card-inner text-center py-4" style={{ overflow: "hidden" }}>
                         {primaryImage?.url ? (
                             <img
                                 src={primaryImage.thumbnailUrl ?? primaryImage.url}
                                 alt={primaryImage.altText ?? product.name}
-                                className="img-fluid rounded"
-                                style={{ maxHeight: 220, objectFit: "contain" }}
+                                className="rounded"
+                                style={{ maxHeight: 220, maxWidth: "100%", objectFit: "contain", display: "block", margin: "0 auto" }}
                             />
                         ) : (
                             <div
@@ -192,15 +192,15 @@ const GeneralTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
 
             {/* Sağ: Detaylar */}
             <div className="col-lg-8">
-                <div className="card card-bordered mb-3">
-                    <div className="card-inner">
-                        <h5 className="fw-bold mb-1">{product.name}</h5>
-                        <p className="text-primary fs-13px mb-2">
+                <div className="card card-bordered mb-3" style={{ overflow: "hidden" }}>
+                    <div className="card-inner" style={{ overflow: "hidden" }}>
+                        <h5 className="fw-bold mb-1" style={{ wordBreak: "break-word" }}>{product.name}</h5>
+                        <p className="text-primary fs-13px mb-2" style={{ wordBreak: "break-word" }}>
                             <em className="icon ni ni-tag me-1" />
                             {product.productCode}
                         </p>
                         {product.shortDescription && (
-                            <p className="text-soft mb-0">{product.shortDescription}</p>
+                            <p className="text-soft mb-0" style={{ wordBreak: "break-word" }}>{product.shortDescription}</p>
                         )}
                     </div>
                 </div>
@@ -214,7 +214,7 @@ const GeneralTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
                                     { label: "Üretici", value: product.manufacturer },
                                     { label: "Barkod", value: product.barcode ? <code>{product.barcode}</code> : undefined },
                                     { label: "Para Birimi", value: product.defaultCurrencyCode },
-                                    { label: "Ölçü Birimi", value: product.unitOfMeasure },
+                                    { label: "Ölçü Birimi", value: product.unitDefinitionName },
                                 ].map(({ label, value }) => (
                                     <div key={label} className="d-flex justify-content-between align-items-center border-bottom pb-2">
                                         <span className="text-soft fs-12">{label}</span>
@@ -256,8 +256,8 @@ const GeneralTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
                 </div>
 
                 {product.tags && (
-                    <div className="card card-bordered mt-3">
-                        <div className="card-inner py-3">
+                    <div className="card card-bordered mt-3" style={{ overflow: "hidden" }}>
+                        <div className="card-inner py-3 d-flex flex-wrap align-items-center" style={{ overflow: "hidden" }}>
                             <span className="text-soft fs-12 me-2">Etiketler:</span>
                             {product.tags.split(",").map((tag) => (
                                 <span key={tag.trim()} className="badge bg-outline-primary me-1 mb-1">
@@ -269,18 +269,18 @@ const GeneralTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
                 )}
 
                 {product.description && (
-                    <div className="card card-bordered mt-3">
-                        <div className="card-inner">
+                    <div className="card card-bordered mt-3" style={{ overflow: "hidden" }}>
+                        <div className="card-inner" style={{ overflow: "hidden" }}>
                             <h6 className="overline-title text-soft mb-2">Açıklama</h6>
-                            <p className="text-base mb-0" style={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+                            <p className="text-base mb-0" style={{ whiteSpace: "pre-wrap", lineHeight: 1.7, wordBreak: "break-word" }}>
                                 {product.description}
                             </p>
                         </div>
                     </div>
                 )}
 
-                <div className="card card-bordered mt-3">
-                    <div className="card-inner py-2">
+                <div className="card card-bordered mt-3" style={{ overflow: "hidden" }}>
+                    <div className="card-inner py-2" style={{ overflow: "hidden" }}>
                         <div className="d-flex gap-4 flex-wrap">
                             <div>
                                 <span className="text-soft fs-11 d-block">Oluşturulma</span>
@@ -290,9 +290,9 @@ const GeneralTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
                                 <span className="text-soft fs-11 d-block">Son Güncelleme</span>
                                 <span className="fs-12 fw-medium">{fmtDateTime(product.updatedAt)}</span>
                             </div>
-                            <div>
+                            <div className="min-w-0" style={{ maxWidth: "100%" }}>
                                 <span className="text-soft fs-11 d-block">ID</span>
-                                <code className="fs-11">{product.id}</code>
+                                <code className="fs-11 d-block text-truncate">{product.id}</code>
                             </div>
                         </div>
                     </div>
@@ -310,10 +310,10 @@ const AttributesTab: React.FC<{ items: ProductAttributeValueDto[] }> = ({ items 
         <div className="row g-3">
             {items.map((it) => (
                 <div key={it.id} className="col-md-6 col-lg-4">
-                    <div className="card card-bordered h-100">
-                        <div className="card-inner py-3">
+                    <div className="card card-bordered h-100" style={{ overflow: "hidden" }}>
+                        <div className="card-inner py-3" style={{ overflow: "hidden" }}>
                             <p className="text-soft fs-11 mb-1">Özellik ID</p>
-                            <code className="fs-12 text-primary">{it.attributeDefinitionId.slice(0, 8)}…</code>
+                            <code className="fs-12 text-primary text-truncate d-block">{it.attributeDefinitionId.slice(0, 8)}…</code>
                             <div className="mt-2 d-flex flex-column gap-1">
                                 {it.valueText && (
                                     <div className="d-flex justify-content-between">
@@ -356,13 +356,12 @@ const VariantsTab: React.FC<{ items: ProductVariantDto[] }> = ({ items }) => {
         <div className="row g-3">
             {items.map((v) => (
                 <div key={v.id} className="col-md-6 col-lg-4">
-                    <div className="card card-bordered">
-                        <div className="card-inner">
+                    <div className="card card-bordered" style={{ overflow: "hidden" }}>
+                        <div className="card-inner" style={{ overflow: "hidden" }}>
                             <div className="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <span className="fw-bold fs-14px">{v.name}</span>
-                                    <br />
-                                    <code className="fs-11 text-primary">{v.sku}</code>
+                                <div className="min-w-0 me-2">
+                                    <span className="fw-bold fs-14px d-block text-truncate">{v.name}</span>
+                                    <code className="fs-11 text-primary text-truncate d-block">{v.sku}</code>
                                 </div>
                                 <StatusBadge active={v.isActive} />
                             </div>
@@ -386,9 +385,9 @@ const VariantsTab: React.FC<{ items: ProductVariantDto[] }> = ({ items }) => {
                                     </div>
                                 )}
                                 {v.optionValuesJson && (
-                                    <div className="mt-1 pt-1 border-top">
+                                    <div className="mt-1 pt-1 border-top" style={{ overflow: "hidden" }}>
                                         <span className="text-soft fs-11">Seçenekler</span>
-                                        <p className="mb-0 fs-11 text-soft">{v.optionValuesJson}</p>
+                                        <p className="mb-0 fs-11 text-soft" style={{ wordBreak: "break-all", overflowWrap: "break-word" }}>{v.optionValuesJson}</p>
                                     </div>
                                 )}
                             </div>
@@ -410,13 +409,13 @@ const PricesTab: React.FC<{ items: ProductPriceDto[]; currencyCode: string }> = 
                 const pt = PRICE_TYPE_LABELS[p.priceType];
                 return (
                     <div key={p.id} className="col-md-6 col-xl-4">
-                        <div className="card card-bordered h-100">
-                            <div className="card-inner">
+                        <div className="card card-bordered h-100" style={{ overflow: "hidden" }}>
+                            <div className="card-inner" style={{ overflow: "hidden" }}>
                                 <div className="d-flex justify-content-between align-items-center mb-3">
                                     <span className={`badge bg-${pt?.color ?? "secondary"}`}>{pt?.label ?? p.priceType}</span>
                                     <span className="text-soft fs-11">{p.currencyCode}</span>
                                 </div>
-                                <div className="text-center mb-3">
+                                <div className="text-center mb-3" style={{ overflow: "hidden" }}>
                                     <span className="fs-1 fw-bold text-dark">{fmt(p.amount)}</span>
                                     {p.compareAtAmount != null && (
                                         <span className="text-soft text-decoration-line-through ms-2 fs-14px">
@@ -514,14 +513,14 @@ const InventoryTab: React.FC<{ items: ProductInventoryDetailDto[] }> = ({ items 
 
                     return (
                         <div key={inv.id} className="col-md-6 col-xl-4">
-                            <div className={`card card-bordered border-${statusColor} h-100`}>
-                                <div className="card-inner">
+                            <div className={`card card-bordered border-${statusColor} h-100`} style={{ overflow: "hidden" }}>
+                                <div className="card-inner" style={{ overflow: "hidden" }}>
                                     <div className="d-flex justify-content-between align-items-center mb-3">
-                                        <span className="fw-bold fs-14px">
+                                        <span className="fw-bold fs-14px text-truncate me-2">
                                             <em className="icon ni ni-building me-1 text-soft" />
                                             {inv.warehouseCode ?? inv.warehouseId.slice(0, 8) + "…"}
                                         </span>
-                                        <span className={`badge bg-${statusColor}`}>{statusLabel}</span>
+                                        <span className={`badge bg-${statusColor} flex-shrink-0`}>{statusLabel}</span>
                                     </div>
                                     <div className="row g-2 text-center">
                                         <div className="col-4">
@@ -569,34 +568,36 @@ const MediaTab: React.FC<{ items: ProductMediaItemDto[] }> = ({ items }) => {
         <div className="row g-3">
             {items.map((m) => (
                 <div key={m.id} className="col-6 col-md-4 col-lg-3">
-                    <div className={`card card-bordered h-100 ${m.isPrimary ? "border-primary" : ""}`}>
+                    <div className={`card card-bordered h-100 ${m.isPrimary ? "border-primary" : ""}`} style={{ overflow: "hidden" }}>
                         {m.isPrimary && (
                             <div className="card-header py-1 bg-primary text-white text-center fs-11">
                                 <em className="icon ni ni-star me-1" />
                                 Ana Görsel
                             </div>
                         )}
-                        <div className="card-inner p-2 text-center">
-                            {m.thumbnailUrl || m.url ? (
-                                <a href={m.url} target="_blank" rel="noreferrer">
-                                    <img
-                                        src={m.thumbnailUrl ?? m.url}
-                                        alt={m.altText ?? "Ürün görseli"}
-                                        className="img-fluid rounded mb-2"
-                                        style={{ maxHeight: 150, objectFit: "contain" }}
-                                    />
-                                </a>
-                            ) : (
-                                <div
-                                    className="d-flex align-items-center justify-content-center bg-light rounded mb-2"
-                                    style={{ height: 120 }}
-                                >
-                                    <em className="icon ni ni-img fs-2 text-soft" />
-                                </div>
-                            )}
-                            <div className="d-flex flex-column gap-1">
-                                {m.altText && <p className="text-soft mb-0 fs-11">{m.altText}</p>}
-                                {m.mimeType && <span className="badge bg-outline-secondary fs-10">{m.mimeType}</span>}
+                        <div className="card-inner p-2 text-center d-flex flex-column" style={{ overflow: "hidden" }}>
+                            <div className="flex-grow-1 d-flex align-items-center justify-content-center mb-2" style={{ overflow: "hidden", maxWidth: "100%" }}>
+                                {m.thumbnailUrl || m.url ? (
+                                    <a href={m.url} target="_blank" rel="noreferrer" style={{ display: "block", maxWidth: "100%", overflow: "hidden" }}>
+                                        <img
+                                            src={m.thumbnailUrl ?? m.url}
+                                            alt={m.altText ?? "Ürün görseli"}
+                                            className="rounded"
+                                            style={{ maxHeight: 150, maxWidth: "100%", objectFit: "contain", display: "block" }}
+                                        />
+                                    </a>
+                                ) : (
+                                    <div
+                                        className="d-flex align-items-center justify-content-center bg-light rounded w-100"
+                                        style={{ height: 120 }}
+                                    >
+                                        <em className="icon ni ni-img fs-2 text-soft" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="d-flex flex-column gap-1" style={{ overflow: "hidden" }}>
+                                {m.altText && <p className="text-soft mb-0 fs-11 text-truncate">{m.altText}</p>}
+                                {m.mimeType && <span className="badge bg-outline-secondary fs-10 text-truncate">{m.mimeType}</span>}
                                 <span className="text-soft fs-11">Sıra: {m.sortOrder ?? "—"}</span>
                             </div>
                         </div>
@@ -615,8 +616,8 @@ const CategoriesTab: React.FC<{ items: ProductCategoryMapDetailDto[] }> = ({ ite
         <div className="row g-3">
             {items.map((c) => (
                 <div key={c.id} className="col-md-6 col-lg-4">
-                    <div className={`card card-bordered h-100 ${c.isPrimary ? "border-primary" : ""}`}>
-                        <div className="card-inner py-3">
+                    <div className={`card card-bordered h-100 ${c.isPrimary ? "border-primary" : ""}`} style={{ overflow: "hidden" }}>
+                        <div className="card-inner py-3" style={{ overflow: "hidden" }}>
                             <div className="d-flex justify-content-between align-items-center mb-2">
                                 {c.isPrimary ? (
                                     <span className="badge bg-primary">
@@ -628,7 +629,7 @@ const CategoriesTab: React.FC<{ items: ProductCategoryMapDetailDto[] }> = ({ ite
                                 )}
                                 <span className="text-soft fs-11">Sıra: {c.sortOrder ?? "—"}</span>
                             </div>
-                            <code className="fs-12 text-primary d-block">{c.productCategoryId.slice(0, 8)}…</code>
+                            <code className="fs-12 text-primary d-block text-truncate">{c.productCategoryId.slice(0, 8)}…</code>
                         </div>
                     </div>
                 </div>
@@ -645,13 +646,13 @@ const BundlesTab: React.FC<{ items: ProductBundleItemDto[] }> = ({ items }) => {
         <div className="row g-3">
             {items.map((bi) => (
                 <div key={bi.id} className="col-md-6 col-lg-4">
-                    <div className="card card-bordered h-100">
-                        <div className="card-inner py-3">
+                    <div className="card card-bordered h-100" style={{ overflow: "hidden" }}>
+                        <div className="card-inner py-3" style={{ overflow: "hidden" }}>
                             <div className="d-flex justify-content-between align-items-center mb-2">
                                 <span className="badge bg-info">Bundle Ürün</span>
                                 {bi.isOptional && <span className="badge bg-outline-warning">Opsiyonel</span>}
                             </div>
-                            <code className="fs-12 text-primary d-block mb-2">{bi.childProductId.slice(0, 8)}…</code>
+                            <code className="fs-12 text-primary d-block mb-2 text-truncate">{bi.childProductId.slice(0, 8)}…</code>
                             <div className="d-flex justify-content-between align-items-center fs-12">
                                 <span className="text-soft">Miktar</span>
                                 <span className="badge bg-primary fs-13px">{bi.quantity}</span>
@@ -672,12 +673,12 @@ const SuppliersTab: React.FC<{ items: ProductSupplierMapDto[] }> = ({ items }) =
         <div className="row g-3">
             {items.map((s) => (
                 <div key={s.id} className="col-md-6 col-lg-4">
-                    <div className={`card card-bordered h-100 ${s.isPreferred ? "border-success" : ""}`}>
-                        <div className="card-inner">
+                    <div className={`card card-bordered h-100 ${s.isPreferred ? "border-success" : ""}`} style={{ overflow: "hidden" }}>
+                        <div className="card-inner" style={{ overflow: "hidden" }}>
                             <div className="d-flex justify-content-between align-items-center mb-3">
-                                <code className="fs-12 text-primary">{s.productSupplierId.slice(0, 8)}…</code>
+                                <code className="fs-12 text-primary text-truncate me-2" style={{ maxWidth: "60%" }}>{s.productSupplierId.slice(0, 8)}…</code>
                                 {s.isPreferred && (
-                                    <span className="badge bg-success">
+                                    <span className="badge bg-success flex-shrink-0">
                                         <em className="icon ni ni-star-fill me-1" />
                                         Tercih
                                     </span>
@@ -685,9 +686,9 @@ const SuppliersTab: React.FC<{ items: ProductSupplierMapDto[] }> = ({ items }) =
                             </div>
                             <div className="d-flex flex-column gap-2 fs-12">
                                 {s.supplierProductCode && (
-                                    <div className="d-flex justify-content-between">
-                                        <span className="text-soft">Tedarikçi Ürün Kodu</span>
-                                        <code>{s.supplierProductCode}</code>
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <span className="text-soft flex-shrink-0 me-2">Tedarikçi Ürün Kodu</span>
+                                        <code className="text-truncate" style={{ maxWidth: "50%" }}>{s.supplierProductCode}</code>
                                     </div>
                                 )}
                                 {s.supplierCost != null && (
@@ -787,13 +788,9 @@ const ProfileTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
                                     value: sw.version ? <span className="badge bg-outline-info">{sw.version}</span> : null,
                                 },
                                 {
-                                    label: "Koltuk Sayısı",
-                                    value: sw.seatCount != null ? <span className="fw-bold text-primary">{sw.seatCount}</span> : null,
-                                },
-                                {
                                     label: "İndirme URL",
                                     value: sw.downloadUrl ? (
-                                        <a href={sw.downloadUrl} target="_blank" rel="noreferrer" className="text-primary fs-12">
+                                        <a href={sw.downloadUrl} target="_blank" rel="noreferrer" className="text-primary fs-12 text-truncate d-inline-block" style={{ maxWidth: 180, verticalAlign: "bottom" }}>
                                             {sw.downloadUrl}
                                         </a>
                                     ) : null,
@@ -810,25 +807,25 @@ const ProfileTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => {
                 {(sw.supportedPlatformsJson || sw.systemRequirementsJson || sw.releaseNotes) && (
                     <div className="col-md-6">
                         <SectionCard title="Teknik Detaylar" icon="code">
-                            <div className="d-flex flex-column gap-3">
+                            <div className="d-flex flex-column gap-3" style={{ overflow: "hidden" }}>
                                 {sw.releaseNotes && (
-                                    <div>
+                                    <div style={{ overflow: "hidden" }}>
                                         <p className="text-soft fs-11 mb-1">Sürüm Notları</p>
-                                        <p className="mb-0 fs-13px" style={{ whiteSpace: "pre-wrap" }}>
+                                        <p className="mb-0 fs-13px" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                                             {sw.releaseNotes}
                                         </p>
                                     </div>
                                 )}
                                 {sw.supportedPlatformsJson && (
-                                    <div>
+                                    <div style={{ overflow: "hidden" }}>
                                         <p className="text-soft fs-11 mb-1">Desteklenen Platformlar</p>
-                                        <code className="fs-11">{sw.supportedPlatformsJson}</code>
+                                        <code className="fs-11 d-block" style={{ wordBreak: "break-all", overflowWrap: "break-word" }}>{sw.supportedPlatformsJson}</code>
                                     </div>
                                 )}
                                 {sw.systemRequirementsJson && (
-                                    <div>
+                                    <div style={{ overflow: "hidden" }}>
                                         <p className="text-soft fs-11 mb-1">Sistem Gereksinimleri</p>
-                                        <code className="fs-11">{sw.systemRequirementsJson}</code>
+                                        <code className="fs-11 d-block" style={{ wordBreak: "break-all", overflowWrap: "break-word" }}>{sw.systemRequirementsJson}</code>
                                     </div>
                                 )}
                             </div>
@@ -915,20 +912,19 @@ const ModulesTab: React.FC<{ items: ProductModuleDto[] }> = ({ items }) => {
         <div className="row g-3">
             {items.map((m) => (
                 <div key={m.id} className="col-md-6 col-lg-4">
-                    <div className="card card-bordered h-100">
-                        <div className="card-inner">
+                    <div className="card card-bordered h-100" style={{ overflow: "hidden" }}>
+                        <div className="card-inner" style={{ overflow: "hidden" }}>
                             <div className="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <span className="fw-bold fs-14px">{m.name}</span>
-                                    <br />
-                                    <code className="fs-11 text-primary">{m.moduleCode}</code>
+                                <div className="min-w-0 me-2">
+                                    <span className="fw-bold fs-14px d-block text-truncate">{m.name}</span>
+                                    <code className="fs-11 text-primary text-truncate d-block">{m.moduleCode}</code>
                                 </div>
-                                <div className="d-flex flex-column gap-1 align-items-end">
+                                <div className="d-flex flex-column gap-1 align-items-end flex-shrink-0">
                                     <StatusBadge active={m.isActive} />
                                     {m.isOptional && <span className="badge bg-outline-warning fs-10">Opsiyonel</span>}
                                 </div>
                             </div>
-                            {m.description && <p className="text-soft fs-12 mb-2">{m.description}</p>}
+                            {m.description && <p className="text-soft fs-12 mb-2" style={{ wordBreak: "break-word" }}>{m.description}</p>}
                             <div className="d-flex justify-content-between align-items-center border-top pt-2">
                                 <span className="text-soft fs-12">Ek Fiyat</span>
                                 <span className="fw-bold text-primary">{fmt(m.additionalPrice, m.currencyCode)}</span>
@@ -951,46 +947,51 @@ const PricingTiersTab: React.FC<{ items: SoftwarePricingTierDto[] }> = ({ items 
     if (!items.length) return <EmptyState icon="layers" text="Fiyat kademesi tanımlanmamış." />;
     return (
         <div className="row g-3">
-            {items.map((t, idx) => {
-                const lm = LICENSE_MODEL_LABELS[t.licenseModel];
-                return (
-                    <div key={t.id} className="col-md-6 col-xl-4">
-                        <div className="card card-bordered h-100">
-                            <div className="card-inner">
-                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <span className={`badge bg-${lm?.color ?? "secondary"}`}>
-                                        Kademe #{idx + 1} · {lm?.label ?? t.licenseModel}
-                                    </span>
-                                    <StatusBadge active={t.isActive} />
-                                </div>
-                                <div className="text-center mb-3">
-                                    <span className="text-soft fs-12 d-block">Birim Fiyatı</span>
-                                    <span className="fs-1 fw-bold text-primary">{fmt(t.pricePerUnit)}</span>
-                                    <span className="text-soft ms-1 fs-12">
-                                        {t.currencyCode} / {t.unit}
-                                    </span>
-                                </div>
-                                <div className="d-flex flex-column gap-1 fs-12">
+            {items.map((t, idx) => (
+                <div key={t.id} className="col-md-6 col-xl-4">
+                    <div className="card card-bordered h-100" style={{ overflow: "hidden" }}>
+                        <div className="card-inner" style={{ overflow: "hidden" }}>
+                            <div className="d-flex justify-content-between align-items-center mb-3">
+                                <span className="badge bg-info text-truncate me-2" style={{ maxWidth: "70%" }}>
+                                    Kademe #{idx + 1}
+                                </span>
+                                <StatusBadge active={t.isActive} />
+                            </div>
+                            <div className="text-center mb-3" style={{ overflow: "hidden" }}>
+                                <span className="text-soft fs-12 d-block">Birim Fiyatı</span>
+                                <span className="fs-1 fw-bold text-primary">{fmt(t.pricePerUnit)}</span>
+                                <span className="text-soft ms-1 fs-12">
+                                    {t.currencyCode} / {t.unitDefinitionName ?? "—"}
+                                </span>
+                            </div>
+                            <div className="d-flex flex-column gap-1 fs-12">
+                                {t.licenseOfferingName && (
                                     <div className="d-flex justify-content-between">
-                                        <span className="text-soft">Birim Aralığı</span>
-                                        <span className="fw-medium">
-                                            {t.minUnits} – {t.maxUnits ?? "∞"}
+                                        <span className="text-soft">Lisans Teklifi</span>
+                                        <span className="badge bg-outline-info text-truncate" style={{ maxWidth: 140 }}>
+                                            {t.licenseOfferingName}
                                         </span>
                                     </div>
-                                    {t.flatFee > 0 && (
-                                        <div className="d-flex justify-content-between">
-                                            <span className="text-soft">Sabit Ücret</span>
-                                            <span className="fw-medium text-warning">
-                                                {fmt(t.flatFee)} {t.currencyCode}
-                                            </span>
-                                        </div>
-                                    )}
+                                )}
+                                <div className="d-flex justify-content-between">
+                                    <span className="text-soft">Birim Aralığı</span>
+                                    <span className="fw-medium">
+                                        {t.minUnits} – {t.maxUnits ?? "∞"}
+                                    </span>
                                 </div>
+                                {t.flatFee > 0 && (
+                                    <div className="d-flex justify-content-between">
+                                        <span className="text-soft">Sabit Ücret</span>
+                                        <span className="fw-medium text-warning">
+                                            {fmt(t.flatFee)} {t.currencyCode}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
-                );
-            })}
+                </div>
+            ))}
         </div>
     );
 };
@@ -1005,15 +1006,14 @@ const LicenseOfferingsDetailTab: React.FC<{ items: ProductLicenseOfferingDto[] }
                 const lm = LICENSE_MODEL_LABELS[lo.licenseModel];
                 return (
                     <div key={lo.id} className="col-md-6 col-xl-4">
-                        <div className={`card card-bordered h-100 ${lo.isActive ? "border-" + (lm?.color ?? "secondary") : ""}`}>
-                            <div className="card-inner">
+                        <div className={`card card-bordered h-100 ${lo.isActive ? "border-" + (lm?.color ?? "secondary") : ""}`} style={{ overflow: "hidden" }}>
+                            <div className="card-inner" style={{ overflow: "hidden" }}>
                                 <div className="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <span className="fw-bold fs-14px">{lo.name}</span>
-                                        <br />
+                                    <div className="min-w-0 me-2">
+                                        <span className="fw-bold fs-14px d-block text-truncate">{lo.name}</span>
                                         <span className={`badge bg-${lm?.color ?? "secondary"} mt-1`}>{lm?.label ?? lo.licenseModel}</span>
                                     </div>
-                                    <div className="d-flex flex-column align-items-end gap-1">
+                                    <div className="d-flex flex-column align-items-end gap-1 flex-shrink-0">
                                         <StatusBadge active={lo.isActive} />
                                         <span className="text-soft fs-11">#{lo.sortOrder}</span>
                                     </div>

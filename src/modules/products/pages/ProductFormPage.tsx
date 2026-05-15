@@ -50,8 +50,6 @@ const buildDefaultPhysical = (): PhysicalProfileForm => ({
 
 const buildDefaultSoftware = (): SoftwareProfileForm => ({
     version: "",
-    licenseModel: undefined,
-    seatCount: undefined,
     downloadUrl: "",
     supportedPlatformsJson: "",
     systemRequirementsJson: "",
@@ -89,7 +87,7 @@ const buildDefaultValues = (): ProductFormValues => ({
     isPurchasable: true,
     trackInventory: true,
     defaultCurrencyCode: "TRY",
-    unitOfMeasure: "",
+    unitDefinitionId: "",
     taxRate: undefined,
     taxCode: "",
     tags: "",
@@ -137,7 +135,7 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
         isPurchasable: Boolean(product.isPurchasable),
         trackInventory: Boolean(product.trackInventory),
         defaultCurrencyCode: product.defaultCurrencyCode ?? "TRY",
-        unitOfMeasure: product.unitOfMeasure ?? "",
+        unitDefinitionId: product.unitDefinitionId ?? "",
         taxRate: product.taxRate ?? undefined,
         taxCode: product.taxCode ?? "",
         tags: product.tags ?? "",
@@ -235,8 +233,6 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
         softwareProfile: product.softwareProfile
             ? {
                 version: product.softwareProfile.version,
-                licenseModel: product.softwareProfile.licenseModel,
-                seatCount: product.softwareProfile.seatCount,
                 downloadUrl: product.softwareProfile.downloadUrl,
                 supportedPlatformsJson: product.softwareProfile.supportedPlatformsJson,
                 systemRequirementsJson: product.softwareProfile.systemRequirementsJson,
@@ -277,8 +273,8 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
         })),
 
         softwarePricingTiers: (product.softwarePricingTiers ?? []).map((t) => ({
-            licenseModel: t.licenseModel,
-            unit: t.unit,
+            productLicenseOfferingId: t.productLicenseOfferingId,
+            unitDefinitionId: t.unitDefinitionId,
             minUnits: t.minUnits,
             maxUnits: t.maxUnits,
             pricePerUnit: t.pricePerUnit,
@@ -405,7 +401,7 @@ const ProductFormPage: React.FC = () => {
             isPurchasable: Boolean(values.isPurchasable),
             trackInventory: Boolean(values.trackInventory),
             defaultCurrencyCode: values.defaultCurrencyCode,
-            unitOfMeasure: values.unitOfMeasure || undefined,
+            unitDefinitionId: values.unitDefinitionId || undefined,
             taxRate: values.taxRate,
             taxCode: values.taxCode || undefined,
             tags: values.tags || undefined,
@@ -639,7 +635,7 @@ const ProductFormPage: React.FC = () => {
                                             </>
                                         ) : (
                                             <>
-                                                <Icon name="save" className="me-1" />
+                                                <Icon name="save" className="me-1" id="" style={{}} />
                                                 Kaydet
                                             </>
                                         )}
@@ -647,7 +643,7 @@ const ProductFormPage: React.FC = () => {
                                 </div>
                             }
                         />
-                        <Block>
+                        <Block className="" size="">
                             {isEdit && isLoading ? (
                                 <div className="card card-bordered">
                                     <div className="card-inner d-flex align-items-center gap-3 py-5">
@@ -671,7 +667,7 @@ const ProductFormPage: React.FC = () => {
                                     )}
                                     {totalErrorCount > 0 && (
                                         <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
-                                            <Icon name="alert-circle" className="fs-5" />
+                                            <Icon name="alert-circle" className="fs-5" id="" style={{}} />
                                             <span>
                                                 Formda <strong>{totalErrorCount}</strong> hata bulunuyor. Lütfen kırmızı
                                                 sayaçlı sekmelerdeki alanları kontrol edin.

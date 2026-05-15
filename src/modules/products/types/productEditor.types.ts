@@ -109,8 +109,6 @@ export interface PhysicalProfileForm {
 
 export interface SoftwareProfileForm {
   version?: string;
-  licenseModel?: number;
-  seatCount?: number;
   downloadUrl?: string;
   supportedPlatformsJson?: string;
   systemRequirementsJson?: string;
@@ -145,8 +143,8 @@ export interface ProductModuleForm {
 }
 
 export interface SoftwarePricingTierForm {
-  licenseModel: number;
-  unit: string;
+  productLicenseOfferingId: string;
+  unitDefinitionId: string;
   minUnits: number;
   maxUnits?: number;
   pricePerUnit: number;
@@ -189,7 +187,7 @@ export interface ProductFormValues {
   isPurchasable: boolean;
   trackInventory: boolean;
   defaultCurrencyCode: string;
-  unitOfMeasure?: string;
+  unitDefinitionId?: string;
   taxRate?: number;
   taxCode?: string;
   tags?: string;

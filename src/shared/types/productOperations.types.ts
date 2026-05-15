@@ -1,28 +1,58 @@
 export type Uuid = string;
 
+// ─── UnitDefinition ───────────────────────────────────────────────────────────
+
+export interface UnitDefinitionDto {
+ id: Uuid;
+ code: string;
+ name: string;
+ description?: string;
+ isActive: boolean;
+ sortOrder: number;
+ createdAt: string;
+ updatedAt?: string;
+}
+
+export interface CreateUnitDefinitionRequestDto {
+ code: string;
+ name: string;
+ description?: string;
+ isActive?: boolean;
+ sortOrder?: number;
+}
+
+export interface UpdateUnitDefinitionRequestDto {
+ code: string;
+ name: string;
+ description?: string;
+ isActive: boolean;
+ sortOrder: number;
+}
+
 export interface ProductDto {
-  id: Uuid;
-  productCode: string;
-  name: string;
-  shortDescription?: string;
-  description?: string;
-  kind: number;
-  status: number;
-  brand?: string;
-  manufacturer?: string;
-  barcode?: string;
-  isActive: boolean;
-  isSellable: boolean;
-  isPurchasable: boolean;
-  trackInventory: boolean;
-  defaultCurrencyCode: string;
-  unitOfMeasure?: string;
-  taxRate?: number;
-  taxCode?: string;
-  tags?: string;
-  metadataJson?: string;
-  createdAt: string;
-  updatedAt?: string;
+ id: Uuid;
+ productCode: string;
+ name: string;
+ shortDescription?: string;
+ description?: string;
+ kind: number;
+ status: number;
+ brand?: string;
+ manufacturer?: string;
+ barcode?: string;
+ isActive: boolean;
+ isSellable: boolean;
+ isPurchasable: boolean;
+ trackInventory: boolean;
+ defaultCurrencyCode: string;
+ unitDefinitionId?: Uuid;
+ unitDefinitionName?: string;
+ taxRate?: number;
+ taxCode?: string;
+ tags?: string;
+ metadataJson?: string;
+ createdAt: string;
+ updatedAt?: string;
 }
 
 // --- Sub-DTOs used in ProductDetailDto ---
@@ -154,17 +184,15 @@ export interface ProductPhysicalProfileDto {
 }
 
 export interface ProductSoftwareProfileDto {
-  id: Uuid;
-  productId: Uuid;
-  version?: string;
-  licenseModel?: number;
-  seatCount?: number;
-  downloadUrl?: string;
-  supportedPlatformsJson?: string;
-  systemRequirementsJson?: string;
-  releaseNotes?: string;
-  createdAt: string;
-  updatedAt?: string;
+ id: Uuid;
+ productId: Uuid;
+ version?: string;
+ downloadUrl?: string;
+ supportedPlatformsJson?: string;
+ systemRequirementsJson?: string;
+ releaseNotes?: string;
+ createdAt: string;
+ updatedAt?: string;
 }
 
 export interface ProductServiceProfileDto {
@@ -207,18 +235,20 @@ export interface ProductModuleDto {
 }
 
 export interface SoftwarePricingTierDto {
-  id: Uuid;
-  productId: Uuid;
-  licenseModel: number;
-  unit: string;
-  minUnits: number;
-  maxUnits?: number;
-  pricePerUnit: number;
-  flatFee: number;
-  currencyCode: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
+ id: Uuid;
+ productId: Uuid;
+ productLicenseOfferingId: Uuid;
+ licenseOfferingName?: string;
+ unitDefinitionId: Uuid;
+ unitDefinitionName?: string;
+ minUnits: number;
+ maxUnits?: number;
+ pricePerUnit: number;
+ flatFee: number;
+ currencyCode: string;
+ isActive: boolean;
+ createdAt: string;
+ updatedAt?: string;
 }
 
 export interface ProductLicenseOfferingDto {
@@ -272,47 +302,47 @@ export interface ProductFilterDto {
 }
 
 export interface CreateProductRequestDto {
-  productCode: string;
-  name: string;
-  shortDescription?: string;
-  description?: string;
-  kind?: number;
-  status?: number;
-  brand?: string;
-  manufacturer?: string;
-  barcode?: string;
-  isActive?: boolean;
-  isSellable?: boolean;
-  isPurchasable?: boolean;
-  trackInventory?: boolean;
-  defaultCurrencyCode?: string;
-  unitOfMeasure?: string;
-  taxRate?: number;
-  taxCode?: string;
-  tags?: string;
-  metadataJson?: string;
+ productCode: string;
+ name: string;
+ shortDescription?: string;
+ description?: string;
+ kind?: number;
+ status?: number;
+ brand?: string;
+ manufacturer?: string;
+ barcode?: string;
+ isActive?: boolean;
+ isSellable?: boolean;
+ isPurchasable?: boolean;
+ trackInventory?: boolean;
+ defaultCurrencyCode?: string;
+ unitDefinitionId?: Uuid;
+ taxRate?: number;
+ taxCode?: string;
+ tags?: string;
+ metadataJson?: string;
 }
 
 export interface UpdateProductRequestDto {
-  productCode: string;
-  name: string;
-  shortDescription?: string;
-  description?: string;
-  kind: number;
-  status: number;
-  brand?: string;
-  manufacturer?: string;
-  barcode?: string;
-  isActive: boolean;
-  isSellable: boolean;
-  isPurchasable: boolean;
-  trackInventory: boolean;
-  defaultCurrencyCode?: string;
-  unitOfMeasure?: string;
-  taxRate?: number;
-  taxCode?: string;
-  tags?: string;
-  metadataJson?: string;
+ productCode: string;
+ name: string;
+ shortDescription?: string;
+ description?: string;
+ kind: number;
+ status: number;
+ brand?: string;
+ manufacturer?: string;
+ barcode?: string;
+ isActive: boolean;
+ isSellable: boolean;
+ isPurchasable: boolean;
+ trackInventory: boolean;
+ defaultCurrencyCode?: string;
+ unitDefinitionId?: Uuid;
+ taxRate?: number;
+ taxCode?: string;
+ tags?: string;
+ metadataJson?: string;
 }
 
 export interface ProductAttributeDefinitionDto {
@@ -744,15 +774,13 @@ export interface CreateFullProductRequestDto {
     requiresSerialNumber?: boolean;
     warrantyInMonths?: number;
   };
-  softwareProfile?: {
-    version?: string;
-    licenseModel?: number;
-    seatCount?: number;
-    downloadUrl?: string;
-    supportedPlatformsJson?: string;
-    systemRequirementsJson?: string;
-    releaseNotes?: string;
-  };
+ softwareProfile?: {
+ version?: string;
+ downloadUrl?: string;
+ supportedPlatformsJson?: string;
+ systemRequirementsJson?: string;
+ releaseNotes?: string;
+ };
   serviceProfile?: {
     deliveryMode?: number;
     durationInMinutes?: number;
@@ -778,17 +806,17 @@ export interface CreateFullProductRequestDto {
     isActive?: boolean;
     sortOrder?: number;
   }>;
-  softwarePricingTiers?: Array<{
-    productId?: Uuid;
-    licenseModel: number;
-    unit: string;
-    minUnits: number;
-    maxUnits?: number;
-    pricePerUnit: number;
-    flatFee?: number;
-    currencyCode: string;
-    isActive?: boolean;
-  }>;
+ softwarePricingTiers?: Array<{
+ productId?: Uuid;
+ productLicenseOfferingId: Uuid;
+ unitDefinitionId: Uuid;
+ minUnits: number;
+ maxUnits?: number;
+ pricePerUnit: number;
+ flatFee?: number;
+ currencyCode: string;
+ isActive?: boolean;
+ }>;
   licenseOfferings?: Array<{
     productId?: Uuid;
     licenseModel: number;

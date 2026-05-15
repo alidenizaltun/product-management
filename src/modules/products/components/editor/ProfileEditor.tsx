@@ -100,33 +100,13 @@ const PhysicalProfileForm: React.FC = () => {
 
 const SoftwareProfileForm: React.FC = () => {
   const { register } = useFormContext<ProductFormValues>();
- const LICENSE_MODELS = [
- { value: 1, label: "Tek Seferlik (Perpetual)" },
- { value: 2, label: "Abonelik (Subscription)" },
- { value: 3, label: "Kullanım Bazlı (Usage-Based)" },
- { value: 4, label: "Koltuk Bazlı (Seat-Based)" },
- { value: 5, label: "Deneme (Trial)" },
- ];
   return (
     <div>
       <h6 className="overline-title text-primary mb-3">Yazılım Profili</h6>
       <div className="row g-3">
-        <div className="col-md-4">
+        <div className="col-md-6">
           <label className="form-label">Sürüm</label>
           <input className="form-control" placeholder="1.0.0" {...register("softwareProfile.version")} />
-        </div>
-        <div className="col-md-4">
-          <label className="form-label">Lisans Modeli</label>
-          <select className="form-control form-select" {...register("softwareProfile.licenseModel", { valueAsNumber: true })}>
-            <option value="">Seçiniz</option>
-            {LICENSE_MODELS.map((lm) => (
-              <option key={lm.value} value={lm.value}>{lm.label}</option>
-            ))}
-          </select>
-        </div>
-        <div className="col-md-4">
-          <label className="form-label">Koltuk Sayısı</label>
-          <input type="number" min="1" className="form-control" placeholder="1" {...register("softwareProfile.seatCount", { valueAsNumber: true })} />
         </div>
         <div className="col-12">
           <label className="form-label">İndirme URL</label>

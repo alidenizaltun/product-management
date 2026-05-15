@@ -1,18 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
-
-const LICENSE_MODELS = [
-    { value: 1, label: "Tek Seferlik (Perpetual)" },
-    { value: 2, label: "Abonelik (Subscription)" },
-    { value: 3, label: "Kullanım Bazlı (Usage-Based)" },
-    { value: 4, label: "Koltuk Bazlı (Seat-Based)" },
-    { value: 5, label: "Deneme (Trial)" },
-];
+import { productsApi } from "@/modules/products/api/products.api";
+import { unitDefinitionsApi } from "@/services/unitDefinitions/unitDefinitions.api";
+import type { LookupItem } from "@/services/lookup/lookups.api";
+import { useParams } from "react-router-dom";
 
 const EMPTY_TIER = {
-    licenseModel: 4,
-    unit: "kullanici",
+    productLicenseOfferingId: "",
+    unitDefinitionId: "",
     minUnits: 1,
     maxUnits: undefined as number | undefined,
     pricePerUnit: 0,
@@ -22,6 +18,7 @@ const EMPTY_TIER = {
 };
 
 const SoftwarePricingTiersTab: React.FC = () => {
+    const { id: productId } = useParams<{ id: string }>();
     const {
         register,
         control,
@@ -29,13 +26,27 @@ const SoftwarePricingTiersTab: React.FC = () => {
     } = useFormContext<ProductFormValues>();
     const { fields, append, remove } = useFieldArray({ control, name: "softwarePricingTiers" });
 
+    const [offeringOptions, setOfferingOptions] = useState<LookupItem[]>([]);
+    const [unitOptions, setUnitOptions] = useState<LookupItem[]>([]);
+
+    useEffect(() => {
+        // Lisans tekliflerini yükle (ürün kayıtlıysa)
+        if (productId) {
+            productsApi.getLicenseOfferings(productId).then((items) => {
+                setOfferingOptions(items.map((o) => ({ id: o.id, name: o.name })));
+            }).catch(() => { });
+        }
+        // Birim tanımlarını yükle
+        unitDefinitionsApi.getLookup().then(setUnitOptions).catch(() => { });
+    }, [productId]);
+
     return (
         <div>
             <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                     <h6 className="overline-title text-primary mb-0">Kademeli Fiyatlandırma</h6>
                     <p className="text-soft fs-12 mb-0">
-                        Kullanıcı sayısı, istek sayısı gibi birimlere göre kademeli fiyat tanımlayın.
+                        Birim sayısına göre kademeli fiyat tanımlayın. Önce Lisans Teklifleri sekmesinde teklif oluşturun.
                     </p>
                 </div>
                 <button
@@ -47,6 +58,15 @@ const SoftwarePricingTiersTab: React.FC = () => {
                     Kademe Ekle
                 </button>
             </div>
+
+            {!productId && (
+                <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
+                    <em className="icon ni ni-alert-circle" />
+                    <span>
+                        Fiyat kademesi eklemek için önce ürünü kaydedin ve lisans teklifleri oluşturun.
+                    </span>
+                </div>
+            )}
 
             {fields.length === 0 ? (
                 <div className="text-center py-5 text-soft">
@@ -73,25 +93,39 @@ const SoftwarePricingTiersTab: React.FC = () => {
                                 </div>
                                 <div className="row g-3">
                                     <div className="col-md-4">
-                                        <label className="form-label">Lisans Modeli</label>
+                                        <label className="form-label">
+                                            Lisans Teklifi <span className="text-danger">*</span>
+                                        </label>
                                         <select
                                             className="form-control form-select"
-                                            {...register(`softwarePricingTiers.${index}.licenseModel`, { valueAsNumber: true })}
+                                            {...register(`softwarePricingTiers.${index}.productLicenseOfferingId`)}
                                         >
-                                            {LICENSE_MODELS.map((lm) => (
-                                                <option key={lm.value} value={lm.value}>
-                                                    {lm.label}
+                                            <option value="">— Seçiniz —</option>
+                                            {offeringOptions.map((o) => (
+                                                <option key={o.id} value={o.id}>
+                                                    {o.name}
                                                 </option>
                                             ))}
                                         </select>
+                                        {offeringOptions.length === 0 && productId && (
+                                            <small className="text-soft">Önce Lisans Teklifleri sekmesinden teklif ekleyin.</small>
+                                        )}
                                     </div>
                                     <div className="col-md-4">
-                                        <label className="form-label">Birim</label>
-                                        <input
-                                            className="form-control"
-                                            placeholder="kullanici, api-istek, gb..."
-                                            {...register(`softwarePricingTiers.${index}.unit`)}
-                                        />
+                                        <label className="form-label">
+                                            Birim Tanımı <span className="text-danger">*</span>
+                                        </label>
+                                        <select
+                                            className="form-control form-select"
+                                            {...register(`softwarePricingTiers.${index}.unitDefinitionId`)}
+                                        >
+                                            <option value="">— Seçiniz —</option>
+                                            {unitOptions.map((u) => (
+                                                <option key={u.id} value={u.id}>
+                                                    {u.name}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div className="col-md-4">
                                         <label className="form-label">Para Birimi</label>

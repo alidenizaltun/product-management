@@ -18,6 +18,11 @@ export const apiEndpoints = {
     warehouses: "/api/lookups/warehouses",
     suppliers: "/api/lookups/suppliers",
     priceLists: "/api/lookups/price-lists",
+    unitDefinitions: "/api/lookups/unit-definitions",
+  },
+  unitDefinitions: {
+    list: "/api/unit-definitions",
+    byId: (id: string) => `/api/unit-definitions/${id}`,
   },
   products: {
     list: "/api/products",

@@ -7,6 +7,8 @@ import {
   ProductModuleDto,
   SoftwarePricingTierDto,
   ProductLicenseOfferingDto,
+  ProductUnitConversionDto,
+  CreateProductUnitConversionRequestDto,
 } from "@/shared/types/productOperations.types";
 import { apiClient } from "@/shared/api/apiClient";
 import { apiEndpoints } from "@/shared/config/apiEndpoints";
@@ -113,5 +115,22 @@ export const productsApi = {
 
   deleteLicenseOffering: async (productId: string, offeringId: string): Promise<void> => {
     await apiClient.delete<void>(apiEndpoints.products.licenseOfferingById(productId, offeringId));
+  },
+
+  // --- Unit Conversions ---
+  getUnitConversions: async (productId: string): Promise<ProductUnitConversionDto[]> => {
+    return apiClient.get<ProductUnitConversionDto[]>(apiEndpoints.products.unitConversions(productId));
+  },
+
+  createUnitConversion: async (productId: string, payload: CreateProductUnitConversionRequestDto): Promise<ProductUnitConversionDto> => {
+    return apiClient.post<ProductUnitConversionDto>(apiEndpoints.products.unitConversions(productId), payload);
+  },
+
+  updateUnitConversion: async (productId: string, conversionId: string, payload: CreateProductUnitConversionRequestDto): Promise<void> => {
+    await apiClient.put<void>(apiEndpoints.products.unitConversionById(productId, conversionId), payload);
+  },
+
+  deleteUnitConversion: async (productId: string, conversionId: string): Promise<void> => {
+    await apiClient.delete<void>(apiEndpoints.products.unitConversionById(productId, conversionId));
   },
 };

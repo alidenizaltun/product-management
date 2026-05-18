@@ -35,6 +35,7 @@ import InventoryTransactionTab from "@/modules/products/components/editor/Invent
 import InventoryReservationTab from "@/modules/products/components/editor/InventoryReservationTab";
 import PriceListItemTab from "@/modules/products/components/editor/PriceListItemTab";
 import ProfileEditor from "@/modules/products/components/editor/ProfileEditor";
+import ProductUnitConversionTab from "@/modules/products/components/editor/ProductUnitConversionTab";
 
 const buildDefaultPhysical = (): PhysicalProfileForm => ({
     weight: undefined,
@@ -113,6 +114,7 @@ const buildDefaultValues = (): ProductFormValues => ({
     modules: [],
     softwarePricingTiers: [],
     licenseOfferings: [],
+    unitConversions: [],
 });
 
 const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
@@ -210,10 +212,32 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
             isPreferred: sm.isPreferred,
         })),
 
-        // Bu alanlar ProductDetailDto içinde gelmiyor, boş bırakılır
-        inventoryTransactions: [],
-        inventoryReservations: [],
-        priceListItems: [],
+        inventoryTransactions: (product.inventoryTransactions ?? []).map((t) => ({
+            transactionType: t.transactionType,
+            quantity: t.quantity,
+            unitCost: t.unitCost,
+            referenceType: t.referenceType,
+            referenceNumber: t.referenceNumber,
+            note: t.note,
+            occurredAt: t.occurredAt,
+        })),
+
+        inventoryReservations: (product.inventoryReservations ?? []).map((r) => ({
+            quantity: r.quantity,
+            reservationCode: r.reservationCode,
+            reservedUntil: r.reservedUntil,
+            status: r.status,
+            sourceType: r.sourceType,
+            sourceId: r.sourceId,
+        })),
+
+        priceListItems: (product.priceListItems ?? []).map((pl) => ({
+            productPriceListId: pl.productPriceListId,
+            amount: pl.amount,
+            compareAtAmount: pl.compareAtAmount,
+            minQuantity: pl.minQuantity,
+            maxQuantity: pl.maxQuantity,
+        })),
 
         // Profil alanları
         physicalProfile: product.physicalProfile
@@ -301,6 +325,14 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
             validTo: lo.validTo,
             isActive: lo.isActive,
             sortOrder: lo.sortOrder,
+        })),
+
+        unitConversions: (product.unitConversions ?? []).map((uc) => ({
+            fromUnitDefinitionId: uc.fromUnitDefinitionId,
+            toUnitDefinitionId: uc.toUnitDefinitionId,
+            conversionFactor: uc.conversionFactor,
+            fromUnitRole: uc.fromUnitRole,
+            isActive: uc.isActive,
         })),
     };
 };
@@ -411,35 +443,35 @@ const ProductFormPage: React.FC = () => {
 
         const fullPayload = {
             product: productPayload,
-            attributeValues: values.attributeValues?.length ? values.attributeValues : undefined,
-            variants: values.variants?.length ? values.variants : undefined,
+            attributeValues: values.attributeValues?.length ? values.attributeValues : (isEdit ? [] : undefined),
+            variants: values.variants?.length ? values.variants : (isEdit ? [] : undefined),
             prices: values.prices?.length
                 ? values.prices.map((p) => ({ ...p, amount: p.amount ?? 0 }))
-                : undefined,
-            inventories: values.inventories?.length ? values.inventories : undefined,
+                : (isEdit ? [] : undefined),
+            inventories: values.inventories?.length ? values.inventories : (isEdit ? [] : undefined),
             mediaItems: values.mediaItems?.length
                 ? values.mediaItems.map((m) => ({
                     ...m,
                     sortOrder: Number.isFinite(m.sortOrder) ? m.sortOrder : 0,
                 }))
-                : undefined,
+                : (isEdit ? [] : undefined),
             categoryMaps: values.categoryMaps?.length
                 ? values.categoryMaps.map((cm) => ({
                     ...cm,
                     sortOrder: Number.isFinite(cm.sortOrder) ? cm.sortOrder : 0,
                 }))
-                : undefined,
-            bundleItems: values.bundleItems?.length ? values.bundleItems : undefined,
-            supplierMaps: values.supplierMaps?.length ? values.supplierMaps : undefined,
+                : (isEdit ? [] : undefined),
+            bundleItems: values.bundleItems?.length ? values.bundleItems : (isEdit ? [] : undefined),
+            supplierMaps: values.supplierMaps?.length ? values.supplierMaps : (isEdit ? [] : undefined),
             inventoryTransactions: values.inventoryTransactions?.length
                 ? values.inventoryTransactions.map((t) => ({ ...t, quantity: t.quantity ?? 0 }))
-                : undefined,
+                : (isEdit ? [] : undefined),
             inventoryReservations: values.inventoryReservations?.length
                 ? values.inventoryReservations.map((r) => ({ ...r, quantity: r.quantity ?? 0 }))
-                : undefined,
+                : (isEdit ? [] : undefined),
             priceListItems: values.priceListItems?.length
                 ? values.priceListItems.map((pl) => ({ ...pl, amount: pl.amount ?? 0 }))
-                : undefined,
+                : (isEdit ? [] : undefined),
             physicalProfile: values.kind === 1 ? values.physicalProfile : undefined,
             softwareProfile: values.kind === 2 ? values.softwareProfile : undefined,
             serviceProfile: values.kind === 3 ? values.serviceProfile : undefined,
@@ -450,12 +482,32 @@ const ProductFormPage: React.FC = () => {
                 : undefined,
             softwarePricingTiers:
                 values.kind === 2 && values.softwarePricingTiers?.length
-                    ? values.softwarePricingTiers.map((t) => ({ ...t, productId: id ?? undefined }))
+                    ? values.softwarePricingTiers
+                        .filter((t) => (Boolean(t.productLicenseOfferingId) || Boolean(t.licenseOfferingTempId)) && Boolean(t.unitDefinitionId))
+                        .map((t) => ({
+                            // Kaydedilmiş offering → id gönder; yeni offering → tempId ile eşleştir
+                            productLicenseOfferingId: t.productLicenseOfferingId || undefined,
+                            licenseOfferingTempId: t.licenseOfferingTempId || undefined,
+                            unitDefinitionId: t.unitDefinitionId,
+                            minUnits: t.minUnits,
+                            maxUnits: t.maxUnits || undefined,
+                            pricePerUnit: t.pricePerUnit,
+                            flatFee: t.flatFee,
+                            currencyCode: t.currencyCode,
+                            isActive: t.isActive,
+                            productId: id ?? undefined,
+                        }))
                     : undefined,
             licenseOfferings:
                 values.kind === 2 && values.licenseOfferings?.length
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    ? values.licenseOfferings.map(({ _tempId, ...lo }) => ({ ...lo, productId: id ?? undefined }))
+                    ? values.licenseOfferings.map(({ id: loId, convertToOfferingId, _tempId, ...lo }) => ({
+                        ...lo,
+                        id: loId || undefined,
+                        // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
+                        _tempId: _tempId || undefined,
+                        convertToOfferingId: convertToOfferingId || undefined,
+                        productId: id ?? undefined,
+                    }))
                     : undefined,
         };
 
@@ -495,24 +547,38 @@ const ProductFormPage: React.FC = () => {
     const kindValue = useWatch({ control: form.control, name: "kind" });
     const kind = Number(kindValue);
 
+    // kind: 1=Fiziksel, 2=Yazılım, 3=Hizmet, 4=Abonelik
+    const isPhysical = kind === 1;
     // Modüller sekmesi yalnızca yazılım türünde gösterilir
     const isSoftware = kind === 2;
     // Fiyat Kademeleri ve Lisans Teklifleri; yazılım, hizmet veya abonelik türünde gösterilir
     const isLicensable = kind === 2 || kind === 3 || kind === 4;
+    // Rezervasyonlar; fiziksel veya hizmet türünde gösterilir
+    const hasReservations = kind === 1 || kind === 3;
 
     // Kind değiştiğinde, artık gösterilmeyen bir sekmedeyse genel bilgiye dön
     useEffect(() => {
+        const physicalOnlyTabs = ["variants", "suppliers", "inventory", "inv-transactions"];
         const softwareOnlyTabs = ["modules"];
         const licensableTabs = ["pricing-tiers", "license-offerings"];
+        const reservationTabs = ["inv-reservations"];
+
+        if (physicalOnlyTabs.includes(activeTab) && !isPhysical) {
+            setActiveTab("general");
+        }
+        if (reservationTabs.includes(activeTab) && !hasReservations) {
+            setActiveTab("general");
+        }
         if (softwareOnlyTabs.includes(activeTab) && !isSoftware) {
             setActiveTab("general");
         }
         if (licensableTabs.includes(activeTab) && !isLicensable) {
             setActiveTab("general");
         }
-    }, [kind, activeTab, isSoftware, isLicensable]);
+    }, [kind, activeTab, isPhysical, hasReservations, isSoftware, isLicensable]);
 
     const baseTabs: TabItem[] = [
+        // 1. Genel ürün bilgileri
         {
             id: "general",
             label: "Genel Bilgi",
@@ -520,22 +586,10 @@ const ProductFormPage: React.FC = () => {
             content: <GeneralInfoTab />,
         },
         {
-            id: "variants",
-            label: "Varyantlar",
-            badge: tabErrorCounts.variants || undefined,
-            content: <VariantBuilder />,
-        },
-        {
-            id: "prices",
-            label: "Fiyatlar",
-            badge: tabErrorCounts.prices || undefined,
-            content: <PriceMatrix />,
-        },
-        {
-            id: "attributes",
-            label: "Özellikler",
-            badge: tabErrorCounts.attributes || undefined,
-            content: <AttributeSelector />,
+            id: "profile",
+            label: "Profil",
+            badge: tabErrorCounts.profile || undefined,
+            content: <ProfileEditor />,
         },
         {
             id: "categories",
@@ -544,10 +598,10 @@ const ProductFormPage: React.FC = () => {
             content: <CategoryTreeSelector />,
         },
         {
-            id: "suppliers",
-            label: "Tedarikçiler",
-            badge: tabErrorCounts.suppliers || undefined,
-            content: <SupplierMultiSelect />,
+            id: "attributes",
+            label: "Özellikler",
+            badge: tabErrorCounts.attributes || undefined,
+            content: <AttributeSelector />,
         },
         {
             id: "media",
@@ -555,42 +609,70 @@ const ProductFormPage: React.FC = () => {
             badge: tabErrorCounts.media || undefined,
             content: <MediaUploadManager />,
         },
+        // 2. Ticari & fiyatlandırma
         {
-            id: "bundles",
-            label: "Bundle",
-            badge: tabErrorCounts.bundles || undefined,
-            content: <BundleProductPicker />,
-        },
-        {
-            id: "inventory",
-            label: "Stok",
-            badge: tabErrorCounts.inventory || undefined,
-            content: <InventoryTab />,
-        },
-        {
-            id: "inv-transactions",
-            label: "Stok İşlemleri",
-            badge: tabErrorCounts.invTransactions || undefined,
-            content: <InventoryTransactionTab />,
-        },
-        {
-            id: "inv-reservations",
-            label: "Rezervasyonlar",
-            badge: tabErrorCounts.invReservations || undefined,
-            content: <InventoryReservationTab />,
+            id: "prices",
+            label: "Fiyatlar",
+            badge: tabErrorCounts.prices || undefined,
+            content: <PriceMatrix />,
+            hidden: isSoftware,
         },
         {
             id: "price-list-items",
             label: "Fiyat Listesi",
             badge: tabErrorCounts.priceListItems || undefined,
             content: <PriceListItemTab />,
+            hidden: isSoftware,
         },
-        {
-            id: "profile",
-            label: "Profil",
-            badge: tabErrorCounts.profile || undefined,
-            content: <ProfileEditor />,
-        },
+        // Yalnızca Fiziksel ürünlerde gösterilir
+        ...(isPhysical ? [{
+            id: "suppliers",
+            label: "Tedarikçiler",
+            badge: tabErrorCounts.suppliers || undefined,
+            content: <SupplierMultiSelect />,
+        }] : []),
+        // Yalnızca Fiziksel ürünlerde gösterilir
+        ...(isPhysical ? [{
+            id: "variants",
+            label: "Varyantlar",
+            badge: tabErrorCounts.variants || undefined,
+            content: <VariantBuilder />,
+        }] : []),
+        // 3. Bundle
+        // {
+        //     id: "bundles",
+        //     label: "Bundle",
+        //     badge: tabErrorCounts.bundles || undefined,
+        //     content: <BundleProductPicker />,
+        // },
+        // 4. Stok & lojistik (yalnızca Fiziksel)
+        ...(isPhysical ? [
+            {
+                id: "inventory",
+                label: "Stok",
+                badge: tabErrorCounts.inventory || undefined,
+                content: <InventoryTab />,
+            },
+            {
+                id: "inv-transactions",
+                label: "Stok İşlemleri",
+                badge: tabErrorCounts.invTransactions || undefined,
+                content: <InventoryTransactionTab />,
+            },
+        ] : []),
+        // Fiziksel veya Hizmet ürünlerde gösterilir
+        ...(hasReservations ? [{
+            id: "inv-reservations",
+            label: "Rezervasyonlar",
+            badge: tabErrorCounts.invReservations || undefined,
+            content: <InventoryReservationTab />,
+        }] : []),
+        // Birim dönüşümleri — tüm ürün türleri için
+        // {
+        //     id: "unit-conversions",
+        //     label: "Birim Dönüşümleri",
+        //     content: <ProductUnitConversionTab />,
+        // },
     ];
 
     // Yazılım türüne özel sekme
@@ -605,14 +687,14 @@ const ProductFormPage: React.FC = () => {
     // Yazılım / Hizmet / Abonelik türlerine özel sekmeler
     if (isLicensable) {
         baseTabs.push({
-            id: "pricing-tiers",
-            label: "Fiyat Kademeleri",
-            content: <SoftwarePricingTiersTab />,
-        });
-        baseTabs.push({
             id: "license-offerings",
             label: "Lisans Teklifleri",
             content: <LicenseOfferingsTab />,
+        });
+        baseTabs.push({
+            id: "pricing-tiers",
+            label: "Fiyat Kademeleri",
+            content: <SoftwarePricingTiersTab />,
         });
     }
 

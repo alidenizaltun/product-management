@@ -8,7 +8,8 @@ import { useUnitDefinitionMutations } from "@/modules/catalog/hooks/useUnitDefin
 import type { LookupItem } from "@/services/lookup/lookups.api";
 
 const EMPTY_TIER = {
-    productLicenseOfferingId: "",
+    productLicenseOfferingId: undefined as string | undefined,
+    licenseOfferingTempId: undefined as string | undefined,
     unitDefinitionId: "",
     minUnits: 1,
     maxUnits: undefined as number | undefined,
@@ -34,9 +35,9 @@ const SoftwarePricingTiersTab: React.FC = () => {
     } = useFormContext<ProductFormValues>();
     const { fields, append, remove } = useFieldArray({ control, name: "softwarePricingTiers" });
 
- const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
- // Kaydedilmiş (id) veya yeni eklenmiş (_tempId) tüm teklifleri göster
- const allOfferings = licenseOfferings.filter((lo) => Boolean(lo.id) || Boolean(lo._tempId));
+    const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
+    // Kaydedilmiş (id) veya yeni eklenmiş (_tempId) tüm teklifleri göster
+    const allOfferings = licenseOfferings.filter((lo) => Boolean(lo.id) || Boolean(lo._tempId));
 
     const [unitOptions, setUnitOptions] = useState<LookupItem[]>([]);
     const [showUnitModal, setShowUnitModal] = useState(false);
@@ -84,9 +85,9 @@ const SoftwarePricingTiersTab: React.FC = () => {
             <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
                     <h6 className="overline-title text-primary mb-0">Kademeli Fiyatlandırma</h6>
- <p className="text-soft fs-12 mb-0">
- Birim sayısına göre kademeli fiyat tanımlayın. Önce Lisans Teklifleri sekmesinde teklif oluşturun.
- </p>
+                    <p className="text-soft fs-12 mb-0">
+                        Birim sayısına göre kademeli fiyat tanımlayın. Önce Lisans Teklifleri sekmesinde teklif oluşturun.
+                    </p>
                 </div>
                 <button
                     type="button"
@@ -98,14 +99,14 @@ const SoftwarePricingTiersTab: React.FC = () => {
                 </button>
             </div>
 
- {allOfferings.length === 0 && (
- <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
- <em className="icon ni ni-alert-circle" />
- <span>
- Fiyat kademesi eklemek için önce <strong>Lisans Teklifleri</strong> sekmesinde teklif oluşturun.
- </span>
- </div>
- )}
+            {allOfferings.length === 0 && (
+                <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
+                    <em className="icon ni ni-alert-circle" />
+                    <span>
+                        Fiyat kademesi eklemek için önce <strong>Lisans Teklifleri</strong> sekmesinde teklif oluşturun.
+                    </span>
+                </div>
+            )}
 
             {fields.length === 0 ? (
                 <div className="text-center py-5 text-soft">
@@ -135,21 +136,46 @@ const SoftwarePricingTiersTab: React.FC = () => {
                                         <label className="form-label">
                                             Lisans Teklifi <span className="text-danger">*</span>
                                         </label>
- <select
- className="form-control form-select"
- {...register(`softwarePricingTiers.${index}.productLicenseOfferingId`)}
- >
- <option value="">— Seçiniz —</option>
- {allOfferings.map((lo) => (
- <option key={lo.id ?? lo._tempId} value={lo.id ?? lo._tempId ?? ""}>
- {lo.name || "(İsimsiz Teklif)"}
- {!lo.id && " 🆕"}
- </option>
- ))}
- </select>
- {allOfferings.length === 0 && (
- <small className="text-soft">Önce Lisans Teklifleri sekmesinden teklif ekleyin.</small>
- )}
+                                        {/* Seçili değer: kaydedilmişse id, yeniyse _tempId */}
+                                        <select
+                                            className="form-control form-select"
+                                            value={
+                                                fields[index]
+                                                    ? (fields[index] as Record<string, unknown>).productLicenseOfferingId as string ||
+                                                    (fields[index] as Record<string, unknown>).licenseOfferingTempId as string ||
+                                                    ""
+                                                    : ""
+                                            }
+                                            onChange={(e) => {
+                                                const selectedKey = e.target.value;
+                                                const offering = allOfferings.find(
+                                                    (lo) => lo.id === selectedKey || lo._tempId === selectedKey
+                                                );
+                                                if (!offering) {
+                                                    setValue(`softwarePricingTiers.${index}.productLicenseOfferingId`, undefined, { shouldDirty: true });
+                                                    setValue(`softwarePricingTiers.${index}.licenseOfferingTempId`, undefined, { shouldDirty: true });
+                                                } else if (offering.id) {
+                                                    // Kaydedilmiş offering → id ile referans ver
+                                                    setValue(`softwarePricingTiers.${index}.productLicenseOfferingId`, offering.id, { shouldDirty: true });
+                                                    setValue(`softwarePricingTiers.${index}.licenseOfferingTempId`, undefined, { shouldDirty: true });
+                                                } else {
+                                                    // Yeni offering → tempId ile referans ver
+                                                    setValue(`softwarePricingTiers.${index}.productLicenseOfferingId`, undefined, { shouldDirty: true });
+                                                    setValue(`softwarePricingTiers.${index}.licenseOfferingTempId`, offering._tempId, { shouldDirty: true });
+                                                }
+                                            }}
+                                        >
+                                            <option value="">— Seçiniz —</option>
+                                            {allOfferings.map((lo) => (
+                                                <option key={lo.id ?? lo._tempId} value={lo.id ?? lo._tempId ?? ""}>
+                                                    {lo.name || "(İsimsiz Teklif)"}
+                                                    {!lo.id && " 🆕"}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {allOfferings.length === 0 && (
+                                            <small className="text-soft">Önce Lisans Teklifleri sekmesinden teklif ekleyin.</small>
+                                        )}
                                     </div>
 
                                     {/* Birim Tanımı + inline "+" butonu */}

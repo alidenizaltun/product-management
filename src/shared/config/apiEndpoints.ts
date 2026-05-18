@@ -37,6 +37,8 @@ export const apiEndpoints = {
     pricingTierById: (productId: string, tierId: string) => `/api/products/${productId}/pricing-tiers/${tierId}`,
     licenseOfferings: (id: string) => `/api/products/${id}/license-offerings`,
     licenseOfferingById: (productId: string, offeringId: string) => `/api/products/${productId}/license-offerings/${offeringId}`,
+    unitConversions: (productId: string) => `/api/products/${productId}/unit-conversions`,
+    unitConversionById: (productId: string, conversionId: string) => `/api/products/${productId}/unit-conversions/${conversionId}`,
   },
   attributes: {
     list: "/api/attributes",

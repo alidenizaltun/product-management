@@ -19,7 +19,7 @@ const AttributeDefinitionSelect: React.FC<AttributeDefinitionSelectProps> = ({
 }) => {
   const { data, isLoading } = useAttributeDefinitions();
 
-  const items = (data ?? []).map((d) => ({ id: d.id, name: d.name }));
+  const items = (data ?? []).map((d) => ({ id: d.id, name: d.displayName }));
 
   return (
     <LookupSelect

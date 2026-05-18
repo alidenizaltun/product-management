@@ -3,56 +3,56 @@ export type Uuid = string;
 // ─── UnitDefinition ───────────────────────────────────────────────────────────
 
 export interface UnitDefinitionDto {
- id: Uuid;
- code: string;
- name: string;
- description?: string;
- isActive: boolean;
- sortOrder: number;
- createdAt: string;
- updatedAt?: string;
+  id: Uuid;
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CreateUnitDefinitionRequestDto {
- code: string;
- name: string;
- description?: string;
- isActive?: boolean;
- sortOrder?: number;
+  code: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+  sortOrder?: number;
 }
 
 export interface UpdateUnitDefinitionRequestDto {
- code: string;
- name: string;
- description?: string;
- isActive: boolean;
- sortOrder: number;
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  sortOrder: number;
 }
 
 export interface ProductDto {
- id: Uuid;
- productCode: string;
- name: string;
- shortDescription?: string;
- description?: string;
- kind: number;
- status: number;
- brand?: string;
- manufacturer?: string;
- barcode?: string;
- isActive: boolean;
- isSellable: boolean;
- isPurchasable: boolean;
- trackInventory: boolean;
- defaultCurrencyCode: string;
- unitDefinitionId?: Uuid;
- unitDefinitionName?: string;
- taxRate?: number;
- taxCode?: string;
- tags?: string;
- metadataJson?: string;
- createdAt: string;
- updatedAt?: string;
+  id: Uuid;
+  productCode: string;
+  name: string;
+  shortDescription?: string;
+  description?: string;
+  kind: number;
+  status: number;
+  brand?: string;
+  manufacturer?: string;
+  barcode?: string;
+  isActive: boolean;
+  isSellable: boolean;
+  isPurchasable: boolean;
+  trackInventory: boolean;
+  defaultCurrencyCode: string;
+  unitDefinitionId?: Uuid;
+  unitDefinitionName?: string;
+  taxRate?: number;
+  taxCode?: string;
+  tags?: string;
+  metadataJson?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // --- Sub-DTOs used in ProductDetailDto ---
@@ -184,15 +184,15 @@ export interface ProductPhysicalProfileDto {
 }
 
 export interface ProductSoftwareProfileDto {
- id: Uuid;
- productId: Uuid;
- version?: string;
- downloadUrl?: string;
- supportedPlatformsJson?: string;
- systemRequirementsJson?: string;
- releaseNotes?: string;
- createdAt: string;
- updatedAt?: string;
+  id: Uuid;
+  productId: Uuid;
+  version?: string;
+  downloadUrl?: string;
+  supportedPlatformsJson?: string;
+  systemRequirementsJson?: string;
+  releaseNotes?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ProductServiceProfileDto {
@@ -235,20 +235,20 @@ export interface ProductModuleDto {
 }
 
 export interface SoftwarePricingTierDto {
- id: Uuid;
- productId: Uuid;
- productLicenseOfferingId: Uuid;
- licenseOfferingName?: string;
- unitDefinitionId: Uuid;
- unitDefinitionName?: string;
- minUnits: number;
- maxUnits?: number;
- pricePerUnit: number;
- flatFee: number;
- currencyCode: string;
- isActive: boolean;
- createdAt: string;
- updatedAt?: string;
+  id: Uuid;
+  productId: Uuid;
+  productLicenseOfferingId: Uuid;
+  licenseOfferingName?: string;
+  unitDefinitionId: Uuid;
+  unitDefinitionName?: string;
+  minUnits: number;
+  maxUnits?: number;
+  pricePerUnit: number;
+  flatFee: number;
+  currencyCode: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ProductLicenseOfferingDto {
@@ -274,6 +274,40 @@ export interface ProductLicenseOfferingDto {
   updatedAt?: string;
 }
 
+// ─── UnitConversion ───────────────────────────────────────────────────────────
+
+export type UnitRole = 1 | 2 | 3; // 1=Sales, 2=Stock, 3=Purchase
+
+export const UNIT_ROLE_LABELS: Record<UnitRole, string> = {
+  1: 'Satış Birimi',
+  2: 'Stok Birimi',
+  3: 'Satın Alma Birimi',
+};
+
+export interface ProductUnitConversionDto {
+  id: Uuid;
+  productId: Uuid;
+  fromUnitDefinitionId: Uuid;
+  fromUnitDefinitionCode: string;
+  fromUnitDefinitionName: string;
+  toUnitDefinitionId: Uuid;
+  toUnitDefinitionCode: string;
+  toUnitDefinitionName: string;
+  conversionFactor: number;
+  fromUnitRole: UnitRole;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CreateProductUnitConversionRequestDto {
+  fromUnitDefinitionId: Uuid;
+  toUnitDefinitionId: Uuid;
+  conversionFactor: number;
+  fromUnitRole: UnitRole;
+  isActive?: boolean;
+}
+
 export interface ProductDetailDto extends ProductDto {
   attributeValues: ProductAttributeValueDto[];
   variants: ProductVariantDto[];
@@ -290,6 +324,10 @@ export interface ProductDetailDto extends ProductDto {
   modules?: ProductModuleDto[];
   softwarePricingTiers?: SoftwarePricingTierDto[];
   licenseOfferings?: ProductLicenseOfferingDto[];
+  unitConversions?: ProductUnitConversionDto[];
+  inventoryTransactions?: InventoryTransactionDto[];
+  inventoryReservations?: InventoryReservationDto[];
+  priceListItems?: ProductPriceListItemDto[];
 }
 
 export interface ProductFilterDto {
@@ -302,47 +340,47 @@ export interface ProductFilterDto {
 }
 
 export interface CreateProductRequestDto {
- productCode: string;
- name: string;
- shortDescription?: string;
- description?: string;
- kind?: number;
- status?: number;
- brand?: string;
- manufacturer?: string;
- barcode?: string;
- isActive?: boolean;
- isSellable?: boolean;
- isPurchasable?: boolean;
- trackInventory?: boolean;
- defaultCurrencyCode?: string;
- unitDefinitionId?: Uuid;
- taxRate?: number;
- taxCode?: string;
- tags?: string;
- metadataJson?: string;
+  productCode: string;
+  name: string;
+  shortDescription?: string;
+  description?: string;
+  kind?: number;
+  status?: number;
+  brand?: string;
+  manufacturer?: string;
+  barcode?: string;
+  isActive?: boolean;
+  isSellable?: boolean;
+  isPurchasable?: boolean;
+  trackInventory?: boolean;
+  defaultCurrencyCode?: string;
+  unitDefinitionId?: Uuid;
+  taxRate?: number;
+  taxCode?: string;
+  tags?: string;
+  metadataJson?: string;
 }
 
 export interface UpdateProductRequestDto {
- productCode: string;
- name: string;
- shortDescription?: string;
- description?: string;
- kind: number;
- status: number;
- brand?: string;
- manufacturer?: string;
- barcode?: string;
- isActive: boolean;
- isSellable: boolean;
- isPurchasable: boolean;
- trackInventory: boolean;
- defaultCurrencyCode?: string;
- unitDefinitionId?: Uuid;
- taxRate?: number;
- taxCode?: string;
- tags?: string;
- metadataJson?: string;
+  productCode: string;
+  name: string;
+  shortDescription?: string;
+  description?: string;
+  kind: number;
+  status: number;
+  brand?: string;
+  manufacturer?: string;
+  barcode?: string;
+  isActive: boolean;
+  isSellable: boolean;
+  isPurchasable: boolean;
+  trackInventory: boolean;
+  defaultCurrencyCode?: string;
+  unitDefinitionId?: Uuid;
+  taxRate?: number;
+  taxCode?: string;
+  tags?: string;
+  metadataJson?: string;
 }
 
 export interface ProductAttributeDefinitionDto {
@@ -774,13 +812,13 @@ export interface CreateFullProductRequestDto {
     requiresSerialNumber?: boolean;
     warrantyInMonths?: number;
   };
- softwareProfile?: {
- version?: string;
- downloadUrl?: string;
- supportedPlatformsJson?: string;
- systemRequirementsJson?: string;
- releaseNotes?: string;
- };
+  softwareProfile?: {
+    version?: string;
+    downloadUrl?: string;
+    supportedPlatformsJson?: string;
+    systemRequirementsJson?: string;
+    releaseNotes?: string;
+  };
   serviceProfile?: {
     deliveryMode?: number;
     durationInMinutes?: number;
@@ -806,19 +844,26 @@ export interface CreateFullProductRequestDto {
     isActive?: boolean;
     sortOrder?: number;
   }>;
- softwarePricingTiers?: Array<{
- productId?: Uuid;
- productLicenseOfferingId: Uuid;
- unitDefinitionId: Uuid;
- minUnits: number;
- maxUnits?: number;
- pricePerUnit: number;
- flatFee?: number;
- currencyCode: string;
- isActive?: boolean;
- }>;
+  softwarePricingTiers?: Array<{
+    productId?: Uuid;
+    /** Kaydedilmiş bir offering'e referans (düzenleme modunda) */
+    productLicenseOfferingId?: Uuid;
+    /** Yeni eklenen offering'e geçici referans; backend bu key ile eşleştirir */
+    licenseOfferingTempId?: string;
+    unitDefinitionId: Uuid;
+    minUnits: number;
+    maxUnits?: number;
+    pricePerUnit: number;
+    flatFee?: number;
+    currencyCode: string;
+    isActive?: boolean;
+  }>;
   licenseOfferings?: Array<{
     productId?: Uuid;
+    /** Mevcut offering'in id'si (güncelleme için); yeni eklenenler için boş bırakın */
+    id?: Uuid;
+    /** Frontend'in tier eşleştirmesi için kullandığı geçici anahtar */
+    _tempId?: string;
     licenseModel: number;
     name: string;
     description?: string;

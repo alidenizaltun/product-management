@@ -143,7 +143,10 @@ export interface ProductModuleForm {
 }
 
 export interface SoftwarePricingTierForm {
-  productLicenseOfferingId: string;
+  /** Kaydedilmiş bir offering'e referans (düzenleme modunda kullanılır) */
+  productLicenseOfferingId?: string;
+  /** Henüz kaydedilmemiş offering'e referans; backend bu değerle eşleştirir */
+  licenseOfferingTempId?: string;
   unitDefinitionId: string;
   minUnits: number;
   maxUnits?: number;
@@ -172,6 +175,14 @@ export interface LicenseOfferingForm {
   validTo?: string;
   isActive: boolean;
   sortOrder: number;
+}
+
+export interface UnitConversionForm {
+  fromUnitDefinitionId: string;
+  toUnitDefinitionId: string;
+  conversionFactor: number;
+  fromUnitRole: 1 | 2 | 3;
+  isActive: boolean;
 }
 
 export interface ProductFormValues {
@@ -215,4 +226,5 @@ export interface ProductFormValues {
   modules: ProductModuleForm[];
   softwarePricingTiers: SoftwarePricingTierForm[];
   licenseOfferings: LicenseOfferingForm[];
+  unitConversions: UnitConversionForm[];
 }

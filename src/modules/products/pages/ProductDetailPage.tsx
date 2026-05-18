@@ -1098,6 +1098,7 @@ const buildTabs = (product: ProductDetailDto): TabItem[] => {
             label: "Fiyatlar",
             badge: product.prices.length || undefined,
             content: <PricesTab items={product.prices} currencyCode={product.defaultCurrencyCode} />,
+            hidden: isSoftware,
         },
         {
             id: "inventory",

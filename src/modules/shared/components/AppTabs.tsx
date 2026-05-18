@@ -5,6 +5,7 @@ export interface TabItem {
   label: string;
   content: React.ReactNode;
   badge?: number | string;
+  hidden?: boolean;
 }
 
 interface AppTabsProps {
@@ -13,7 +14,8 @@ interface AppTabsProps {
   onTabChange: (tabId: string) => void;
 }
 
-const AppTabs: React.FC<AppTabsProps> = ({ tabs, activeTab, onTabChange }) => {
+const AppTabs: React.FC<AppTabsProps> = ({ tabs: allTabs, activeTab, onTabChange }) => {
+  const tabs = allTabs.filter((t) => !t.hidden);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -113,7 +115,11 @@ const AppTabs: React.FC<AppTabsProps> = ({ tabs, activeTab, onTabChange }) => {
         )}
       </div>
       <div className="card-inner pt-4" style={{ overflow: "hidden" }}>
-        {tabs.find((tab) => tab.id === activeTab)?.content}
+        {tabs.map((tab) => (
+          <div key={tab.id} style={{ display: activeTab === tab.id ? undefined : "none" }}>
+            {tab.content}
+          </div>
+        ))}
       </div>
     </div>
   );

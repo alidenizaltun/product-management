@@ -123,12 +123,12 @@ const GeneralInfoTab: React.FC = () => {
                 <h6 className="overline-title text-primary mb-3">Ticari Bilgiler</h6>
             </div>
 
-            <div className="col-md-3">
+            <div className="col-md-4">
                 <label className="form-label">Barkod</label>
                 <input className="form-control" placeholder="EAN / UPC barkod" {...register("barcode")} />
             </div>
 
-            <div className="col-md-3">
+            {/* <div className="col-md-3">
                 <label className="form-label">Ölçü Birimi</label>
                 <select className="form-control form-select" {...register("unitDefinitionId")}>
                     <option value="">— Seçiniz —</option>
@@ -138,9 +138,9 @@ const GeneralInfoTab: React.FC = () => {
                         </option>
                     ))}
                 </select>
-            </div>
+            </div> */}
 
-            <div className="col-md-3">
+            <div className="col-md-4">
                 <label className="form-label">Vergi Oranı (%)</label>
                 <input
                     type="number"
@@ -153,7 +153,7 @@ const GeneralInfoTab: React.FC = () => {
                 />
             </div>
 
-            <div className="col-md-3">
+            <div className="col-md-4">
                 <label className="form-label">Vergi Kodu</label>
                 <input className="form-control" placeholder="KDV18" {...register("taxCode")} />
             </div>

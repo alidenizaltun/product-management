@@ -8,6 +8,7 @@ import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import { useCategories, useCategory, useCategoryMutations } from "@/modules/catalog/hooks/useCatalog";
+import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
 
 interface CategoryFormValues {
   code: string;
@@ -53,12 +54,17 @@ const CategoryFormPage: React.FC = () => {
       parentCategoryId: values.parentCategoryId || undefined,
     };
 
-    if (isEdit && id) {
-      await update.mutateAsync({ id, payload });
-    } else {
-      await create.mutateAsync(payload);
+    try {
+      if (isEdit && id) {
+        await update.mutateAsync({ id, payload });
+      } else {
+        await create.mutateAsync(payload);
+      }
+      showSuccess(isEdit ? "Kategori güncellendi." : "Kategori oluşturuldu.");
+      navigate("/catalog/categories");
+    } catch (err) {
+      showApiError(err);
     }
-    navigate("/catalog/categories");
   };
 
   const isPending = create.isPending || update.isPending;

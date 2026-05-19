@@ -8,6 +8,7 @@ import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import { useUnitDefinition, useUnitDefinitionMutations } from "@/modules/catalog/hooks/useUnitDefinitions";
+import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
 
 interface UnitDefinitionFormValues {
     code: string;
@@ -61,12 +62,17 @@ const UnitDefinitionFormPage: React.FC = () => {
             sortOrder: values.sortOrder,
         };
 
-        if (isEdit && id) {
-            await update.mutateAsync({ id, payload });
-        } else {
-            await create.mutateAsync(payload);
+        try {
+            if (isEdit && id) {
+                await update.mutateAsync({ id, payload });
+            } else {
+                await create.mutateAsync(payload);
+            }
+            showSuccess(isEdit ? "Birim güncellendi." : "Birim tanımı oluşturuldu.");
+            navigate("/catalog/unit-definitions");
+        } catch (err) {
+            showApiError(err);
         }
-        navigate("/catalog/unit-definitions");
     };
 
     const isPending = create.isPending || update.isPending;

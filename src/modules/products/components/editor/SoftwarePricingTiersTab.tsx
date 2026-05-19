@@ -36,6 +36,8 @@ const SoftwarePricingTiersTab: React.FC = () => {
     const { fields, append, remove } = useFieldArray({ control, name: "softwarePricingTiers" });
 
     const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
+    // fields snapshot'ı yerine reaktif değerler için useWatch kullan
+    const watchedTiers = useWatch({ control, name: "softwarePricingTiers" }) ?? [];
     // Kaydedilmiş (id) veya yeni eklenmiş (_tempId) tüm teklifleri göster
     const allOfferings = licenseOfferings.filter((lo) => Boolean(lo.id) || Boolean(lo._tempId));
 
@@ -136,15 +138,13 @@ const SoftwarePricingTiersTab: React.FC = () => {
                                         <label className="form-label">
                                             Lisans Teklifi <span className="text-danger">*</span>
                                         </label>
-                                        {/* Seçili değer: kaydedilmişse id, yeniyse _tempId */}
+                                        {/* Seçili değer: kaydedilmişse id, yeniyse _tempId — reaktif useWatch değerleri kullanılır */}
                                         <select
                                             className="form-control form-select"
                                             value={
-                                                fields[index]
-                                                    ? (fields[index] as Record<string, unknown>).productLicenseOfferingId as string ||
-                                                    (fields[index] as Record<string, unknown>).licenseOfferingTempId as string ||
-                                                    ""
-                                                    : ""
+                                                watchedTiers[index]?.productLicenseOfferingId ||
+                                                watchedTiers[index]?.licenseOfferingTempId ||
+                                                ""
                                             }
                                             onChange={(e) => {
                                                 const selectedKey = e.target.value;

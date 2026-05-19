@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { Alert, UncontrolledAlert, Button } from "reactstrap";
 import Icon from "@/components/icon/Icon";
 import { toast } from "react-toastify";
+import type { ApiError } from "@/shared/api/apiClient";
 
 // ─── InlineAlert ──────────────────────────────────────────────────────────────
 
@@ -267,5 +268,58 @@ export const showInfo = (message: string) =>
     closeOnClick: true,
     pauseOnHover: true,
   });
+
+// additionalData varsa her key altındaki mesajları da listeler
+export const showApiError = (error: unknown) => {
+  const err = error as Partial<ApiError>;
+  const message = err?.message ?? "Bir hata oluştu. Lütfen tekrar deneyin.";
+  const additionalData = err?.additionalData;
+
+  const hasDetails =
+    additionalData &&
+    Object.values(additionalData).some((msgs) => msgs.length > 0);
+
+  if (!hasDetails) {
+    showError(message);
+    return;
+  }
+
+  const details = Object.values(additionalData!)
+    .flat()
+    .filter(Boolean)
+    .join("\n• ");
+
+  toast.error(
+    <div>
+      <p className="mb-1 fw-semibold">{message}</p>
+      <ul className="mb-0 ps-3" style={{ fontSize: "0.875em" }}>
+        {Object.values(additionalData!)
+          .flat()
+          .filter(Boolean)
+          .map((msg, i) => (
+            <li key={i}>{msg}</li>
+          ))}
+      </ul>
+    </div>,
+    {
+      position: "top-right",
+      autoClose: 7000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+    }
+  );
+};
+
+// Hatanın ApiError olup olmadığını kontrol eder
+export const parseApiError = (error: unknown): ApiError => {
+  const err = error as Partial<ApiError>;
+  return {
+    message: err?.message ?? "Bir hata oluştu. Lütfen tekrar deneyin.",
+    errorCode: err?.errorCode,
+    statusCode: err?.statusCode,
+    additionalData: err?.additionalData,
+  };
+};
 
 export default InlineAlert;

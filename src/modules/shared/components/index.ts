@@ -53,6 +53,8 @@ export {
   showError,
   showWarning,
   showInfo,
+  showApiError,
+  parseApiError,
 } from "./NotificationAlert";
 
 // ─── Timeline ─────────────────────────────────────────────────────────────────

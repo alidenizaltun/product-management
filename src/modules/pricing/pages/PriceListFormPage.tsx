@@ -8,6 +8,7 @@ import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import { usePriceList, usePriceListMutations } from "@/modules/pricing/hooks/usePricing";
+import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
 
 interface FormValues {
   code: string;
@@ -77,12 +78,17 @@ const PriceListFormPage: React.FC = () => {
       customerGroupCode: values.customerGroupCode || undefined,
     };
 
-    if (isEdit && id) {
-      await update.mutateAsync({ id, payload });
-    } else {
-      await create.mutateAsync(payload);
+    try {
+      if (isEdit && id) {
+        await update.mutateAsync({ id, payload });
+      } else {
+        await create.mutateAsync(payload);
+      }
+      showSuccess(isEdit ? "Fiyat listesi güncellendi." : "Fiyat listesi oluşturuldu.");
+      navigate("/pricing/pricelists");
+    } catch (err) {
+      showApiError(err);
     }
-    navigate("/pricing/pricelists");
   };
 
   const isPending = create.isPending || update.isPending;

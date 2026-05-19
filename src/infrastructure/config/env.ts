@@ -1,6 +1,6 @@
 export const config = {
     api: {
-        baseUrl: import.meta.env.VITE_API_BASE_URL || "https://pmapi.godeva.com.tr/",
+        baseUrl: import.meta.env.VITE_API_BASE_URL || "https://localhost:7052/",
         timeout: 30000,
     },
     auth: {

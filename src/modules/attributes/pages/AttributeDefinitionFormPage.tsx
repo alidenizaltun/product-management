@@ -11,6 +11,7 @@ import {
   useAttributeDefinition,
   useAttributeDefinitionMutations,
 } from "@/modules/attributes/hooks/useAttributes";
+import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
 
 interface FormValues {
   key: string;
@@ -76,12 +77,17 @@ const AttributeDefinitionFormPage: React.FC = () => {
       validationRuleJson: values.validationRuleJson || undefined,
     };
 
-    if (isEdit && id) {
-      await update.mutateAsync({ id, payload });
-    } else {
-      await create.mutateAsync(payload);
+    try {
+      if (isEdit && id) {
+        await update.mutateAsync({ id, payload });
+      } else {
+        await create.mutateAsync(payload);
+      }
+      showSuccess(isEdit ? "Özellik tanımı güncellendi." : "Özellik tanımı oluşturuldu.");
+      navigate("/attributes/definitions");
+    } catch (err) {
+      showApiError(err);
     }
-    navigate("/attributes/definitions");
   };
 
   const isPending = create.isPending || update.isPending;

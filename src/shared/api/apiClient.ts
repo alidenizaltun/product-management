@@ -15,6 +15,13 @@ interface RefreshTokenResponse {
   errors?: string[];
 }
 
+export interface ApiError {
+  message: string;
+  errorCode?: string;
+  statusCode?: number;
+  additionalData?: Record<string, string[]>;
+}
+
 class ApiClient {
   private instance: AxiosInstance;
   private isRefreshing = false;
@@ -86,10 +93,7 @@ class ApiClient {
           }
         }
 
-        return Promise.reject({
-          ...error,
-          message: this.extractErrorMessage(error),
-        });
+        return Promise.reject(this.buildApiError(error));
       }
     );
   }
@@ -131,21 +135,35 @@ class ApiClient {
     throw new Error(message);
   }
 
-  private extractErrorMessage(error: AxiosError | unknown): string {
-    const err = error as AxiosError<{ errors?: string[]; message?: string; title?: string }>;
+  private buildApiError(error: AxiosError | unknown): ApiError {
+    const err = error as AxiosError<{
+      errors?: string[];
+      message?: string;
+      title?: string;
+      errorCode?: string;
+      statusCode?: number;
+      additionalData?: Record<string, string[]>;
+    }>;
 
-    if (Array.isArray(err?.response?.data?.errors)) {
-      return err.response!.data!.errors!.join(", ");
-    }
-    if (typeof err?.response?.data?.message === "string") {
-      return err.response!.data!.message!;
-    }
-    if (typeof err?.response?.data?.title === "string") {
-      return err.response!.data!.title!;
-    }
-    if (err?.message) return err.message;
+    const data = err?.response?.data;
 
-    return "Bir hata oluştu. Lütfen tekrar deneyin.";
+    let message = "Bir hata oluştu. Lütfen tekrar deneyin.";
+    if (Array.isArray(data?.errors) && data.errors.length > 0) {
+      message = data.errors.join(", ");
+    } else if (typeof data?.message === "string") {
+      message = data.message;
+    } else if (typeof data?.title === "string") {
+      message = data.title;
+    } else if ((err as AxiosError)?.message) {
+      message = (err as AxiosError).message;
+    }
+
+    return {
+      message,
+      errorCode: data?.errorCode,
+      statusCode: data?.statusCode ?? err?.response?.status,
+      additionalData: data?.additionalData,
+    };
   }
 
   private handleLogout(): void {

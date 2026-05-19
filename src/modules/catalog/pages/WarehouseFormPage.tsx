@@ -8,6 +8,7 @@ import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import { useWarehouse, useWarehouseMutations } from "@/modules/catalog/hooks/useCatalog";
+import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
 
 interface WarehouseFormValues {
   code: string;
@@ -69,12 +70,17 @@ const WarehouseFormPage: React.FC = () => {
       isActive: values.isActive,
     };
 
-    if (isEdit && id) {
-      await update.mutateAsync({ id, payload });
-    } else {
-      await create.mutateAsync(payload);
+    try {
+      if (isEdit && id) {
+        await update.mutateAsync({ id, payload });
+      } else {
+        await create.mutateAsync(payload);
+      }
+      showSuccess(isEdit ? "Depo güncellendi." : "Depo oluşturuldu.");
+      navigate("/catalog/warehouses");
+    } catch (err) {
+      showApiError(err);
     }
-    navigate("/catalog/warehouses");
   };
 
   const isPending = create.isPending || update.isPending;

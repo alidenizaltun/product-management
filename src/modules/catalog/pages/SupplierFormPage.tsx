@@ -8,6 +8,7 @@ import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import { useSupplier, useSupplierMutations } from "@/modules/catalog/hooks/useCatalog";
+import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
 
 interface SupplierFormValues {
   supplierCode: string;
@@ -69,12 +70,17 @@ const SupplierFormPage: React.FC = () => {
       isActive: values.isActive,
     };
 
-    if (isEdit && id) {
-      await update.mutateAsync({ id, payload });
-    } else {
-      await create.mutateAsync(payload);
+    try {
+      if (isEdit && id) {
+        await update.mutateAsync({ id, payload });
+      } else {
+        await create.mutateAsync(payload);
+      }
+      showSuccess(isEdit ? "Tedarikçi güncellendi." : "Tedarikçi oluşturuldu.");
+      navigate("/catalog/suppliers");
+    } catch (err) {
+      showApiError(err);
     }
-    navigate("/catalog/suppliers");
   };
 
   const isPending = create.isPending || update.isPending;

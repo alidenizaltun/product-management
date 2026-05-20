@@ -307,25 +307,25 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
             isActive: t.isActive,
         })),
 
-        licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
-            id: lo.id,
-            licenseModel: lo.licenseModel,
-            name: lo.name,
-            description: lo.description,
-            basePrice: lo.basePrice,
-            currencyCode: lo.currencyCode,
-            billingPeriodUnit: lo.billingPeriodUnit,
-            billingPeriodValue: lo.billingPeriodValue,
-            autoRenew: lo.autoRenew,
-            gracePeriodDays: lo.gracePeriodDays,
-            trialDays: lo.trialDays,
-            convertToOfferingId: lo.convertToOfferingId,
-            maxSeats: lo.maxSeats,
-            validFrom: lo.validFrom,
-            validTo: lo.validTo,
-            isActive: lo.isActive,
-            sortOrder: lo.sortOrder,
-        })),
+ licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
+ id: lo.id,
+ licenseModel: lo.licenseModel,
+ name: lo.name,
+ description: lo.description,
+ basePrice: lo.basePrice,
+ currencyCode: lo.currencyCode,
+ billingPeriodUnit: lo.billingPeriodUnit,
+ billingPeriodValue: lo.billingPeriodValue,
+ autoRenew: lo.autoRenew,
+ gracePeriodDays: lo.gracePeriodDays,
+ trialDays: lo.trialDays,
+ convertToOfferingId: lo.convertToOfferingId,
+ maxSeats: lo.maxSeats,
+ validFrom: lo.validFrom ? lo.validFrom.slice(0, 10) : undefined,
+ validTo: lo.validTo ? lo.validTo.slice(0, 10) : undefined,
+ isActive: lo.isActive,
+ sortOrder: lo.sortOrder,
+ })),
 
         unitConversions: (product.unitConversions ?? []).map((uc) => ({
             fromUnitDefinitionId: uc.fromUnitDefinitionId,
@@ -500,14 +500,16 @@ const ProductFormPage: React.FC = () => {
                     : undefined,
             licenseOfferings:
                 values.kind === 2 && values.licenseOfferings?.length
-                    ? values.licenseOfferings.map(({ id: loId, convertToOfferingId, _tempId, ...lo }) => ({
-                        ...lo,
-                        id: loId || undefined,
-                        // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
-                        _tempId: _tempId || undefined,
-                        convertToOfferingId: convertToOfferingId || undefined,
-                        productId: id ?? undefined,
-                    }))
+ ? values.licenseOfferings.map(({ id: loId, convertToOfferingId, _tempId, ...lo }) => ({
+ ...lo,
+ id: loId || undefined,
+ // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
+ _tempId: _tempId || undefined,
+ convertToOfferingId: convertToOfferingId || undefined,
+ validFrom: lo.validFrom || null,
+ validTo: lo.validTo || null,
+ productId: id ?? undefined,
+ }))
                     : undefined,
         };
 

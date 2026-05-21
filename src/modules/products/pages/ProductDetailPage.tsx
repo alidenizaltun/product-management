@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "reactstrap";
 import Content from "@/layout/content/Content";
@@ -1076,35 +1076,26 @@ const LicenseOfferingsDetailTab: React.FC<{ items: ProductLicenseOfferingDto[] }
 // ─── Tab Builder ──────────────────────────────────────────────────────────────
 
 const buildTabs = (product: ProductDetailDto): TabItem[] => {
-    const isSoftware = product.kind === 2;
-    const isLicensable = product.kind === 2 || product.kind === 3 || product.kind === 4;
+    const kind = product.kind;
+    // kind: 1=Fiziksel, 2=Yazılım, 3=Hizmet, 4=Abonelik
+    const isPhysical = kind === 1;
+    const isSoftware = kind === 2;
+    const isLicensable = kind === 2 || kind === 3 || kind === 4;
 
     const tabs: TabItem[] = [
         { id: "general", label: "Genel Bilgi", content: <GeneralTab product={product} /> },
+        { id: "profile", label: "Profil", content: <ProfileTab product={product} /> },
+        {
+            id: "categories",
+            label: "Kategoriler",
+            badge: product.categoryMaps.length || undefined,
+            content: <CategoriesTab items={product.categoryMaps} />,
+        },
         {
             id: "attributes",
             label: "Özellikler",
             badge: product.attributeValues.length || undefined,
             content: <AttributesTab items={product.attributeValues} />,
-        },
-        {
-            id: "variants",
-            label: "Varyantlar",
-            badge: product.variants.length || undefined,
-            content: <VariantsTab items={product.variants} />,
-        },
-        {
-            id: "prices",
-            label: "Fiyatlar",
-            badge: product.prices.length || undefined,
-            content: <PricesTab items={product.prices} currencyCode={product.defaultCurrencyCode} />,
-            hidden: isSoftware,
-        },
-        {
-            id: "inventory",
-            label: "Stok",
-            badge: product.inventories.length || undefined,
-            content: <InventoryTab items={product.inventories} />,
         },
         {
             id: "media",
@@ -1113,24 +1104,44 @@ const buildTabs = (product: ProductDetailDto): TabItem[] => {
             content: <MediaTab items={product.mediaItems} />,
         },
         {
-            id: "categories",
-            label: "Kategoriler",
-            badge: product.categoryMaps.length || undefined,
-            content: <CategoriesTab items={product.categoryMaps} />,
+            id: "prices",
+            label: "Fiyatlar",
+            badge: product.prices.length || undefined,
+            content: <PricesTab items={product.prices} currencyCode={product.defaultCurrencyCode} />,
+            hidden: isSoftware,
         },
+        ...(isPhysical
+            ? [
+                  {
+                      id: "variants",
+                      label: "Varyantlar",
+                      badge: product.variants.length || undefined,
+                      content: <VariantsTab items={product.variants} />,
+                  },
+                  {
+                      id: "inventory",
+                      label: "Stok",
+                      badge: product.inventories.length || undefined,
+                      content: <InventoryTab items={product.inventories} />,
+                  },
+              ]
+            : []),
         {
             id: "bundles",
             label: "Bundle",
             badge: product.bundleItems?.length || undefined,
             content: <BundlesTab items={product.bundleItems ?? []} />,
         },
-        {
-            id: "suppliers",
-            label: "Tedarikçiler",
-            badge: product.supplierMaps.length || undefined,
-            content: <SuppliersTab items={product.supplierMaps} />,
-        },
-        { id: "profile", label: "Profil", content: <ProfileTab product={product} /> },
+        ...(isPhysical
+            ? [
+                  {
+                      id: "suppliers",
+                      label: "Tedarikçiler",
+                      badge: product.supplierMaps.length || undefined,
+                      content: <SuppliersTab items={product.supplierMaps} />,
+                  },
+              ]
+            : []),
     ];
 
     if (isSoftware) {
@@ -1144,16 +1155,16 @@ const buildTabs = (product: ProductDetailDto): TabItem[] => {
 
     if (isLicensable) {
         tabs.push({
-            id: "pricing-tiers",
-            label: "Fiyat Kademeleri",
-            badge: product.softwarePricingTiers?.length || undefined,
-            content: <PricingTiersTab items={product.softwarePricingTiers ?? []} />,
-        });
-        tabs.push({
             id: "license-offerings",
             label: "Lisans Teklifleri",
             badge: product.licenseOfferings?.length || undefined,
             content: <LicenseOfferingsDetailTab items={product.licenseOfferings ?? []} />,
+        });
+        tabs.push({
+            id: "pricing-tiers",
+            label: "Fiyat Kademeleri",
+            badge: product.softwarePricingTiers?.length || undefined,
+            content: <PricingTiersTab items={product.softwarePricingTiers ?? []} />,
         });
     }
 
@@ -1169,6 +1180,32 @@ const ProductDetailPage: React.FC = () => {
     const { deleteMutation } = useProductMutations();
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("general");
+
+    const productKind = product?.kind;
+    const isPhysical = productKind === 1;
+    const isSoftware = productKind === 2;
+    const isLicensable = productKind === 2 || productKind === 3 || productKind === 4;
+
+    // Tür değişince veya gizlenen sekmedeyken genel bilgiye dön (form sayfasıyla aynı mantık)
+    useEffect(() => {
+        const physicalOnlyTabs = ["variants", "suppliers", "inventory"];
+        const softwareOnlyTabs = ["modules"];
+        const licensableTabs = ["pricing-tiers", "license-offerings"];
+        const softwareHiddenTabs = ["prices"];
+
+        if (physicalOnlyTabs.includes(activeTab) && !isPhysical) {
+            setActiveTab("general");
+        }
+        if (softwareOnlyTabs.includes(activeTab) && !isSoftware) {
+            setActiveTab("general");
+        }
+        if (licensableTabs.includes(activeTab) && !isLicensable) {
+            setActiveTab("general");
+        }
+        if (softwareHiddenTabs.includes(activeTab) && isSoftware) {
+            setActiveTab("general");
+        }
+    }, [productKind, activeTab, isPhysical, isSoftware, isLicensable]);
 
     const handleDelete = async () => {
         if (!id) return;

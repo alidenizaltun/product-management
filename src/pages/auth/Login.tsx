@@ -6,7 +6,6 @@ import { Alert, Form, Spinner } from "reactstrap";
 import Logo from "@/images/logo.png";
 import LogoDark from "@/images/logo.svg";
 import Head from "@/layout/head/Head";
-import AuthFooter from "./AuthFooter";
 import {
   Block,
   BlockContent,

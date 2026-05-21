@@ -20,6 +20,9 @@ export const mockProductDto: ProductDto = {
  taxRate: 18,
  taxCode: "KDV18",
  tags: "tag1,tag2",
+ primaryImageUrl: "https://via.placeholder.com/400x300?text=Test",
+ primaryThumbnailUrl: "https://via.placeholder.com/200x150?text=Test",
+ imageUrls: ["https://via.placeholder.com/400x300?text=Test"],
  createdAt: NOW,
 };
 

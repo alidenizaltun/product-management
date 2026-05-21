@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 import React from "react";
 import LogoSmall from "@/images/logo-small-1.png";
 import LogoDark from "@/images/logo-dark-small.png";
@@ -7,76 +5,26 @@ import SimpleBar from "simplebar-react";
 import classNames from "classnames";
 import { DropdownMenu, DropdownToggle, UncontrolledDropdown } from "reactstrap";
 import { Link, useLocation } from "react-router";
-import { UserAvatar, LinkList, LinkItem, Icon, TooltipComponent } from "@/components/Component";
+import { UserAvatar, LinkList, LinkItem, Icon } from "@/components/Component";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/auth/stores/authStore";
+import { useTheme } from "@/layout/provider/Theme";
+import { findUpper } from "@/utils/Utils";
 
-import { useTheme } from '@/layout/provider/Theme';
-
-const dashboardLinks = [
-  {
-    icon: "dashboard",
-    text: "Varsayılan Dashboard",
-    link: "/",
-  },
-  {
-    icon: "speed",
-    text: "Satış Dashboard",
-    link: "/sales",
-  },
-  {
-    icon: "bitcoin-cash",
-    text: "Kripto Dashboard",
-    link: "/crypto",
-  },
-  {
-    icon: "coins",
-    text: "Invest Dashboard",
-    link: "/invest",
-  },
-]
-
-const applicationLinks = [
-  {
-    text: "Mesajlar",
-    link: "/app-messages",
-    icon: "chat",
-  },
-  {
-    text: "NioChat",
-    link: "/app-chat",
-    icon: "chat-circle",
-  },
-  {
-    text: "Mail Kutusu",
-    link: "/app-inbox",
-    icon: "inbox",
-  },
-  {
-    text: "Takvim",
-    link: "/app-calender",
-    icon: "calendar",
-  },
-  {
-    text: "Kanban",
-    link: "/app-kanban",
-    icon: "template",
-  },
-  {
-    text: "Dosya Yöneticisi",
-    link: "/app-file-manager",
-    icon: "folder",
-  },
-]
+/** Uygulamada tanımlı route'lara karşılık gelen kısayollar */
+const appShortcuts = [
+  { icon: "dashboard", text: "Gösterge Paneli", link: "/dashboard" },
+  { icon: "box", text: "Ürünler", link: "/products" },
+];
 
 const Appbar = () => {
-  
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
-  const theme = useTheme(); 
+  const { logout, user } = useAuthStore();
+  const avatarText = findUpper(user?.fullName || "K");
+  const theme = useTheme();
 
-  const handleLogout = async (ev) => {
+  const handleLogout = async (ev: React.MouseEvent) => {
     ev.preventDefault();
     try {
       await logout();
@@ -91,10 +39,13 @@ const Appbar = () => {
     [`is-${theme.appbar}`]: theme.appbar !== "white" && theme.appbar !== "light",
   });
 
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
+
   return (
     <div className={appSidebarClass}>
       <div className="nk-apps-brand">
-        <Link to="/" className="logo-link">
+        <Link to="/dashboard" className="logo-link">
           <img className="logo-light logo-img" src={LogoSmall} alt="logo" />
           <img className="logo-dark logo-img" src={LogoDark} alt="logo-dark" />
         </Link>
@@ -104,113 +55,46 @@ const Appbar = () => {
           <SimpleBar className="nk-sidebar-content">
             <div className="nk-sidebar-menu">
               <ul className="nk-menu apps-menu">
-                {dashboardLinks.map((item, index) => 
-                  <React.Fragment key={index}>
-                    <TooltipComponent id={"dashboard" + index} text={item.text} direction="right" />
-                    <li
-                      className={`nk-menu-item ${
-                        location.pathname === item.link ? "active current-page" : ""
-                      }`}
-                      id={"dashboard" + index}
-                    >
-                      <Link to={`${item.link}`} className="nk-menu-link">
-                        <span className="nk-menu-icon">
-                          <Icon name={item.icon}></Icon>
-                        </span>
-                      </Link>
-                    </li>
-                  </React.Fragment>
-                )}
-                <li className="nk-menu-hr"></li>
-                {applicationLinks.map((item, index) => 
-                  <React.Fragment key={index}>
-                    <TooltipComponent id={"app" + index} text={item.text} direction="right" />
-                    <li
-                      className={`nk-menu-item ${
-                        location.pathname === item.link ? "active current-page" : ""
-                      }`}
-                      id={"app" + index}
-                    >
-                      <Link to={`${item.link}`} className="nk-menu-link">
-                        <span className="nk-menu-icon">
-                          <Icon name={item.icon}></Icon>
-                        </span>
-                      </Link>
-                    </li>
-                  </React.Fragment>
-                )}
-                <li className="nk-menu-hr"></li>
-                <TooltipComponent id={"componentTooltip"} text="Go to component" direction="right" />
-                <li
-                  className={`nk-menu-item ${
-                    location.pathname === "/components" ? "active current-page" : ""
-                  }`}
-                  id="componentTooltip"
-                >
-                  <Link to={`/components`} className="nk-menu-link">
-                    <span className="nk-menu-icon">
-                      <Icon name="layers"></Icon>
-                    </span>
-                  </Link>
-                </li>
+                {appShortcuts.map((item) => (
+                  <li
+                    key={item.link}
+                    className={`nk-menu-item ${isActive(item.link) ? "active current-page" : ""}`}
+                    title={item.text}
+                  >
+                    <Link to={item.link} className="nk-menu-link">
+                      <span className="nk-menu-icon">
+                        <Icon name={item.icon} />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
             <div className="nk-sidebar-footer">
-              <ul className="nk-menu">
-                <TooltipComponent id={"settingsTooltip"} text="Settings" direction="right" />
-                <li className="nk-menu-item" id="settingsTooltip">
-                  <Link to={`/user-profile-setting`} className="nk-menu-link">
-                    <span className="nk-menu-icon">
-                      <Icon name="setting"></Icon>
-                    </span>
-                  </Link>
-                </li>
-              </ul>
+              <UncontrolledDropdown
+                className="nk-sidebar-profile nk-sidebar-profile-fixed"
+                direction="right"
+              >
+                <DropdownToggle
+                  tag="a"
+                  href="#toggle"
+                  className="dropdown-toggle"
+                  onClick={(ev) => ev.preventDefault()}
+                >
+                  <UserAvatar text={avatarText} theme="blue" />
+                </DropdownToggle>
+                <DropdownMenu end className="dropdown-menu-md ms-4">
+                  <div className="dropdown-inner">
+                    <LinkList>
+                      <LinkItem icon="signout" link="/login" onClick={handleLogout}>
+                        Çıkış Yap
+                      </LinkItem>
+                    </LinkList>
+                  </div>
+                </DropdownMenu>
+              </UncontrolledDropdown>
             </div>
           </SimpleBar>
-          <UncontrolledDropdown className="nk-sidebar-profile nk-sidebar-profile-fixed" direction="right">
-            <DropdownToggle
-              tag="a"
-              href="#toggle"
-              className="dropdown-toggle"
-              onClick={(ev) => {
-                ev.preventDefault();
-              }}
-            >
-              <UserAvatar text="AB" theme="blue" />
-            </DropdownToggle>
-            <DropdownMenu end className="dropdown-menu-md ms-4">
-              <div className="dropdown-inner user-card-wrap bg-lighter d-none d-md-block">
-                <div className="user-card sm">
-                  <UserAvatar text="AB" theme="blue" />
-                  <div className="user-info">
-                    <span className="lead-text">Ali Deniz Altun</span>
-                    <span className="sub-text">alidenizaltungmail.com</span>
-                  </div>
-                </div>
-              </div>
-              <div className="dropdown-inner">
-                <LinkList>
-                  <LinkItem link="/user-profile-regular" icon="user-alt">
-                    Profili Görüntüle
-                  </LinkItem>
-                  <LinkItem link="/user-profile-setting" icon="setting-alt">
-                    Hesap Ayarları
-                  </LinkItem>
-                  <LinkItem link="/user-profile-activity" icon="activity-alt">
-                    Hesap Aktivitesi
-                  </LinkItem>
-                </LinkList>
-              </div>
-              <div className="dropdown-inner">
-                <LinkList>
-                  <LinkItem icon="signout" link="/login" onClick={handleLogout}>
-                    Çıkış Yap
-                  </LinkItem>
-                </LinkList>
-              </div>
-            </DropdownMenu>
-          </UncontrolledDropdown>
         </div>
       </div>
     </div>

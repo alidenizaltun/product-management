@@ -51,9 +51,34 @@ export interface ProductDto {
   taxCode?: string;
   tags?: string;
   metadataJson?: string;
+  /** Liste API — ana görsel */
+  primaryImageUrl?: string;
+  primaryThumbnailUrl?: string;
+  imageUrls?: string[];
   createdAt: string;
   updatedAt?: string;
 }
+
+/** Liste endpoint'inden dönen özet ürün (tam ProductDto alt kümesi + görseller) */
+export type ProductListItemDto = Pick<
+  ProductDto,
+  | "id"
+  | "productCode"
+  | "name"
+  | "primaryImageUrl"
+  | "primaryThumbnailUrl"
+  | "imageUrls"
+> &
+  Partial<ProductDto>;
+
+export const getProductListImageUrl = (product: {
+  primaryThumbnailUrl?: string;
+  primaryImageUrl?: string;
+  imageUrls?: string[];
+}): string | undefined =>
+  product.primaryThumbnailUrl?.trim() ||
+  product.primaryImageUrl?.trim() ||
+  product.imageUrls?.find((u) => u?.trim())?.trim();
 
 // --- Sub-DTOs used in ProductDetailDto ---
 

@@ -3,19 +3,13 @@ const menu = [
   {
     icon: "dashboard",
     text: "Gösterge Paneli",
-    subMenu: [
-      { text: "Genel Bakış", link: "/dashboard" },
-      { text: "Son İşlemler", link: "/dashboard" },
-      { text: "Uyarılar", link: "/dashboard" },
-    ],
+    link: "/dashboard",
   },
   { heading: "ÜRÜN YÖNETİMİ" },
   {
     icon: "box",
-    text: "Ürün Yönetimi",
-    subMenu: [
-      { text: "Ürünler", link: "/products" },
-    ],
+    text: "Ürünler",
+    link: "/products",
   },
   {
     icon: "list-index",
@@ -24,16 +18,14 @@ const menu = [
       { text: "Kategoriler", link: "/catalog/categories" },
       { text: "Tedarikçiler", link: "/catalog/suppliers" },
       { text: "Depolar", link: "/catalog/warehouses" },
-      { text: "Özellik Tanımları", link: "/attributes/definitions" },
       { text: "Birim Tanımları", link: "/catalog/unit-definitions" },
+      { text: "Özellik Tanımları", link: "/attributes/definitions" },
     ],
   },
   {
     icon: "coins",
     text: "Fiyat Yönetimi",
-    subMenu: [
-      { text: "Fiyat Listeleri", link: "/pricing/pricelists" },
-    ],
+    subMenu: [{ text: "Fiyat Listeleri", link: "/pricing/pricelists" }],
   },
   {
     icon: "package",
@@ -46,4 +38,5 @@ const menu = [
     ],
   },
 ];
+
 export default menu;

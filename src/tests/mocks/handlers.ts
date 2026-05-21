@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { mockProductDto, mockProductDetailDto } from "./fixtures";
 
-const BASE = "https://localhost:7052";
+const BASE = "https://pmapi.godeva.com.tr";
 
 export const handlers = [
  // GET /api/products - liste

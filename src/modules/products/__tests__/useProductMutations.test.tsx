@@ -52,7 +52,7 @@ describe("useProductMutations", () => {
 
         it("API hatası durumunda isError olur", async () => {
             server.use(
-                http.post("https://localhost:7052/api/products/full", () =>
+                http.post("https://pmapi.godeva.com.tr/api/products/full", () =>
                     HttpResponse.json(
                         { errors: ["Ürün kodu zaten mevcut."] },
                         { status: 400 }
@@ -131,7 +131,7 @@ describe("useProductMutations", () => {
 
         it("güncelleme hatasında isError olur ve query'leri bozmaz", async () => {
             server.use(
-                http.put("https://localhost:7052/api/products/:id/full", () =>
+                http.put("https://pmapi.godeva.com.tr/api/products/:id/full", () =>
                     HttpResponse.json({ message: "Yetersiz yetki." }, { status: 403 })
                 )
             );

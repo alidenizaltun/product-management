@@ -1,18 +1,11 @@
-// @ts-nocheck
-
 import React from "react";
 import classNames from "classnames";
 import Toggle from "../sidebar/Toggle";
 import User from "./dropdown/user/User";
-import Notification from "./dropdown/notification/Notification";
-import ChatDropdown from "./dropdown/chat/Chat";
-import AppDropdown from "./dropdown/app/App";
 import { Icon } from "@/components/Component";
-
-import { useTheme, useThemeUpdate } from '@/layout/provider/Theme';
+import { useTheme, useThemeUpdate } from "@/layout/provider/Theme";
 
 const AppHeader = ({ fixed, className, app }) => {
-
   const theme = useTheme();
   const themeUpdate = useThemeUpdate();
 
@@ -42,15 +35,6 @@ const AppHeader = ({ fixed, className, app }) => {
           </div>
           <div className="nk-header-tools">
             <ul className="nk-quick-nav">
-              <li className="chats-dropdown hide-mb-xs">
-                <ChatDropdown />
-              </li>
-              <li className="notification-dropdown me-n1">
-                <Notification />
-              </li>
-              <li className="list-apps-dropdown d-lg-none">
-                <AppDropdown />
-              </li>
               <li className="user-dropdown">
                 <User />
               </li>

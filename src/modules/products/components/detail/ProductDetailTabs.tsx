@@ -8,7 +8,6 @@ import type {
   ProductInventoryDetailDto,
   ProductMediaItemDto,
   ProductCategoryMapDetailDto,
-  ProductBundleItemDto,
   ProductSupplierMapDto,
   ProductModuleDto,
   SoftwarePricingTierDto,
@@ -378,41 +377,7 @@ export const MediaTab: React.FC<{ items: ProductMediaItemDto[] }> = ({ items }) 
   );
 };
 
-// ─── Bundles & Suppliers ──────────────────────────────────────────────────────
-
-export const BundlesTab: React.FC<{ items: ProductBundleItemDto[] }> = ({ items }) => {
-  if (!items.length) {
-    return <TabEmpty icon="grid" title="Bundle yok" description="Paket ürün kalemi eklenmemiş." />;
-  }
-  return (
-    <div className="card card-bordered">
-      <div className="table-responsive">
-        <table className="table table-middle mb-0">
-          <thead className="table-light">
-            <tr>
-              <th>Alt Ürün</th>
-              <th>Miktar</th>
-              <th>Opsiyonel</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((bi) => (
-              <tr key={bi.id}>
-                <td>
-                  <code className="fs-12">{bi.childProductId}</code>
-                </td>
-                <td>
-                  <span className="badge bg-primary">{bi.quantity}</span>
-                </td>
-                <td>{bi.isOptional ? "Evet" : "Hayır"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
+// ─── Suppliers ────────────────────────────────────────────────────────────────
 
 export const SuppliersTab: React.FC<{ items: ProductSupplierMapDto[] }> = ({ items }) => {
   if (!items.length) {
@@ -781,13 +746,6 @@ export const buildProductDetailTabs = (product: ProductDetailDto): TabItem[] => 
       }
     );
   }
-
-  tabs.push({
-    id: "bundles",
-    label: "Bundle",
-    badge: product.bundleItems?.length || undefined,
-    content: <BundlesTab items={product.bundleItems ?? []} />,
-  });
 
   if (isPhysical) {
     tabs.push({

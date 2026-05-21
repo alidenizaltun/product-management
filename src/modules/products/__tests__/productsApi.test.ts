@@ -16,7 +16,7 @@ describe("productsApi", () => {
 
  it("dizi döndürülürse items olarak sarmalar", async () => {
  server.use(
- http.get("https://localhost:7052/api/products", () =>
+ http.get("https://pmapi.godeva.com.tr/api/products", () =>
  HttpResponse.json([mockProductDto])
  )
  );
@@ -28,7 +28,7 @@ describe("productsApi", () => {
  it("filtre parametrelerini query string'e ekler", async () => {
  let capturedUrl = "";
  server.use(
- http.get("https://localhost:7052/api/products", ({ request }) => {
+ http.get("https://pmapi.godeva.com.tr/api/products", ({ request }) => {
  capturedUrl = request.url;
  return HttpResponse.json({ items: [], totalCount: 0 });
  })
@@ -104,7 +104,7 @@ describe("productsApi", () => {
  it("request body'de çoklu varyant gönderir", async () => {
  let capturedBody: unknown = null;
  server.use(
- http.post("https://localhost:7052/api/products/full", async ({ request }) => {
+ http.post("https://pmapi.godeva.com.tr/api/products/full", async ({ request }) => {
  capturedBody = await request.json();
  return HttpResponse.json({ ...mockProductDto, id: "x" }, { status: 201 });
  })
@@ -138,7 +138,7 @@ describe("productsApi", () => {
  it("request body'de çoklu fiyat gönderir", async () => {
  let capturedBody: unknown = null;
  server.use(
- http.put("https://localhost:7052/api/products/:id/full", async ({ request }) => {
+ http.put("https://pmapi.godeva.com.tr/api/products/:id/full", async ({ request }) => {
  capturedBody = await request.json();
  return new HttpResponse(null, { status: 204 });
  })

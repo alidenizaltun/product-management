@@ -61,6 +61,9 @@ export interface ProductAttributeValueDto {
   id: Uuid;
   productId: Uuid;
   attributeDefinitionId: Uuid;
+  attributeKey?: string;
+  attributeDisplayName?: string;
+  attributeDataType?: number;
   valueText?: string;
   valueNumber?: number;
   valueBool?: boolean;
@@ -136,6 +139,8 @@ export interface ProductCategoryMapDetailDto {
   id: Uuid;
   productId: Uuid;
   productCategoryId: Uuid;
+  categoryCode?: string;
+  categoryName?: string;
   isPrimary: boolean;
   sortOrder?: number;
   createdAt: string;
@@ -240,6 +245,7 @@ export interface SoftwarePricingTierDto {
   productLicenseOfferingId: Uuid;
   licenseOfferingName?: string;
   unitDefinitionId: Uuid;
+  unitDefinitionCode?: string;
   unitDefinitionName?: string;
   minUnits: number;
   maxUnits?: number;
@@ -265,6 +271,7 @@ export interface ProductLicenseOfferingDto {
   gracePeriodDays?: number;
   trialDays?: number;
   convertToOfferingId?: Uuid;
+  convertToOfferingName?: string;
   maxSeats?: number;
   validFrom?: string;
   validTo?: string;

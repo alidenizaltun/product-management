@@ -26,8 +26,26 @@ export const mockProductDto: ProductDto = {
 export const mockProductDetailDto: ProductDetailDto = {
  ...mockProductDto,
  attributeValues: [
- { id: "av-001", productId: "prod-001", attributeDefinitionId: "attr-001", valueText: "Kırmızı", createdAt: NOW },
- { id: "av-002", productId: "prod-001", attributeDefinitionId: "attr-002", valueText: "L", createdAt: NOW },
+ {
+ id: "av-001",
+ productId: "prod-001",
+ attributeDefinitionId: "attr-001",
+ attributeKey: "COLOR",
+ attributeDisplayName: "Renk",
+ attributeDataType: 1,
+ valueText: "Kırmızı",
+ createdAt: NOW,
+ },
+ {
+ id: "av-002",
+ productId: "prod-001",
+ attributeDefinitionId: "attr-002",
+ attributeKey: "SIZE",
+ attributeDisplayName: "Beden",
+ attributeDataType: 1,
+ valueText: "L",
+ createdAt: NOW,
+ },
  ],
  variants: [
  {
@@ -95,7 +113,16 @@ export const mockProductDetailDto: ProductDetailDto = {
  ],
  mediaItems: [],
  categoryMaps: [
- { id: "cm-001", productId: "prod-001", productCategoryId: "cat-001", isPrimary: true, sortOrder: 0, createdAt: NOW },
+ {
+ id: "cm-001",
+ productId: "prod-001",
+ productCategoryId: "cat-001",
+ categoryCode: "electronics",
+ categoryName: "Elektronik",
+ isPrimary: true,
+ sortOrder: 0,
+ createdAt: NOW,
+ },
  ],
  bundleItems: [],
  supplierMaps: [
@@ -196,7 +223,24 @@ export const mockSoftwareProductDetail: ProductDetailDto = {
  createdAt: NOW,
  },
  ],
- softwarePricingTiers: [],
+ softwarePricingTiers: [
+ {
+ id: "tier-001",
+ productId: "prod-sw-001",
+ productLicenseOfferingId: "lo-001",
+ licenseOfferingName: "Standart Lisans",
+ unitDefinitionId: "unit-user",
+ unitDefinitionCode: "user",
+ unitDefinitionName: "Kullanıcı",
+ minUnits: 1,
+ maxUnits: 100,
+ pricePerUnit: 50,
+ flatFee: 0,
+ currencyCode: "TRY",
+ isActive: true,
+ createdAt: NOW,
+ },
+ ],
  licenseOfferings: [
  {
  id: "lo-001",

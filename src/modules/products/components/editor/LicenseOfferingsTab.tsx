@@ -43,6 +43,7 @@ const OfferingFields: React.FC<{ index: number }> = ({ index }) => {
     const {
         register,
         control,
+        getValues,
         formState: { errors },
     } = useFormContext<ProductFormValues>();
     const licenseModel = useWatch({ control, name: `licenseOfferings.${index}.licenseModel` });
@@ -219,9 +220,22 @@ const OfferingFields: React.FC<{ index: number }> = ({ index }) => {
                 <label className="form-label">Geçerlilik Bitişi</label>
                 <input
                     type="date"
-                    className="form-control"
-                    {...register(`licenseOfferings.${index}.validTo`)}
+                    className={`form-control ${errors.licenseOfferings?.[index]?.validTo ? "is-invalid" : ""}`}
+                    {...register(`licenseOfferings.${index}.validTo`, {
+                        validate: (value) => {
+                            const from = getValues(`licenseOfferings.${index}.validFrom`);
+                            if (from && value && value < from) {
+                                return "Bitiş tarihi başlangıç tarihinden önce olamaz";
+                            }
+                            return true;
+                        },
+                    })}
                 />
+                {errors.licenseOfferings?.[index]?.validTo && (
+                    <div className="invalid-feedback">
+                        {errors.licenseOfferings[index]?.validTo?.message}
+                    </div>
+                )}
             </div>
 
             {/* Switchler */}
@@ -263,7 +277,7 @@ const LicenseOfferingsTab: React.FC = () => {
         <div>
             <div className="d-flex align-items-center justify-content-between mb-3">
                 <div>
-                    <h6 className="overline-title text-primary mb-0">Lisans Teklifleri</h6>
+                    <h6 className="overline-title text-primary mb-0">Fiyatlandırma</h6>
                     <p className="text-soft fs-12 mb-0">
                         Tek seferlik, abonelik, deneme gibi farklı satış tiplerini aynı üründe tanımlayın.
                     </p>
@@ -282,7 +296,7 @@ const LicenseOfferingsTab: React.FC = () => {
                 <div className="text-center py-5 text-soft">
                     <em className="icon ni ni-tag fs-2 d-block mb-2" />
                     <p className="mb-0">
-                        Henüz lisans teklifi eklenmemiş. Perpetual, Subscription ve Trial teklifleri aynı anda eklenebilir.
+                        Henüz Fiyatlandırma eklenmemiş. Perpetual, Subscription ve Trial teklifleri aynı anda eklenebilir.
                     </p>
                 </div>
             ) : (

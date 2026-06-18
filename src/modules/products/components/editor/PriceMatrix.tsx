@@ -23,7 +23,7 @@ const emptyPrice = () => ({
 });
 
 const PriceMatrix: React.FC = () => {
-  const { control, register, formState: { errors } } = useFormContext<ProductFormValues>();
+  const { control, register, getValues, formState: { errors } } = useFormContext<ProductFormValues>();
   const { fields, append, remove } = useFieldArray({ control, name: "prices" });
 
   return (
@@ -170,6 +170,13 @@ const PriceMatrix: React.FC = () => {
                   className={`form-control ${errors.prices?.[index]?.validTo ? "is-invalid" : ""}`}
                   {...register(`prices.${index}.validTo`, {
                     required: "Bitiş tarihi zorunludur",
+                    validate: (value) => {
+                      const from = getValues(`prices.${index}.validFrom`);
+                      if (from && value && value < from) {
+                        return "Bitiş tarihi başlangıç tarihinden önce olamaz";
+                      }
+                      return true;
+                    },
                   })}
                 />
                 {errors.prices?.[index]?.validTo && (

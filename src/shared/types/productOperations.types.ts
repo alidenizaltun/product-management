@@ -249,17 +249,27 @@ export interface ProductSubscriptionProfileDto {
   updatedAt?: string;
 }
 
+export interface ProductModuleOfferingPriceSimpleDto {
+  id?: Uuid;
+  productLicenseOfferingId: Uuid;
+  licenseOfferingName?: string | null;
+  licenseOfferingTempId?: string;
+  price: number;
+  currencyCode: string;
+  isActive: boolean;
+}
+
 export interface ProductModuleDto {
   id: Uuid;
   productId: Uuid;
   moduleCode: string;
   name: string;
   description?: string;
-  additionalPrice: number;
   currencyCode: string;
   isOptional: boolean;
   isActive: boolean;
   sortOrder: number;
+  offeringPrices?: ProductModuleOfferingPriceSimpleDto[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -304,6 +314,35 @@ export interface ProductLicenseOfferingDto {
   sortOrder: number;
   createdAt: string;
   updatedAt?: string;
+}
+
+// ─── ModuleOfferingPrice ──────────────────────────────────────────────────────
+
+export interface ProductModuleOfferingPriceDto {
+  id: Uuid;
+  productModuleId: Uuid;
+  moduleCode: string | null;
+  moduleName: string | null;
+  productLicenseOfferingId: Uuid;
+  licenseOfferingName: string | null;
+  price: number;
+  currencyCode: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateProductModuleOfferingPriceRequest {
+  productLicenseOfferingId: Uuid;
+  price: number;
+  currencyCode: string;
+  isActive: boolean;
+}
+
+export interface UpdateProductModuleOfferingPriceRequest {
+  price: number;
+  currencyCode: string;
+  isActive: boolean;
 }
 
 // ─── UnitConversion ───────────────────────────────────────────────────────────
@@ -354,6 +393,7 @@ export interface ProductDetailDto extends ProductDto {
   serviceProfile?: ProductServiceProfileDto;
   subscriptionProfile?: ProductSubscriptionProfileDto;
   modules?: ProductModuleDto[];
+  moduleOfferingPrices?: ProductModuleOfferingPriceDto[];
   softwarePricingTiers?: SoftwarePricingTierDto[];
   licenseOfferings?: ProductLicenseOfferingDto[];
   unitConversions?: ProductUnitConversionDto[];
@@ -870,11 +910,17 @@ export interface CreateFullProductRequestDto {
     moduleCode: string;
     name: string;
     description?: string;
-    additionalPrice?: number;
     currencyCode: string;
     isOptional?: boolean;
     isActive?: boolean;
     sortOrder?: number;
+    offeringPrices?: Array<{
+      productLicenseOfferingId?: Uuid;
+      licenseOfferingTempId?: string;
+      price: number;
+      currencyCode: string;
+      isActive?: boolean;
+    }>;
   }>;
   softwarePricingTiers?: Array<{
     productId?: Uuid;

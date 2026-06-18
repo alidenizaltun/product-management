@@ -131,15 +131,26 @@ export interface SubscriptionProfileForm {
   cancellationPolicy?: string;
 }
 
+export interface ModuleOfferingPriceForm {
+  productLicenseOfferingId?: string;
+  /** Henüz kaydedilmemiş offering'e referans; backend ile eşleştirir */
+  licenseOfferingTempId?: string;
+  price: number;
+  currencyCode: string;
+  isActive: boolean;
+}
+
 export interface ProductModuleForm {
+  /** Kayıtlı modülün ID'si — düzenleme modunda API'den gelir, yeni modüllerde undefined */
+  id?: string;
   moduleCode: string;
   name: string;
   description?: string;
-  additionalPrice: number;
   currencyCode: string;
   isOptional: boolean;
   isActive: boolean;
   sortOrder: number;
+  offeringPrices: ModuleOfferingPriceForm[];
 }
 
 export interface SoftwarePricingTierForm {

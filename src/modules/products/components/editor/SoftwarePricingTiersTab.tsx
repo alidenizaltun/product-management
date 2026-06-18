@@ -88,7 +88,7 @@ const SoftwarePricingTiersTab: React.FC = () => {
                 <div>
                     <h6 className="overline-title text-primary mb-0">Kademeli Fiyatlandırma</h6>
                     <p className="text-soft fs-12 mb-0">
-                        Birim sayısına göre kademeli fiyat tanımlayın. Önce Lisans Teklifleri sekmesinde teklif oluşturun.
+                        Birim sayısına göre kademeli fiyat tanımlayın. Önce Fiyatlandırma sekmesinde teklif oluşturun.
                     </p>
                 </div>
                 <button
@@ -105,7 +105,7 @@ const SoftwarePricingTiersTab: React.FC = () => {
                 <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
                     <em className="icon ni ni-alert-circle" />
                     <span>
-                        Fiyat kademesi eklemek için önce <strong>Lisans Teklifleri</strong> sekmesinde teklif oluşturun.
+                        Fiyat kademesi eklemek için önce <strong>Fiyatlandırma</strong> sekmesinde teklif oluşturun.
                     </span>
                 </div>
             )}
@@ -136,7 +136,7 @@ const SoftwarePricingTiersTab: React.FC = () => {
                                 <div className="row g-3">
                                     <div className="col-md-4">
                                         <label className="form-label">
-                                            Lisans Teklifi <span className="text-danger">*</span>
+                                            Fiyatlandırma <span className="text-danger">*</span>
                                         </label>
                                         {/* Seçili değer: kaydedilmişse id, yeniyse _tempId — reaktif useWatch değerleri kullanılır */}
                                         <select
@@ -174,7 +174,7 @@ const SoftwarePricingTiersTab: React.FC = () => {
                                             ))}
                                         </select>
                                         {allOfferings.length === 0 && (
-                                            <small className="text-soft">Önce Lisans Teklifleri sekmesinden teklif ekleyin.</small>
+                                            <small className="text-soft">Önce Fiyatlandırma sekmesinden teklif ekleyin.</small>
                                         )}
                                     </div>
 

@@ -9,6 +9,9 @@ import {
   ProductLicenseOfferingDto,
   ProductUnitConversionDto,
   CreateProductUnitConversionRequestDto,
+  ProductModuleOfferingPriceDto,
+  CreateProductModuleOfferingPriceRequest,
+  UpdateProductModuleOfferingPriceRequest,
 } from "@/shared/types/productOperations.types";
 import { apiClient } from "@/shared/api/apiClient";
 import { apiEndpoints } from "@/shared/config/apiEndpoints";
@@ -132,5 +135,22 @@ export const productsApi = {
 
   deleteUnitConversion: async (productId: string, conversionId: string): Promise<void> => {
     await apiClient.delete<void>(apiEndpoints.products.unitConversionById(productId, conversionId));
+  },
+
+  // --- Module Offering Prices ---
+  getModuleOfferingPrices: async (productId: string, moduleId: string): Promise<ProductModuleOfferingPriceDto[]> => {
+    return apiClient.get<ProductModuleOfferingPriceDto[]>(apiEndpoints.products.moduleOfferingPrices(productId, moduleId));
+  },
+
+  createModuleOfferingPrice: async (productId: string, moduleId: string, payload: CreateProductModuleOfferingPriceRequest): Promise<ProductModuleOfferingPriceDto> => {
+    return apiClient.post<ProductModuleOfferingPriceDto>(apiEndpoints.products.moduleOfferingPrices(productId, moduleId), payload);
+  },
+
+  updateModuleOfferingPrice: async (productId: string, moduleId: string, priceId: string, payload: UpdateProductModuleOfferingPriceRequest): Promise<void> => {
+    await apiClient.put<void>(apiEndpoints.products.moduleOfferingPriceById(productId, moduleId, priceId), payload);
+  },
+
+  deleteModuleOfferingPrice: async (productId: string, moduleId: string, priceId: string): Promise<void> => {
+    await apiClient.delete<void>(apiEndpoints.products.moduleOfferingPriceById(productId, moduleId, priceId));
   },
 };

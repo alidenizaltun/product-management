@@ -34,6 +34,7 @@ const PriceListFormPage: React.FC = () => {
     register,
     handleSubmit,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
@@ -187,7 +188,20 @@ const PriceListFormPage: React.FC = () => {
 
                   <div className="col-md-6">
                     <label className="form-label">Geçerlilik Bitişi</label>
-                    <input type="datetime-local" className="form-control" {...register("validTo")} />
+                    <input
+                      type="datetime-local"
+                      className={`form-control ${errors.validTo ? "is-invalid" : ""}`}
+                      {...register("validTo", {
+                        validate: (value) => {
+                          const from = getValues("validFrom");
+                          if (from && value && value < from) {
+                            return "Bitiş tarihi başlangıç tarihinden önce olamaz";
+                          }
+                          return true;
+                        },
+                      })}
+                    />
+                    {errors.validTo && <div className="invalid-feedback">{errors.validTo.message}</div>}
                   </div>
 
                   <div className="col-12">

@@ -138,7 +138,7 @@ const ProductDetailHero: React.FC<ProductDetailHeroProps> = ({ product }) => {
                   : product.prices?.length ?? 0}
               </span>
               <span className="text-soft fs-12">
-                {product.kind === 2 ? "Lisans Teklifi" : "Fiyat"}
+                {product.kind === 2 ? "Fiyatlandırma" : "Fiyat"}
               </span>
             </div>
           </div>

@@ -10,9 +10,11 @@ import type {
   ProductCategoryMapDetailDto,
   ProductSupplierMapDto,
   ProductModuleDto,
+  ProductModuleOfferingPriceDto,
   SoftwarePricingTierDto,
   ProductLicenseOfferingDto,
 } from "@/shared/types/productOperations.types";
+import ModuleOfferingPricesPanel from "./ModuleOfferingPricesPanel";
 import {
   KIND_LABELS,
   STATUS_LABELS,
@@ -565,24 +567,39 @@ export const ProfileTab: React.FC<{ product: ProductDetailDto }> = ({ product })
 
 // ─── Modules Tab ──────────────────────────────────────────────────────────────
 
-export const ModulesTab: React.FC<{ items: ProductModuleDto[] }> = ({ items }) => {
+interface ModulesTabProps {
+  productId: string;
+  items: ProductModuleDto[];
+  licenseOfferings: ProductLicenseOfferingDto[];
+  moduleOfferingPrices?: ProductModuleOfferingPriceDto[];
+}
+
+export const ModulesTab: React.FC<ModulesTabProps> = ({ productId, items, licenseOfferings, moduleOfferingPrices }) => {
   if (!items.length) {
     return <TabEmpty icon="grid" title="Modül yok" description="Bu yazılım ürününe modül eklenmemiş." />;
   }
   return (
     <div className="row g-3">
-      {items.map((m) => (
-        <div key={m.id} className="col-md-6 col-xl-4">
-          <DetailCard title={m.name} subtitle={m.moduleCode} icon="grid-alt" fullHeight={false}>
-            {m.description && <p className="text-soft fs-13px mb-3">{m.description}</p>}
-            <DetailRow label="Ek Fiyat" value={fmt(m.additionalPrice, m.currencyCode)} />
-            <DetailRow label="Durum" value={<StatusBadge active={m.isActive} />} />
-            {m.isOptional && (
-              <span className="badge bg-outline-warning mt-2">Opsiyonel modül</span>
-            )}
-          </DetailCard>
-        </div>
-      ))}
+      {items.map((m) => {
+        const initialPrices = moduleOfferingPrices?.filter((op) => op.productModuleId === m.id);
+        return (
+          <div key={m.id} className="col-md-6 col-xl-4">
+            <DetailCard title={m.name} subtitle={m.moduleCode} icon="grid-alt" fullHeight={false}>
+              {m.description && <p className="text-soft fs-13px mb-3">{m.description}</p>}
+              <DetailRow label="Durum" value={<StatusBadge active={m.isActive} />} />
+              {m.isOptional && (
+                <span className="badge bg-outline-warning mt-2">Opsiyonel modül</span>
+              )}
+              <ModuleOfferingPricesPanel
+                productId={productId}
+                moduleId={m.id}
+                licenseOfferings={licenseOfferings}
+                initialPrices={initialPrices}
+              />
+            </DetailCard>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -591,7 +608,7 @@ export const ModulesTab: React.FC<{ items: ProductModuleDto[] }> = ({ items }) =
 
 export const LicenseOfferingsTab: React.FC<{ items: ProductLicenseOfferingDto[] }> = ({ items }) => {
   if (!items.length) {
-    return <TabEmpty icon="tag" title="Lisans teklifi yok" description="Lisans modeli tanımlanmamış." />;
+    return <TabEmpty icon="tag" title="Fiyatlandırma yok" description="Lisans modeli tanımlanmamış." />;
   }
   const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
   return (
@@ -617,7 +634,7 @@ export const LicenseOfferingsTab: React.FC<{ items: ProductLicenseOfferingDto[] 
                   <span className="fs-2 fw-bold text-dark">{fmt(lo.basePrice)}</span>
                   <span className="text-soft ms-1">{lo.currencyCode}</span>
                   {lo.billingPeriodValue && lo.billingPeriodUnit && (
-                    <span className="text-soft fs-11 d-block mt-1">
+                    <span className="text-soft fs-11 mt-1">
                       / {lo.billingPeriodValue} {BILLING_UNIT_LABELS[lo.billingPeriodUnit]}
                     </span>
                   )}
@@ -653,7 +670,7 @@ export const PricingTiersTab: React.FC<{ items: SoftwarePricingTierDto[] }> = ({
         <table className="table table-middle mb-0">
           <thead className="table-light">
             <tr>
-              <th>Lisans Teklifi</th>
+              <th>Fiyatlandırma</th>
               <th>Birim</th>
               <th>Aralık</th>
               <th className="text-end">Birim Fiyat</th>
@@ -761,7 +778,14 @@ export const buildProductDetailTabs = (product: ProductDetailDto): TabItem[] => 
       id: "modules",
       label: "Modüller",
       badge: product.modules?.length || undefined,
-      content: <ModulesTab items={product.modules ?? []} />,
+      content: (
+        <ModulesTab
+          productId={product.id}
+          items={product.modules ?? []}
+          licenseOfferings={product.licenseOfferings ?? []}
+          moduleOfferingPrices={product.moduleOfferingPrices}
+        />
+      ),
     });
   }
 
@@ -769,13 +793,13 @@ export const buildProductDetailTabs = (product: ProductDetailDto): TabItem[] => 
     tabs.push(
       {
         id: "license-offerings",
-        label: "Lisans Teklifleri",
+        label: "Fiyatlandırma",
         badge: product.licenseOfferings?.length || undefined,
         content: <LicenseOfferingsTab items={product.licenseOfferings ?? []} />,
       },
       {
         id: "pricing-tiers",
-        label: "Fiyat Kademeleri",
+        label: "Fiyat Parametreleri",
         badge: product.softwarePricingTiers?.length || undefined,
         content: <PricingTiersTab items={product.softwarePricingTiers ?? []} />,
       }

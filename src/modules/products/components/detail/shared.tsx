@@ -6,7 +6,7 @@ import { DetailCard, DetailRow } from "@/modules/shared/components/DetailSection
 
 export const InfoRow: React.FC<{ label: string; value?: React.ReactNode }> = ({ label, value }) => (
   <div className="profile-ud-list">
-    <div className="profile-ud-item">
+    <div className="profile-ud-item w-100">
       <div className="profile-ud wider">
         <span className="profile-ud-label">{label}</span>
         <span className="profile-ud-value">{value ?? "—"}</span>

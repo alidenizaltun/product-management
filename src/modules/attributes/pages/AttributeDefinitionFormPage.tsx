@@ -211,19 +211,35 @@ const AttributeDefinitionFormPage: React.FC = () => {
                   <div className="col-md-6">
                     <label className="form-label">İzinli Değerler (JSON)</label>
                     <input
-                      className="form-control"
+                      className={`form-control ${errors.allowedValuesJson ? "is-invalid" : ""}`}
                       placeholder='["red","green","blue"]'
-                      {...register("allowedValuesJson")}
+                      {...register("allowedValuesJson", {
+                        validate: (v) => {
+                          if (!v) return true;
+                          try { JSON.parse(v); return true; } catch { return "Geçerli bir JSON giriniz"; }
+                        },
+                      })}
                     />
+                    {errors.allowedValuesJson && (
+                      <div className="invalid-feedback">{errors.allowedValuesJson.message}</div>
+                    )}
                   </div>
 
                   <div className="col-md-6">
                     <label className="form-label">Doğrulama Kuralı (JSON)</label>
                     <input
-                      className="form-control"
+                      className={`form-control ${errors.validationRuleJson ? "is-invalid" : ""}`}
                       placeholder='{"min":0,"max":100}'
-                      {...register("validationRuleJson")}
+                      {...register("validationRuleJson", {
+                        validate: (v) => {
+                          if (!v) return true;
+                          try { JSON.parse(v); return true; } catch { return "Geçerli bir JSON giriniz"; }
+                        },
+                      })}
                     />
+                    {errors.validationRuleJson && (
+                      <div className="invalid-feedback">{errors.validationRuleJson.message}</div>
+                    )}
                   </div>
                 </form>
               </div>

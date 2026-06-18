@@ -7,6 +7,8 @@ export const queryKeys = {
     prices: (id: string) => ["products", id, "prices"] as const,
     media: (id: string) => ["products", id, "media"] as const,
     profile: (id: string) => ["products", id, "profile"] as const,
+    moduleOfferingPrices: (productId: string, moduleId: string) =>
+      ["products", productId, "modules", moduleId, "offering-prices"] as const,
   },
   catalog: {
     categories: ["catalog", "categories"] as const,

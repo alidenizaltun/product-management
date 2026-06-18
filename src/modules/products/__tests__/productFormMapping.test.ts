@@ -54,7 +54,6 @@ function mapProductToFormSimple(product: typeof mockProductDetailDto) {
         modules: (product.modules ?? []).map((m) => ({
             moduleCode: m.moduleCode,
             name: m.name,
-            additionalPrice: m.additionalPrice,
             isActive: m.isActive,
         })),
         licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
@@ -132,9 +131,7 @@ describe("mapProductToForm - yazılım ürünü (kind=2)", () => {
     it("çoklu modules doğru map edilir", () => {
         expect(form.modules).toHaveLength(2);
         expect(form.modules[0].moduleCode).toBe("CRM-HR");
-        expect(form.modules[0].additionalPrice).toBe(500);
         expect(form.modules[1].moduleCode).toBe("CRM-ACC");
-        expect(form.modules[1].additionalPrice).toBe(750);
     });
 
     it("licenseOfferings doğru map edilir", () => {

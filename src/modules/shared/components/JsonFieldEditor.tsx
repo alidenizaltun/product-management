@@ -221,13 +221,13 @@ const ArrayBuilder: React.FC<ArrayBuilderProps> = ({
 
       {/* Active item chips (non-suggestion items) */}
       {items.filter((i) => !suggestions?.includes(i)).length > 0 && (
-        <div className="d-flex flex-wrap gap-1 mb-2">
+        <div className="d-flex flex-wrap gap-1 mb-4">
           {items
             .filter((i) => !suggestions?.includes(i))
             .map((item) => (
               <span
                 key={`${uid}-chip-${item}`}
-                className="badge bg-outline-primary d-flex align-items-center gap-1"
+                className="badge bg-outline-primary d-flex align-items-center gap-1 py-2 mb-2"
                 style={{ fontSize: 12 }}
               >
                 {item}

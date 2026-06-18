@@ -112,12 +112,15 @@ const MediaUploadManager: React.FC = () => {
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">URL</label>
+                    <label className="form-label">URL <span className="text-danger">*</span></label>
                     <input
                       className={`form-control ${errors.mediaItems?.[index]?.url ? "is-invalid" : ""}`}
                       placeholder="https://example.com/image.jpg"
-                      {...register(`mediaItems.${index}.url`)}
+                      {...register(`mediaItems.${index}.url`, { required: "URL zorunludur" })}
                     />
+                    {errors.mediaItems?.[index]?.url && (
+                      <div className="invalid-feedback">{errors.mediaItems[index].url?.message}</div>
+                    )}
                   </div>
 
                   <div className="col-md-6">

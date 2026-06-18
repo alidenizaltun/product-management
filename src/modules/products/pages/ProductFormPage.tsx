@@ -286,14 +286,22 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
 
         // Yazılım modülleri ve lisans alanları
         modules: (product.modules ?? []).map((m) => ({
+            id: m.id,
             moduleCode: m.moduleCode,
             name: m.name,
             description: m.description,
-            additionalPrice: m.additionalPrice,
             currencyCode: m.currencyCode,
             isOptional: m.isOptional,
             isActive: m.isActive,
             sortOrder: m.sortOrder,
+            offeringPrices: (product.moduleOfferingPrices ?? [])
+                .filter((op) => op.productModuleId === m.id)
+                .map((op) => ({
+                    productLicenseOfferingId: op.productLicenseOfferingId,
+                    price: op.price,
+                    currencyCode: op.currencyCode,
+                    isActive: op.isActive,
+                })),
         })),
 
         softwarePricingTiers: (product.softwarePricingTiers ?? []).map((t) => ({
@@ -307,25 +315,25 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
             isActive: t.isActive,
         })),
 
- licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
- id: lo.id,
- licenseModel: lo.licenseModel,
- name: lo.name,
- description: lo.description,
- basePrice: lo.basePrice,
- currencyCode: lo.currencyCode,
- billingPeriodUnit: lo.billingPeriodUnit,
- billingPeriodValue: lo.billingPeriodValue,
- autoRenew: lo.autoRenew,
- gracePeriodDays: lo.gracePeriodDays,
- trialDays: lo.trialDays,
- convertToOfferingId: lo.convertToOfferingId,
- maxSeats: lo.maxSeats,
- validFrom: lo.validFrom ? lo.validFrom.slice(0, 10) : undefined,
- validTo: lo.validTo ? lo.validTo.slice(0, 10) : undefined,
- isActive: lo.isActive,
- sortOrder: lo.sortOrder,
- })),
+        licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
+            id: lo.id,
+            licenseModel: lo.licenseModel,
+            name: lo.name,
+            description: lo.description,
+            basePrice: lo.basePrice,
+            currencyCode: lo.currencyCode,
+            billingPeriodUnit: lo.billingPeriodUnit,
+            billingPeriodValue: lo.billingPeriodValue,
+            autoRenew: lo.autoRenew,
+            gracePeriodDays: lo.gracePeriodDays,
+            trialDays: lo.trialDays,
+            convertToOfferingId: lo.convertToOfferingId,
+            maxSeats: lo.maxSeats,
+            validFrom: lo.validFrom ? lo.validFrom.slice(0, 10) : undefined,
+            validTo: lo.validTo ? lo.validTo.slice(0, 10) : undefined,
+            isActive: lo.isActive,
+            sortOrder: lo.sortOrder,
+        })),
 
         unitConversions: (product.unitConversions ?? []).map((uc) => ({
             fromUnitDefinitionId: uc.fromUnitDefinitionId,
@@ -450,10 +458,12 @@ const ProductFormPage: React.FC = () => {
                 : (isEdit ? [] : undefined),
             inventories: values.inventories?.length ? values.inventories : (isEdit ? [] : undefined),
             mediaItems: values.mediaItems?.length
-                ? values.mediaItems.map((m) => ({
-                    ...m,
-                    sortOrder: Number.isFinite(m.sortOrder) ? m.sortOrder : 0,
-                }))
+                ? values.mediaItems
+                    .filter((m) => Boolean(m.url?.trim()))
+                    .map((m) => ({
+                        ...m,
+                        sortOrder: Number.isFinite(m.sortOrder) ? m.sortOrder : 0,
+                    }))
                 : (isEdit ? [] : undefined),
             categoryMaps: values.categoryMaps?.length
                 ? values.categoryMaps.map((cm) => ({
@@ -478,7 +488,27 @@ const ProductFormPage: React.FC = () => {
             subscriptionProfile: values.kind === 4 ? values.subscriptionProfile : undefined,
             // Yazılım ürünü (kind=2) için ek lisans alanları
             modules: values.kind === 2 && values.modules?.length
-                ? values.modules.map((m) => ({ ...m, productId: id ?? undefined }))
+                ? values.modules.map((m) => ({
+                    productId: id ?? undefined,
+                    moduleCode: m.moduleCode,
+                    name: m.name,
+                    description: m.description,
+                    currencyCode: m.currencyCode,
+                    isOptional: m.isOptional,
+                    isActive: m.isActive,
+                    sortOrder: m.sortOrder,
+                    offeringPrices: m.offeringPrices?.length
+                        ? m.offeringPrices
+                            .filter((op) => Boolean(op.productLicenseOfferingId) || Boolean(op.licenseOfferingTempId))
+                            .map((op) => ({
+                                productLicenseOfferingId: op.productLicenseOfferingId || undefined,
+                                licenseOfferingTempId: op.licenseOfferingTempId || undefined,
+                                price: op.price,
+                                currencyCode: op.currencyCode,
+                                isActive: op.isActive,
+                            }))
+                        : undefined,
+                }))
                 : undefined,
             softwarePricingTiers:
                 values.kind === 2 && values.softwarePricingTiers?.length
@@ -500,16 +530,16 @@ const ProductFormPage: React.FC = () => {
                     : undefined,
             licenseOfferings:
                 values.kind === 2 && values.licenseOfferings?.length
- ? values.licenseOfferings.map(({ id: loId, convertToOfferingId, _tempId, ...lo }) => ({
- ...lo,
- id: loId || undefined,
- // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
- _tempId: _tempId || undefined,
- convertToOfferingId: convertToOfferingId || undefined,
- validFrom: lo.validFrom || null,
- validTo: lo.validTo || null,
- productId: id ?? undefined,
- }))
+                    ? values.licenseOfferings.map(({ id: loId, convertToOfferingId, _tempId, ...lo }) => ({
+                        ...lo,
+                        id: loId || undefined,
+                        // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
+                        _tempId: _tempId || undefined,
+                        convertToOfferingId: convertToOfferingId || undefined,
+                        validFrom: lo.validFrom || null,
+                        validTo: lo.validTo || null,
+                        productId: id ?? undefined,
+                    }))
                     : undefined,
         };
 
@@ -553,7 +583,7 @@ const ProductFormPage: React.FC = () => {
     const isPhysical = kind === 1;
     // Modüller sekmesi yalnızca yazılım türünde gösterilir
     const isSoftware = kind === 2;
-    // Fiyat Kademeleri ve Lisans Teklifleri; yazılım, hizmet veya abonelik türünde gösterilir
+    // Fiyat Parametreleri ve Fiyatlandırma; yazılım, hizmet veya abonelik türünde gösterilir
     const isLicensable = kind === 2 || kind === 3 || kind === 4;
     // Rezervasyonlar; fiziksel veya hizmet türünde gösterilir
     const hasReservations = kind === 1 || kind === 3;
@@ -690,12 +720,12 @@ const ProductFormPage: React.FC = () => {
     if (isLicensable) {
         baseTabs.push({
             id: "license-offerings",
-            label: "Lisans Teklifleri",
+            label: "Fiyatlandırma",
             content: <LicenseOfferingsTab />,
         });
         baseTabs.push({
             id: "pricing-tiers",
-            label: "Fiyat Kademeleri",
+            label: "Fiyat Parametreleri",
             content: <SoftwarePricingTiersTab />,
         });
     }

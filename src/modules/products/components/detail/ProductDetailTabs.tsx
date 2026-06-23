@@ -15,6 +15,7 @@ import type {
   ProductLicenseOfferingDto,
 } from "@/shared/types/productOperations.types";
 import ModuleOfferingPricesPanel from "./ModuleOfferingPricesPanel";
+import ProductPricingRulesPanel from "@/modules/products/components/pricing-rules/ProductPricingRulesPanel";
 import {
   KIND_LABELS,
   STATUS_LABELS,
@@ -800,8 +801,14 @@ export const buildProductDetailTabs = (product: ProductDetailDto): TabItem[] => 
       {
         id: "pricing-tiers",
         label: "Fiyat Parametreleri",
-        badge: product.softwarePricingTiers?.length || undefined,
-        content: <PricingTiersTab items={product.softwarePricingTiers ?? []} />,
+        badge: product.pricingRules?.length || undefined,
+        content: (
+          <ProductPricingRulesPanel
+            productId={product.id}
+            licenseOfferings={product.licenseOfferings ?? []}
+            variants={product.variants ?? []}
+          />
+        ),
       }
     );
   }

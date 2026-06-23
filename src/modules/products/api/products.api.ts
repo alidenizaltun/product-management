@@ -6,6 +6,8 @@ import {
   UpdateFullProductRequestDto,
   ProductModuleDto,
   SoftwarePricingTierDto,
+  ProductPricingRuleDto,
+  UpsertProductPricingRuleRequestDto,
   ProductLicenseOfferingDto,
   ProductUnitConversionDto,
   CreateProductUnitConversionRequestDto,
@@ -101,6 +103,27 @@ export const productsApi = {
 
   deletePricingTier: async (productId: string, tierId: string): Promise<void> => {
     await apiClient.delete<void>(apiEndpoints.products.pricingTierById(productId, tierId));
+  },
+
+  // --- Pricing Rules ---
+  getPricingRules: async (productId: string): Promise<ProductPricingRuleDto[]> => {
+    return apiClient.get<ProductPricingRuleDto[]>(apiEndpoints.products.pricingRules(productId));
+  },
+
+  getPricingRuleById: async (pricingRuleId: string): Promise<ProductPricingRuleDto> => {
+    return apiClient.get<ProductPricingRuleDto>(apiEndpoints.products.pricingRuleById(pricingRuleId));
+  },
+
+  createPricingRule: async (productId: string, payload: UpsertProductPricingRuleRequestDto): Promise<ProductPricingRuleDto> => {
+    return apiClient.post<ProductPricingRuleDto>(apiEndpoints.products.pricingRules(productId), payload);
+  },
+
+  updatePricingRule: async (pricingRuleId: string, payload: UpsertProductPricingRuleRequestDto): Promise<void> => {
+    await apiClient.put<void>(apiEndpoints.products.pricingRuleById(pricingRuleId), payload);
+  },
+
+  deletePricingRule: async (pricingRuleId: string): Promise<void> => {
+    await apiClient.delete<void>(apiEndpoints.products.pricingRuleById(pricingRuleId));
   },
 
   // --- License Offerings ---

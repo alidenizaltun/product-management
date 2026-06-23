@@ -292,6 +292,90 @@ export interface SoftwarePricingTierDto {
   updatedAt?: string;
 }
 
+export type PricingAdjustmentType = "fixed" | "percent" | "percentage" | "multiplier" | "custom";
+export type PricingAdjustmentMode = "unit" | string;
+export type PricingAdjustmentApplyOn = "basePrice" | "currentPrice" | "previousResult" | string;
+export type PricingConditionOperator = "all" | "any";
+
+export interface ProductPricingRuleTierDto {
+  from?: number | null;
+  to?: number | null;
+  type?: PricingAdjustmentType | string;
+  value?: number | null;
+}
+
+export interface ProductPricingRuleConditionItemDto {
+  field: string;
+  operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "contains" | "in" | "exists" | string;
+  value?: unknown;
+}
+
+export interface ProductPricingRuleAdjustmentDto {
+  mode?: PricingAdjustmentMode;
+  type?: PricingAdjustmentType | string;
+  value?: number | null;
+  amount?: number | null;
+  operation?: string;
+  direction?: string;
+  applyOn?: PricingAdjustmentApplyOn;
+  unit?: {
+    field?: string;
+    freeUnits?: number | null;
+    rounding?: "ceil" | "floor" | "round" | "none" | string;
+  };
+  tiers?: ProductPricingRuleTierDto[];
+  limits?: {
+    minAdjustment?: number | null;
+    maxAdjustment?: number | null;
+    minFinalPrice?: number | null;
+    maxFinalPrice?: number | null;
+  };
+  conditions?: {
+    operator?: PricingConditionOperator;
+    items?: ProductPricingRuleConditionItemDto[];
+  };
+  [key: string]: unknown;
+}
+
+export interface ProductPricingRuleDto {
+  id: Uuid;
+  productId: Uuid;
+  productLicenseOfferingId?: Uuid | null;
+  licenseOfferingId?: Uuid | null;
+  licenseOfferingName?: string | null;
+  productVariantId?: Uuid | null;
+  variantName?: string | null;
+  variantSku?: string | null;
+  salesChannel?: string | null;
+  customerGroupCode?: string | null;
+  code: string;
+  name: string;
+  priority: number;
+  isActive: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
+  priceAdjustment?: ProductPricingRuleAdjustmentDto | null;
+  priceAdjustmentJson?: string | null;
+  createdAt?: string;
+  updatedAt?: string | null;
+}
+
+export interface UpsertProductPricingRuleRequestDto {
+  code: string;
+  name: string;
+  priority: number;
+  isActive: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
+  salesChannel?: string | null;
+  customerGroupCode?: string | null;
+  productVariantId?: Uuid | null;
+  productLicenseOfferingId?: Uuid | null;
+  licenseOfferingId?: Uuid | null;
+  priceAdjustment?: ProductPricingRuleAdjustmentDto | null;
+  priceAdjustmentJson?: string | null;
+}
+
 export interface ProductLicenseOfferingDto {
   id: Uuid;
   productId: Uuid;
@@ -395,6 +479,7 @@ export interface ProductDetailDto extends ProductDto {
   modules?: ProductModuleDto[];
   moduleOfferingPrices?: ProductModuleOfferingPriceDto[];
   softwarePricingTiers?: SoftwarePricingTierDto[];
+  pricingRules?: ProductPricingRuleDto[];
   licenseOfferings?: ProductLicenseOfferingDto[];
   unitConversions?: ProductUnitConversionDto[];
   inventoryTransactions?: InventoryTransactionDto[];

@@ -510,24 +510,7 @@ const ProductFormPage: React.FC = () => {
                         : undefined,
                 }))
                 : undefined,
-            softwarePricingTiers:
-                values.kind === 2 && values.softwarePricingTiers?.length
-                    ? values.softwarePricingTiers
-                        .filter((t) => (Boolean(t.productLicenseOfferingId) || Boolean(t.licenseOfferingTempId)) && Boolean(t.unitDefinitionId))
-                        .map((t) => ({
-                            // Kaydedilmiş offering → id gönder; yeni offering → tempId ile eşleştir
-                            productLicenseOfferingId: t.productLicenseOfferingId || undefined,
-                            licenseOfferingTempId: t.licenseOfferingTempId || undefined,
-                            unitDefinitionId: t.unitDefinitionId,
-                            minUnits: t.minUnits,
-                            maxUnits: t.maxUnits || undefined,
-                            pricePerUnit: t.pricePerUnit,
-                            flatFee: t.flatFee,
-                            currencyCode: t.currencyCode,
-                            isActive: t.isActive,
-                            productId: id ?? undefined,
-                        }))
-                    : undefined,
+            softwarePricingTiers: undefined,
             licenseOfferings:
                 values.kind === 2 && values.licenseOfferings?.length
                     ? values.licenseOfferings.map(({ id: loId, convertToOfferingId, _tempId, ...lo }) => ({
@@ -726,7 +709,13 @@ const ProductFormPage: React.FC = () => {
         baseTabs.push({
             id: "pricing-tiers",
             label: "Fiyat Parametreleri",
-            content: <SoftwarePricingTiersTab />,
+            content: (
+                <SoftwarePricingTiersTab
+                    productId={id}
+                    licenseOfferings={product?.licenseOfferings ?? []}
+                    variants={product?.variants ?? []}
+                />
+            ),
         });
     }
 

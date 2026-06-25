@@ -241,15 +241,18 @@ const adjustmentToForm = (adjustment: ProductPricingRuleAdjustmentDto): Adjustme
 
 const formToAdjustment = (adjustment: AdjustmentFormState): ProductPricingRuleAdjustmentDto => {
   const result: ProductPricingRuleAdjustmentDto = {};
+  const isUnitMode = adjustment.mode === "unit";
 
-  if (adjustment.type) result.type = adjustment.type;
+  if (!isUnitMode && adjustment.type) result.type = adjustment.type;
   if (adjustment.applyOn) result.applyOn = adjustment.applyOn;
 
-  const value = toNumberOrUndefined(adjustment.value);
-  if (value != null) result.value = value;
+  if (!isUnitMode) {
+    const value = toNumberOrUndefined(adjustment.value);
+    if (value != null) result.value = value;
+  }
   if (adjustment.operation) result.operation = adjustment.operation;
 
-  if (adjustment.mode === "unit") {
+  if (isUnitMode) {
     result.mode = "unit";
     result.unit = {
       field: adjustment.unitField.trim(),
@@ -507,6 +510,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   }
 
   const pending = createMutation.isPending || updateMutation.isPending;
+  const isUnitMode = form.adjustment.mode === "unit";
 
   return (
     <div className="row g-4">
@@ -690,44 +694,48 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             value={form.adjustment.mode}
                             onChange={(event) => updateAdjustment("mode", event.target.value)}
                           >
-                            <option value="">Seçiniz</option>
+                            <option value="">Sabit / Tekil</option>
                             <option value="unit">Birim Bazlı</option>
                           </select>
                         </div>
-                        <div className="col-md-3">
-                          <label className="form-label">
-                            <HelpLabel help="Fiyat etkisinin nasıl hesaplanacağını belirler: sabit tutar, yüzde, çarpan veya özel hesaplama.">
-                              Tip
-                            </HelpLabel>
-                          </label>
-                          <select
-                            className="form-select"
-                            value={form.adjustment.type}
-                            onChange={(event) => updateAdjustment("type", event.target.value)}
-                          >
-                            <option value="">Seçiniz</option>
-                            {ADJUSTMENT_TYPES.map((item) => (
-                              <option key={item.value} value={item.value}>
-                                {item.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="col-md-2">
-                          <label className="form-label">
-                            <HelpLabel help="Seçilen tipe göre uygulanacak tutar, yüzde veya çarpan değeridir.">
-                              Değer
-                            </HelpLabel>
-                          </label>
-                          <input
-                            className="form-control"
-                            type="number"
-                            step="0.0001"
-                            value={form.adjustment.value}
-                            onChange={(event) => updateAdjustment("value", event.target.value)}
-                          />
-                        </div>
-                        <div className="col-md-2">
+                        {!isUnitMode && (
+                          <>
+                            <div className="col-md-3">
+                              <label className="form-label">
+                                <HelpLabel help="Fiyat etkisinin nasıl hesaplanacağını belirler: sabit tutar, yüzde, çarpan veya özel hesaplama.">
+                                  Tip
+                                </HelpLabel>
+                              </label>
+                              <select
+                                className="form-select"
+                                value={form.adjustment.type}
+                                onChange={(event) => updateAdjustment("type", event.target.value)}
+                              >
+                                <option value="">Seçiniz</option>
+                                {ADJUSTMENT_TYPES.map((item) => (
+                                  <option key={item.value} value={item.value}>
+                                    {item.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="col-md-2">
+                              <label className="form-label">
+                                <HelpLabel help="Seçilen tipe göre uygulanacak tutar, yüzde veya çarpan değeridir.">
+                                  Değer
+                                </HelpLabel>
+                              </label>
+                              <input
+                                className="form-control"
+                                type="number"
+                                step="0.0001"
+                                value={form.adjustment.value}
+                                onChange={(event) => updateAdjustment("value", event.target.value)}
+                              />
+                            </div>
+                          </>
+                        )}
+                        <div className={isUnitMode ? "col-md-4" : "col-md-2"}>
                           <label className="form-label">
                             <HelpLabel help="Ekle fiyatı artırır. Çıkar seçilirse hesaplanan etki fiyattan düşülür.">
                               Yön
@@ -742,7 +750,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             <option value="subtract">Çıkar</option>
                           </select>
                         </div>
-                        <div className="col-md-2">
+                        <div className={isUnitMode ? "col-md-5" : "col-md-2"}>
                           <label className="form-label">
                             <HelpLabel help="Kuralın hangi fiyat üzerinden hesaplanacağını seçer: taban fiyat, güncel fiyat veya önceki kural sonucu.">
                               Uygula
@@ -765,7 +773,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                     </div>
                   </div>
 
-                  {form.adjustment.mode === "unit" && (
+                  {isUnitMode && (
                     <div className="col-12">
                       <div className="border-top pt-3">
                         <h6 className="overline-title text-primary mb-3">

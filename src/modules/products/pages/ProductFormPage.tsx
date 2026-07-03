@@ -8,7 +8,6 @@ import Head from "@/layout/head/Head";
 import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
-import AppTabs, { TabItem } from "@/modules/shared/components/AppTabs";
 import { useProductDetail } from "@/modules/products/hooks/useProductDetail";
 import { useProductMutations } from "@/modules/products/hooks/useProductMutations";
 import { ProductDetailDto } from "@/shared/types/productOperations.types";
@@ -29,13 +28,190 @@ import AttributeSelector from "@/modules/products/components/editor/AttributeSel
 import CategoryTreeSelector from "@/modules/products/components/editor/CategoryTreeSelector";
 import SupplierMultiSelect from "@/modules/products/components/editor/SupplierMultiSelect";
 import MediaUploadManager from "@/modules/products/components/editor/MediaUploadManager";
-import BundleProductPicker from "@/modules/products/components/editor/BundleProductPicker";
 import InventoryTab from "@/modules/products/components/editor/InventoryTab";
 import InventoryTransactionTab from "@/modules/products/components/editor/InventoryTransactionTab";
 import InventoryReservationTab from "@/modules/products/components/editor/InventoryReservationTab";
 import PriceListItemTab from "@/modules/products/components/editor/PriceListItemTab";
 import ProfileEditor from "@/modules/products/components/editor/ProfileEditor";
-import ProductUnitConversionTab from "@/modules/products/components/editor/ProductUnitConversionTab";
+
+type WorkflowId = "start" | "sales" | "enrich" | "advanced";
+
+const KIND_LABELS: Record<number, string> = {
+    1: "Fiziksel",
+    2: "Yazılım",
+    3: "Hizmet",
+    4: "Abonelik",
+};
+
+const STATUS_LABELS: Record<number, string> = {
+    0: "Taslak",
+    1: "Aktif",
+    2: "Pasif",
+    3: "Arşivlendi",
+};
+
+const toFiniteNumber = (value: unknown, fallback = 0) =>
+    typeof value === "number" && Number.isFinite(value) ? value : fallback;
+
+interface ProductPreviewPanelProps {
+    values: Partial<ProductFormValues>;
+    totalErrorCount: number;
+    isDirty: boolean;
+    isPending: boolean;
+    onSubmit: () => void;
+}
+
+const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
+    values,
+    totalErrorCount,
+    isDirty,
+    isPending,
+    onSubmit,
+}) => {
+    const mediaItems = values.mediaItems ?? [];
+    const prices = values.prices ?? [];
+    const inventories = values.inventories ?? [];
+    const licenseOfferings = values.licenseOfferings ?? [];
+    const categoryMaps = values.categoryMaps ?? [];
+
+    const primaryMedia = mediaItems.find((media) => media.isPrimary && media.url) ?? mediaItems.find((media) => media.url);
+    const basePrice = prices.find((price) => toFiniteNumber(price.amount) > 0)?.amount
+        ?? licenseOfferings.find((offering) => toFiniteNumber(offering.basePrice) > 0)?.basePrice;
+    const currency = prices.find((price) => price.currencyCode)?.currencyCode
+        ?? licenseOfferings.find((offering) => offering.currencyCode)?.currencyCode
+        ?? values.defaultCurrencyCode
+        ?? "TRY";
+    const totalStock = inventories.reduce((sum, item) => sum + toFiniteNumber(item.quantityOnHand), 0);
+    const reservedStock = inventories.reduce((sum, item) => sum + toFiniteNumber(item.quantityReserved), 0);
+    const sellableStock = Math.max(totalStock - reservedStock, 0);
+    const isPhysical = Number(values.kind ?? 1) === 1;
+
+    const checklist = [
+        { label: "Ürün adı", done: Boolean(values.name?.trim()) },
+        { label: "Ürün kodu", done: Boolean(values.productCode?.trim()) },
+        { label: "Kategori", done: categoryMaps.length > 0 },
+        { label: "Fiyat", done: Boolean(basePrice) },
+        { label: "Kapak medya", done: Boolean(primaryMedia?.url) },
+        { label: "Açıklama", done: Boolean(values.shortDescription?.trim() || values.description?.trim()) },
+        ...(isPhysical ? [{ label: "Stok", done: inventories.length > 0 }] : []),
+    ];
+    const completed = checklist.filter((item) => item.done).length;
+    const progress = Math.round((completed / checklist.length) * 100);
+
+    return (
+        <aside className="product-editor-preview position-sticky" style={{ top: 92 }}>
+            <div className="card card-bordered product-editor-preview-card">
+                <div className="card-inner border-bottom">
+                    <div className="product-editor-preview-head d-flex justify-content-between align-items-start gap-3 h-100">
+                        <div>
+                            <span className="overline-title text-primary">Canlı Önizleme</span>
+                            <h6 className="title mb-1">{values.name?.trim() || "İsimsiz ürün"}</h6>
+                            <p className="text-soft fs-13px mb-0">
+                                {values.productCode?.trim() || "SKU bekleniyor"} · {KIND_LABELS[Number(values.kind ?? 1)]}
+                            </p>
+                        </div>
+                        <span className="badge badge-dim bg-primary">{STATUS_LABELS[Number(values.status ?? 0)]}</span>
+                    </div>
+                </div>
+
+                <div className="card-inner product-editor-preview-body">
+                    <div
+                        className="rounded border bg-lighter d-flex align-items-center justify-content-center mb-3 overflow-hidden"
+                        style={{ aspectRatio: "4 / 3" }}
+                    >
+                        {primaryMedia?.url ? (
+                            <img
+                                src={primaryMedia.thumbnailUrl || primaryMedia.url}
+                                alt={primaryMedia.altText || values.name || "Ürün görseli"}
+                                className="w-100 h-100"
+                                style={{ objectFit: "cover" }}
+                            />
+                        ) : (
+                            <div className="text-center text-soft px-3">
+                                <em className="icon ni ni-img fs-1 d-block mb-2" />
+                                <span className="fs-13px">Kapak görseli eklendiğinde burada görünür.</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="text-soft fs-13px">Temel fiyat</span>
+                        <strong>
+                            {basePrice ? `${Number(basePrice).toLocaleString("tr-TR")} ${currency}` : "Henüz yok"}
+                        </strong>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <span className="text-soft fs-13px">Satılabilir stok</span>
+                        <strong>{isPhysical ? sellableStock.toLocaleString("tr-TR") : "Uygulanmaz"}</strong>
+                    </div>
+
+                    <div className="border-top pt-3">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            <span className="fw-medium">Yayın hazırlığı</span>
+                            <span className="fs-12px text-soft">{progress}%</span>
+                        </div>
+                        <div className="progress progress-md mb-3">
+                            <div className="progress-bar" style={{ width: `${progress}%` }} />
+                        </div>
+                        <div className="product-editor-checklist">
+                            {checklist.map((item) => (
+                                <div key={item.label} className="product-editor-checklist-item d-flex align-items-center gap-2 h-100">
+                                    <em className={`icon ni ni-${item.done ? "check-circle-fill text-success" : "alert-circle text-warning"}`} />
+                                    <span className={item.done ? "text-base" : "text-soft"}>{item.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="card-inner border-top product-editor-preview-footer">
+                    {totalErrorCount > 0 && (
+                        <div className="alert alert-warning py-2 px-3 mb-3">
+                            <span className="fs-13px">{totalErrorCount} alan kontrol bekliyor.</span>
+                        </div>
+                    )}
+                    <Button color="primary" className="w-100" type="button" disabled={isPending} onClick={onSubmit}>
+                        {isPending ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2" />
+                                Kaydediliyor...
+                            </>
+                        ) : (
+                            <>
+                                <Icon name="save" className="me-1" id="" style={{}} />
+                                {isDirty ? "Değişiklikleri Kaydet" : "Kaydet"}
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </div>
+        </aside>
+    );
+};
+
+interface WorkflowSectionProps {
+    icon: string;
+    title: string;
+    description: string;
+    children: React.ReactNode;
+}
+
+const WorkflowSection: React.FC<WorkflowSectionProps> = ({ icon, title, description, children }) => (
+    <section className="card card-bordered product-editor-section mb-4">
+        <div className="card-inner border-bottom">
+            <div className="product-editor-section-head d-flex align-items-start gap-3 h-100">
+                <span className="btn btn-icon btn-light rounded-circle flex-shrink-0">
+                    <em className={`icon ni ni-${icon}`} />
+                </span>
+                <div>
+                    <h5 className="title mb-1">{title}</h5>
+                    <p className="text-soft mb-0">{description}</p>
+                </div>
+            </div>
+        </div>
+        <div className="card-inner">{children}</div>
+    </section>
+);
 
 const buildDefaultPhysical = (): PhysicalProfileForm => ({
     weight: undefined,
@@ -89,7 +265,7 @@ const buildDefaultValues = (): ProductFormValues => ({
     trackInventory: true,
     defaultCurrencyCode: "TRY",
     unitDefinitionId: "",
-    taxRate: undefined,
+    taxRate: 0,
     taxCode: "",
     tags: "",
     metadataJson: "",
@@ -138,7 +314,7 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
         trackInventory: Boolean(product.trackInventory),
         defaultCurrencyCode: product.defaultCurrencyCode ?? "TRY",
         unitDefinitionId: product.unitDefinitionId ?? "",
-        taxRate: product.taxRate ?? undefined,
+        taxRate: product.taxRate ?? 0,
         taxCode: product.taxCode ?? "",
         tags: product.tags ?? "",
         metadataJson: product.metadataJson ?? "",
@@ -373,7 +549,7 @@ const ProductFormPage: React.FC = () => {
 
     const { data: product, isLoading } = useProductDetail(id);
     const { createFullMutation, updateFullMutation } = useProductMutations();
-    const [activeTab, setActiveTab] = useState("general");
+    const [activeWorkflow, setActiveWorkflow] = useState<WorkflowId>("start");
     const [submitError, setSubmitError] = useState<string | null>(null);
 
     const defaultValues = useMemo(() => buildDefaultValues(), []);
@@ -443,7 +619,7 @@ const ProductFormPage: React.FC = () => {
             trackInventory: Boolean(values.trackInventory),
             defaultCurrencyCode: values.defaultCurrencyCode,
             unitDefinitionId: values.unitDefinitionId || undefined,
-            taxRate: values.taxRate,
+            taxRate: Number.isFinite(values.taxRate) ? values.taxRate : 0,
             taxCode: values.taxCode || undefined,
             tags: values.tags || undefined,
             metadataJson: values.metadataJson || undefined,
@@ -560,6 +736,7 @@ const ProductFormPage: React.FC = () => {
 
     // kind: 1=Fiziksel, 2=Yazılım, 3=Hizmet, 4=Abonelik
     const kindValue = useWatch({ control: form.control, name: "kind" });
+    const formValues = useWatch({ control: form.control });
     const kind = Number(kindValue);
 
     // kind: 1=Fiziksel, 2=Yazılım, 3=Hizmet, 4=Abonelik
@@ -571,155 +748,193 @@ const ProductFormPage: React.FC = () => {
     // Rezervasyonlar; fiziksel veya hizmet türünde gösterilir
     const hasReservations = kind === 1 || kind === 3;
 
-    // Kind değiştiğinde, artık gösterilmeyen bir sekmedeyse genel bilgiye dön
-    useEffect(() => {
-        const physicalOnlyTabs = ["variants", "suppliers", "inventory", "inv-transactions"];
-        const softwareOnlyTabs = ["modules"];
-        const licensableTabs = ["pricing-tiers", "license-offerings"];
-        const reservationTabs = ["inv-reservations"];
+    const workflowErrorCounts: Record<WorkflowId, number> = {
+        start: tabErrorCounts.general + tabErrorCounts.categories,
+        sales:
+            tabErrorCounts.prices +
+            tabErrorCounts.priceListItems +
+            tabErrorCounts.inventory +
+            tabErrorCounts.invTransactions,
+        enrich: tabErrorCounts.media + tabErrorCounts.variants + tabErrorCounts.attributes,
+        advanced:
+            tabErrorCounts.profile +
+            tabErrorCounts.suppliers +
+            tabErrorCounts.invReservations +
+            tabErrorCounts.bundles,
+    };
 
-        if (physicalOnlyTabs.includes(activeTab) && !isPhysical) {
-            setActiveTab("general");
-        }
-        if (reservationTabs.includes(activeTab) && !hasReservations) {
-            setActiveTab("general");
-        }
-        if (softwareOnlyTabs.includes(activeTab) && !isSoftware) {
-            setActiveTab("general");
-        }
-        if (licensableTabs.includes(activeTab) && !isLicensable) {
-            setActiveTab("general");
-        }
-    }, [kind, activeTab, isPhysical, hasReservations, isSoftware, isLicensable]);
-
-    const baseTabs: TabItem[] = [
-        // 1. Genel ürün bilgileri
+    const workflows: Array<{
+        id: WorkflowId;
+        label: string;
+        description: string;
+        icon: string;
+        content: React.ReactNode;
+    }> = [
         {
-            id: "general",
-            label: "Genel Bilgi",
-            badge: tabErrorCounts.general || undefined,
-            content: <GeneralInfoTab />,
+            id: "start",
+            label: "Başla",
+            description: "Ürünü tanımlayan karar alanları",
+            icon: "flag",
+            content: (
+                <>
+                    <WorkflowSection
+                        icon="edit"
+                        title="Ürün Bilgileri"
+                        description="Önce ürünü zihinde netleştiren alanları doldurun; teknik alanlar gelişmiş bölümde saklanır."
+                    >
+                        <GeneralInfoTab isEdit={isEdit} />
+                    </WorkflowSection>
+                    <WorkflowSection
+                        icon="folder-list"
+                        title="Kategori"
+                        description="Ürünün vitrindeki yerini belirleyin. İlk kategori ana kategori kabul edilir."
+                    >
+                        <CategoryTreeSelector />
+                    </WorkflowSection>
+                </>
+            ),
         },
         {
-            id: "profile",
-            label: "Profil",
-            badge: tabErrorCounts.profile || undefined,
-            content: <ProfileEditor />,
+            id: "sales",
+            label: "Satışa Hazırla",
+            description: "Fiyat tarifleri, satış planları, stok ve ticari kurallar",
+            icon: "cart",
+            content: (
+                <>
+                    <WorkflowSection
+                        icon="coins"
+                        title={isSoftware ? "Satış Planları" : "Fiyat Tarifleri"}
+                        description={
+                            isSoftware
+                                ? "Aylık, yıllık, deneme veya koltuk bazlı planı şablonla başlatın; detayları yalnızca gerektiğinde açın."
+                                : "Temel fiyatı bir kartla başlatın; kampanya, bayi veya kanal fiyatlarını ayrı tarifler olarak ekleyin."
+                        }
+                    >
+                        {isSoftware ? (
+                            <LicenseOfferingsTab productId={id} />
+                        ) : (
+                            <>
+                                <PriceMatrix />
+                                <div className="border-top mt-4 pt-4">
+                                    <PriceListItemTab />
+                                </div>
+                            </>
+                        )}
+                    </WorkflowSection>
+                    {isLicensable && (
+                        <WorkflowSection
+                            icon="layers"
+                            title="Dinamik Kurallar"
+                            description="Miktar, müşteri grubu veya kullanım gibi istisnaları ürün kaydedildikten sonra blok mantığıyla yönetin."
+                        >
+                            <SoftwarePricingTiersTab
+                                productId={id}
+                                licenseOfferings={product?.licenseOfferings ?? []}
+                                variants={product?.variants ?? []}
+                            />
+                        </WorkflowSection>
+                    )}
+                    {isPhysical && (
+                        <WorkflowSection
+                            icon="archive"
+                            title="Stok Paneli"
+                            description="Depo bazlı eldeki, rezerve ve satılabilir stok durumunu aynı akışta izleyin."
+                        >
+                            <InventoryTab />
+                        </WorkflowSection>
+                    )}
+                </>
+            ),
         },
         {
-            id: "categories",
-            label: "Kategoriler",
-            badge: tabErrorCounts.categories || undefined,
-            content: <CategoryTreeSelector />,
+            id: "enrich",
+            label: "Zenginleştir",
+            description: "Medya, varyant, özellik ve modüller",
+            icon: "spark",
+            content: (
+                <>
+                    <WorkflowSection
+                        icon="img"
+                        title="Medya Galerisi"
+                        description="Kapak görseli, galeri sırası ve alt metinleri ürün bağlamında düzenleyin."
+                    >
+                        <MediaUploadManager />
+                    </WorkflowSection>
+                    {isPhysical && (
+                        <WorkflowSection
+                            icon="grid"
+                            title="Varyantlar"
+                            description="Seçenekleri ürünün doğal diliyle girin, SKU ve fiyat farklarını topluca yönetin."
+                        >
+                            <VariantBuilder />
+                        </WorkflowSection>
+                    )}
+                    <WorkflowSection
+                        icon="tag"
+                        title="Özellikler"
+                        description="Kategoriye göre beklenen özellik değerlerini ürünle birlikte tamamlayın."
+                    >
+                        <AttributeSelector />
+                    </WorkflowSection>
+                    {isSoftware && (
+                        <WorkflowSection
+                            icon="puzzle"
+                            title="Yazılım Modülleri"
+                            description="Modül ve lisans tekliflerini ürün bağlamında bir arada yönetin."
+                        >
+                            <ProductModulesTab />
+                        </WorkflowSection>
+                    )}
+                </>
+            ),
         },
         {
-            id: "attributes",
-            label: "Özellikler",
-            badge: tabErrorCounts.attributes || undefined,
-            content: <AttributeSelector />,
+            id: "advanced",
+            label: "Gelişmiş",
+            description: "Profil, tedarik, hareketler ve rezervasyonlar",
+            icon: "setting",
+            content: (
+                <>
+                    <WorkflowSection
+                        icon="setting-alt"
+                        title="Profil ve Teknik Detaylar"
+                        description="Ürün tipine özgü nadir veya teknik alanları ana akışı bozmadan düzenleyin."
+                    >
+                        <ProfileEditor />
+                    </WorkflowSection>
+                    {isPhysical && (
+                        <WorkflowSection
+                            icon="truck"
+                            title="Tedarikçiler"
+                            description="Satın alma kaynağı, maliyet ve teslim süresi bilgilerini yönetin."
+                        >
+                            <SupplierMultiSelect />
+                        </WorkflowSection>
+                    )}
+                    {isPhysical && (
+                        <WorkflowSection
+                            icon="activity"
+                            title="Stok İşlemleri"
+                            description="Giriş, çıkış, transfer ve düzeltme hareketlerini ürün kaydıyla ilişkilendirin."
+                        >
+                            <InventoryTransactionTab />
+                        </WorkflowSection>
+                    )}
+                    {hasReservations && (
+                        <WorkflowSection
+                            icon="clock"
+                            title="Rezervasyonlar"
+                            description="Rezerve miktarları ve kaynak kayıtlarını takip edin."
+                        >
+                            <InventoryReservationTab />
+                        </WorkflowSection>
+                    )}
+                </>
+            ),
         },
-        {
-            id: "media",
-            label: "Medya",
-            badge: tabErrorCounts.media || undefined,
-            content: <MediaUploadManager />,
-        },
-        // 2. Ticari & fiyatlandırma
-        {
-            id: "prices",
-            label: "Fiyatlar",
-            badge: tabErrorCounts.prices || undefined,
-            content: <PriceMatrix />,
-            hidden: isSoftware,
-        },
-        {
-            id: "price-list-items",
-            label: "Fiyat Listesi",
-            badge: tabErrorCounts.priceListItems || undefined,
-            content: <PriceListItemTab />,
-            hidden: isSoftware,
-        },
-        // Yalnızca Fiziksel ürünlerde gösterilir
-        ...(isPhysical ? [{
-            id: "suppliers",
-            label: "Tedarikçiler",
-            badge: tabErrorCounts.suppliers || undefined,
-            content: <SupplierMultiSelect />,
-        }] : []),
-        // Yalnızca Fiziksel ürünlerde gösterilir
-        ...(isPhysical ? [{
-            id: "variants",
-            label: "Varyantlar",
-            badge: tabErrorCounts.variants || undefined,
-            content: <VariantBuilder />,
-        }] : []),
-        // 3. Bundle
-        // {
-        //     id: "bundles",
-        //     label: "Bundle",
-        //     badge: tabErrorCounts.bundles || undefined,
-        //     content: <BundleProductPicker />,
-        // },
-        // 4. Stok & lojistik (yalnızca Fiziksel)
-        ...(isPhysical ? [
-            {
-                id: "inventory",
-                label: "Stok",
-                badge: tabErrorCounts.inventory || undefined,
-                content: <InventoryTab />,
-            },
-            {
-                id: "inv-transactions",
-                label: "Stok İşlemleri",
-                badge: tabErrorCounts.invTransactions || undefined,
-                content: <InventoryTransactionTab />,
-            },
-        ] : []),
-        // Fiziksel veya Hizmet ürünlerde gösterilir
-        ...(hasReservations ? [{
-            id: "inv-reservations",
-            label: "Rezervasyonlar",
-            badge: tabErrorCounts.invReservations || undefined,
-            content: <InventoryReservationTab />,
-        }] : []),
-        // Birim dönüşümleri — tüm ürün türleri için
-        // {
-        //     id: "unit-conversions",
-        //     label: "Birim Dönüşümleri",
-        //     content: <ProductUnitConversionTab />,
-        // },
     ];
 
-    // Yazılım türüne özel sekme
-    if (isSoftware) {
-        baseTabs.push({
-            id: "modules",
-            label: "Modüller",
-            content: <ProductModulesTab />,
-        });
-    }
-
-    // Yazılım / Hizmet / Abonelik türlerine özel sekmeler
-    if (isLicensable) {
-        baseTabs.push({
-            id: "license-offerings",
-            label: "Fiyatlandırma",
-            content: <LicenseOfferingsTab />,
-        });
-        baseTabs.push({
-            id: "pricing-tiers",
-            label: "Fiyat Parametreleri",
-            content: (
-                <SoftwarePricingTiersTab
-                    productId={id}
-                    licenseOfferings={product?.licenseOfferings ?? []}
-                    variants={product?.variants ?? []}
-                />
-            ),
-        });
-    }
-
-    const tabs = baseTabs;
+    const activeWorkflowConfig = workflows.find((workflow) => workflow.id === activeWorkflow) ?? workflows[0];
 
     return (
         <>
@@ -730,10 +945,15 @@ const ProductFormPage: React.FC = () => {
                         <PageHeader
                             title={isEdit ? "Ürün Düzenle" : "Yeni Ürün"}
                             description={
-                                isEdit && product ? `${product.productCode} — ${product.name}` : undefined
+                                isEdit && product
+                                    ? `${product.productCode} — ${product.name}`
+                                    : "Ürünü yayınlamaya hazırlayan sade çalışma alanı"
                             }
                             actions={
-                                <div className="d-flex gap-2">
+                                <div className="d-flex gap-2 align-items-center flex-wrap">
+                                    <span className={`badge badge-dim bg-${isDirty ? "warning" : "success"} d-none d-md-inline-flex`}>
+                                        {isDirty ? "Kaydedilmemiş değişiklik" : "Taslak güncel"}
+                                    </span>
                                     <Button
                                         color="light py-2"
                                         type="button"
@@ -784,12 +1004,67 @@ const ProductFormPage: React.FC = () => {
                                         <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
                                             <Icon name="alert-circle" className="fs-5" id="" style={{}} />
                                             <span>
-                                                Formda <strong>{totalErrorCount}</strong> hata bulunuyor. Lütfen kırmızı
-                                                sayaçlı sekmelerdeki alanları kontrol edin.
+                                                Formda <strong>{totalErrorCount}</strong> hata bulunuyor. Lütfen iş akışı
+                                                başlıklarındaki sayaçları kontrol edin.
                                             </span>
                                         </div>
                                     )}
-                                    <AppTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+                                    <div className="row g-4 align-items-start product-editor-studio">
+                                        <div className="col-xl-8 col-xxl-9">
+                                            <div className="card card-bordered product-editor-workflow-card mb-4">
+                                                <div className="card-inner py-3">
+                                                    <div className="product-editor-workflow-nav d-flex flex-wrap gap-2 h-100">
+                                                        {workflows.map((workflow) => {
+                                                            const active = workflow.id === activeWorkflow;
+                                                            const errorCount = workflowErrorCounts[workflow.id];
+
+                                                            return (
+                                                                <button
+                                                                    key={workflow.id}
+                                                                    type="button"
+                                                                    className={`btn ${
+                                                                        active ? "btn-primary" : "btn-outline-light"
+                                                                    } product-editor-workflow-button d-flex align-items-center gap-2 h-100`}
+                                                                    onClick={() => setActiveWorkflow(workflow.id)}
+                                                                >
+                                                                    <em className={`icon ni ni-${workflow.icon}`} />
+                                                                    <span>{workflow.label}</span>
+                                                                    {errorCount > 0 && (
+                                                                        <span className={`badge bg-${active ? "light text-primary" : "danger"}`}>
+                                                                            {errorCount}
+                                                                        </span>
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <div className="card-inner border-top py-3">
+                                                    <div className="product-editor-section-head d-flex align-items-start gap-3 h-100">
+                                                        <span className="btn btn-icon btn-light rounded-circle flex-shrink-0">
+                                                            <em className={`icon ni ni-${activeWorkflowConfig.icon}`} />
+                                                        </span>
+                                                        <div>
+                                                            <h4 className="title mb-1">{activeWorkflowConfig.label}</h4>
+                                                            <p className="text-soft mb-0">{activeWorkflowConfig.description}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {activeWorkflowConfig.content}
+                                        </div>
+
+                                        <div className="col-xl-4 col-xxl-3">
+                                            <ProductPreviewPanel
+                                                values={formValues}
+                                                totalErrorCount={totalErrorCount}
+                                                isDirty={isDirty}
+                                                isPending={isPending}
+                                                onSubmit={() => void handleSubmit(onSubmit)()}
+                                            />
+                                        </div>
+                                    </div>
                                 </>
                             )}
                         </Block>

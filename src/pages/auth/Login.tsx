@@ -163,10 +163,6 @@ const Login = () => {
                   </Button>
                 </div>
               </Form>
-
-              <div className="form-note-s2 text-center pt-4">
-                Hesabın yok mu? <Link to={config.routes.register}>Kayıt ol</Link>
-              </div>
             </PreviewCard>
           </Block>
         </div>

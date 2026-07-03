@@ -113,6 +113,14 @@ const CONDITION_OPERATORS = [
   { value: "exists", label: "Değer var" },
 ];
 
+const COMMON_CONDITION_FIELDS = [
+  { value: "customerGroupCode", label: "Müşteri grubu" },
+  { value: "salesChannel", label: "Satış kanalı" },
+  { value: "quantity", label: "Miktar" },
+  { value: "seats", label: "Kullanıcı / koltuk sayısı" },
+  { value: "feature.seats", label: "Özellik: kullanıcı sayısı" },
+];
+
 interface HelpLabelProps {
   children: React.ReactNode;
   help: string;
@@ -315,6 +323,89 @@ const emptyForm = (): RuleFormState => ({
   adjustment: adjustmentToForm(defaultAdjustment),
 });
 
+const slugifyRuleCode = (value: string) => {
+  const slug = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/ğ/g, "g")
+    .replace(/ü/g, "u")
+    .replace(/ş/g, "s")
+    .replace(/ö/g, "o")
+    .replace(/ç/g, "c")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 32);
+
+  return slug ? `rule-${slug}` : "";
+};
+
+const QUICK_RULE_TEMPLATES = [
+  {
+    title: "Bayi indirimi",
+    description: "Bayi grubuna yüzde indirim uygula.",
+    icon: "users",
+    color: "primary",
+    form: {
+      name: "Bayi indirimi",
+      customerGroupCode: "dealer",
+      adjustment: {
+        type: "percentage",
+        value: "10",
+        operation: "subtract",
+        applyOn: "currentPrice",
+      },
+    },
+  },
+  {
+    title: "Kampanya indirimi",
+    description: "Belirli dönemde fiyatı düşür.",
+    icon: "percent",
+    color: "success",
+    form: {
+      name: "Kampanya indirimi",
+      adjustment: {
+        type: "percentage",
+        value: "20",
+        operation: "subtract",
+        applyOn: "currentPrice",
+      },
+    },
+  },
+  {
+    title: "Miktar / kullanıcı kademesi",
+    description: "Kullanıcı sayısı gibi birime göre hesapla.",
+    icon: "layers",
+    color: "info",
+    form: {
+      name: "Miktar kademesi",
+      adjustment: {
+        mode: "unit",
+        unitField: "seats",
+        rounding: "ceil",
+        tiers: [{ from: "1", to: "", type: "fixed", value: "0" }],
+      },
+    },
+  },
+  {
+    title: "Kanal özel fiyatı",
+    description: "Sadece web, mobil veya POS kanalında çalıştır.",
+    icon: "globe",
+    color: "warning",
+    form: {
+      name: "Kanal özel fiyatı",
+      salesChannel: "web",
+      adjustment: {
+        type: "fixed",
+        value: "0",
+        operation: "",
+        applyOn: "currentPrice",
+      },
+    },
+  },
+];
+
 const toDateTimeInput = (value?: string | null) => {
   if (!value) return "";
   const date = new Date(value);
@@ -369,6 +460,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   const { createMutation, updateMutation, deleteMutation } = useProductPricingRuleMutations(productId);
   const [form, setForm] = useState<RuleFormState>(() => emptyForm());
   const [deleteTarget, setDeleteTarget] = useState<ProductPricingRuleDto | null>(null);
+  const [engineOpen, setEngineOpen] = useState(false);
 
   const rules = useMemo(
     () => [...(data ?? [])].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)),
@@ -392,18 +484,48 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       if (condition.field.trim()) fields.add(condition.field.trim());
     });
 
-    return [...fields].map((field) => ({
+    const dynamicFields = [...fields].map((field) => ({
       value: field,
       label: formatFieldLabel(field),
     }));
+
+    const merged = new Map<string, { value: string; label: string }>();
+    [...COMMON_CONDITION_FIELDS, ...dynamicFields].forEach((field) => merged.set(field.value, field));
+    return [...merged.values()];
   }, [rules, form.adjustment.unitField, form.adjustment.conditions]);
 
   const resetForm = () => {
     setForm(emptyForm());
+    setEngineOpen(false);
   };
 
   const updateForm = <K extends keyof RuleFormState>(key: K, value: RuleFormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateRuleName = (value: string) => {
+    setForm((current) => ({
+      ...current,
+      name: value,
+      code: current.code && !current.code.startsWith("rule-") ? current.code : slugifyRuleCode(value),
+    }));
+  };
+
+  const applyQuickTemplate = (template: typeof QUICK_RULE_TEMPLATES[number]) => {
+    setForm((current) => ({
+      ...current,
+      name: template.form.name,
+      code: slugifyRuleCode(template.form.name),
+      salesChannel: template.form.salesChannel ?? "",
+      customerGroupCode: template.form.customerGroupCode ?? "",
+      priority: current.priority || String((rules.length + 1) * 10),
+      adjustment: {
+        ...current.adjustment,
+        ...template.form.adjustment,
+        conditions: [],
+      },
+    }));
+    setEngineOpen(false);
   };
 
   const updateAdjustment = <K extends keyof AdjustmentFormState>(key: K, value: AdjustmentFormState[K]) => {
@@ -518,9 +640,13 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
         <div className="col-12">
           <div className="card card-bordered">
             <div className="card-inner">
-              <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+              <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3 h-100">
                 <div>
+                  <span className="overline-title text-primary">Kural oluşturucu</span>
                   <h6 className="title mb-1">{form.id ? "Kuralı Düzenle" : "Yeni Dinamik Kural"}</h6>
+                  <p className="text-soft fs-13px mb-0">
+                    Şablon seçin veya cümleyi doldurun: Eğer bir durum oluşursa fiyatı değiştir.
+                  </p>
                 </div>
                 {form.id && (
                   <Button color="light" size="sm" type="button" onClick={resetForm}>
@@ -529,239 +655,111 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                 )}
               </div>
 
-              <div>
-                <div className="row g-3">
-                  <div className="col-md-4">
-                    <label className="form-label">
-                      <HelpLabel help="Kuralı sistem içinde ayırt etmek için kullanılan benzersiz kısa koddur.">
-                        Kod
-                      </HelpLabel>
-                    </label>
-                    <input
-                      className="form-control"
-                      value={form.code}
-                      onChange={(event) => updateForm("code", event.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-5">
-                    <label className="form-label">
-                      <HelpLabel help="Kuralın ekranda görünen açıklayıcı adıdır. Kullanıcıların neyi değiştirdiğini anlamasını sağlar.">
-                        Ad
-                      </HelpLabel>
-                    </label>
-                    <input
-                      className="form-control"
-                      value={form.name}
-                      onChange={(event) => updateForm("name", event.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="form-label">
-                      <HelpLabel help="Birden fazla kural eşleşirse küçük öncelik numarasına sahip kural daha önce uygulanır.">
-                        Öncelik
-                      </HelpLabel>
-                    </label>
-                    <input
-                      className="form-control"
-                      type="number"
-                      value={form.priority}
-                      onChange={(event) => updateForm("priority", event.target.value)}
-                    />
-                  </div>
-
-                  <div className="col-md-3">
-                    <label className="form-label">
-                      <HelpLabel help="Kuralın çalışmaya başlayacağı tarih ve saattir. Boş bırakılırsa başlangıç sınırı uygulanmaz.">
-                        Geçerli Başlangıç
-                      </HelpLabel>
-                    </label>
-                    <input
-                      className="form-control"
-                      type="datetime-local"
-                      value={form.validFrom}
-                      onChange={(event) => updateForm("validFrom", event.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="form-label">
-                      <HelpLabel help="Kuralın geçerliliğinin biteceği tarih ve saattir. Boş bırakılırsa kural süresiz kabul edilir.">
-                        Geçerli Bitiş
-                      </HelpLabel>
-                    </label>
-                    <input
-                      className="form-control"
-                      type="datetime-local"
-                      value={form.validTo}
-                      onChange={(event) => updateForm("validTo", event.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="form-label">
-                      <HelpLabel help="Kuralın sadece belirli bir satış kanalında çalışmasını sağlar.">
-                        Satış Kanalı
-                      </HelpLabel>
-                    </label>
-                    <input
-                      className="form-control"
-                      value={form.salesChannel}
-                      onChange={(event) => updateForm("salesChannel", event.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="form-label">
-                      <HelpLabel help="Kuralın sadece belirli müşteri grubunda çalışmasını sağlar.">
-                        Müşteri Grubu
-                      </HelpLabel>
-                    </label>
-                    <input
-                      className="form-control"
-                      value={form.customerGroupCode}
-                      onChange={(event) => updateForm("customerGroupCode", event.target.value)}
-                    />
-                  </div>
-
-                  <div className="col-md-4">
-                    <label className="form-label">
-                      <HelpLabel help="Kuralı belirli bir lisans teklifine bağlar. Tümü seçilirse bu ürünün tüm tekliflerinde geçerli olabilir.">
-                        Lisans Fiyatlandırması
-                      </HelpLabel>
-                    </label>
-                    <select
-                      className="form-select"
-                      value={form.productLicenseOfferingId}
-                      onChange={(event) => updateForm("productLicenseOfferingId", event.target.value)}
-                    >
-                      <option value="">Tümü</option>
-                      {licenseOfferings.map((offering) => (
-                        <option key={offering.id} value={offering.id}>
-                          {offering.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">
-                      <HelpLabel help="Kuralı belirli bir ürün varyantına bağlar. Tümü seçilirse varyant ayrımı yapılmaz.">
-                        Varyant
-                      </HelpLabel>
-                    </label>
-                    <select
-                      className="form-select"
-                      value={form.productVariantId}
-                      onChange={(event) => updateForm("productVariantId", event.target.value)}
-                    >
-                      <option value="">Tümü</option>
-                      {variants.map((variant) => (
-                        <option key={variant.id} value={variant.id}>
-                          {variant.name || variant.sku}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-4 d-flex align-items-end">
-                    <div className="custom-control custom-switch">
-                      <input
-                        type="checkbox"
-                        className="custom-control-input"
-                        id="pricing-rule-active"
-                        checked={form.isActive}
-                        onChange={(event) => updateForm("isActive", event.target.checked)}
-                      />
-                      <label className="custom-control-label" htmlFor="pricing-rule-active">
-                        <HelpLabel help="Kapalı olduğunda kural kayıtlı kalır ancak fiyat hesaplamasında dikkate alınmaz.">
-                          Aktif
-                        </HelpLabel>
-                      </label>
+              {!form.id && (
+                <div className="row g-3 mb-4">
+                  {QUICK_RULE_TEMPLATES.map((template) => (
+                    <div className="col-sm-6 col-xl-3" key={template.title}>
+                      <button
+                        type="button"
+                        className="card card-bordered h-100 w-100 bg-white text-start"
+                        onClick={() => applyQuickTemplate(template)}
+                      >
+                        <div className="card-inner">
+                          <span className={`btn btn-icon btn-${template.color} rounded-circle mb-3`}>
+                            <em className={`icon ni ni-${template.icon}`} />
+                          </span>
+                          <h6 className="title mb-1">{template.title}</h6>
+                          <p className="text-soft fs-12px mb-0">{template.description}</p>
+                        </div>
+                      </button>
                     </div>
-                  </div>
+                  ))}
+                </div>
+              )}
 
-                  <div className="col-12">
-                    <div className="border-top pt-3 mt-1">
-                      <h6 className="overline-title text-primary mb-3">
-                        <HelpLabel help="Kural eşleştiğinde fiyatın ne kadar ve hangi yöntemle değişeceğini belirleyen ana bölümdür.">
-                          Fiyat Etkisi
-                        </HelpLabel>
-                      </h6>
-                      <div className="row g-3">
+              <div className="row g-3">
+                <div className="col-lg-6">
+                  <label className="form-label">
+                    Kural adı <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    className="form-control form-control-lg"
+                    placeholder="Örn. Bayi indirimi"
+                    value={form.name}
+                    onChange={(event) => updateRuleName(event.target.value)}
+                  />
+                </div>
+                <div className="col-lg-3 col-md-6">
+                  <label className="form-label">Nerede çalışsın?</label>
+                  <input
+                    className="form-control form-control-lg"
+                    placeholder="Tüm kanallar"
+                    value={form.salesChannel}
+                    onChange={(event) => updateForm("salesChannel", event.target.value)}
+                  />
+                </div>
+                <div className="col-lg-3 col-md-6">
+                  <label className="form-label">Kimlere çalışsın?</label>
+                  <input
+                    className="form-control form-control-lg"
+                    placeholder="Tüm müşteriler"
+                    value={form.customerGroupCode}
+                    onChange={(event) => updateForm("customerGroupCode", event.target.value)}
+                  />
+                </div>
+
+                <div className="col-12">
+                  <div className="card card-bordered bg-lighter mb-0">
+                    <div className="card-inner">
+                      <div className="row g-3 align-items-end">
+                        <div className="col-12">
+                          <span className="overline-title text-primary">O halde</span>
+                        </div>
                         <div className="col-md-3">
-                          <label className="form-label">
-                            <HelpLabel help="Tekil mod tek seferlik indirim/artış uygular. Birim bazlı mod, kullanıcı sayısı gibi bir değere göre hesaplar.">
-                              Hesaplama Modu
-                            </HelpLabel>
-                          </label>
+                          <label className="form-label">Fiyatı</label>
                           <select
                             className="form-select"
-                            value={form.adjustment.mode}
-                            onChange={(event) => updateAdjustment("mode", event.target.value)}
+                            value={form.adjustment.operation === "subtract" ? "subtract" : "add"}
+                            onChange={(event) =>
+                              updateAdjustment("operation", event.target.value === "subtract" ? "subtract" : "")
+                            }
                           >
-                            <option value="">Sabit / Tekil</option>
-                            <option value="unit">Birim Bazlı</option>
+                            <option value="subtract">Düşür</option>
+                            <option value="add">Artır</option>
                           </select>
                         </div>
-                        {!isUnitMode && (
-                          <>
-                            <div className="col-md-3">
-                              <label className="form-label">
-                                <HelpLabel help="Fiyat etkisinin nasıl hesaplanacağını belirler: sabit tutar, yüzde, çarpan veya özel hesaplama.">
-                                  Tip
-                                </HelpLabel>
-                              </label>
-                              <select
-                                className="form-select"
-                                value={form.adjustment.type}
-                                onChange={(event) => updateAdjustment("type", event.target.value)}
-                              >
-                                <option value="">Seçiniz</option>
-                                {ADJUSTMENT_TYPES.map((item) => (
-                                  <option key={item.value} value={item.value}>
-                                    {item.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="col-md-2">
-                              <label className="form-label">
-                                <HelpLabel help="Seçilen tipe göre uygulanacak tutar, yüzde veya çarpan değeridir.">
-                                  Değer
-                                </HelpLabel>
-                              </label>
-                              <input
-                                className="form-control"
-                                type="number"
-                                step="0.0001"
-                                value={form.adjustment.value}
-                                onChange={(event) => updateAdjustment("value", event.target.value)}
-                              />
-                            </div>
-                          </>
-                        )}
-                        <div className={isUnitMode ? "col-md-4" : "col-md-2"}>
-                          <label className="form-label">
-                            <HelpLabel help="Ekle fiyatı artırır. Çıkar seçilirse hesaplanan etki fiyattan düşülür.">
-                              Yön
-                            </HelpLabel>
-                          </label>
+                        <div className="col-md-3">
+                          <label className="form-label">Nasıl?</label>
                           <select
                             className="form-select"
-                            value={form.adjustment.operation}
-                            onChange={(event) => updateAdjustment("operation", event.target.value)}
+                            value={form.adjustment.type || "percentage"}
+                            disabled={isUnitMode}
+                            onChange={(event) => updateAdjustment("type", event.target.value)}
                           >
-                            <option value="">Seçiniz</option>
-                            <option value="subtract">Çıkar</option>
+                            <option value="percentage">Yüzdeyle</option>
+                            <option value="fixed">Sabit tutarla</option>
+                            <option value="multiplier">Çarpanla</option>
                           </select>
                         </div>
-                        <div className={isUnitMode ? "col-md-5" : "col-md-2"}>
-                          <label className="form-label">
-                            <HelpLabel help="Kuralın hangi fiyat üzerinden hesaplanacağını seçer: taban fiyat, güncel fiyat veya önceki kural sonucu.">
-                              Uygula
-                            </HelpLabel>
-                          </label>
+                        <div className="col-md-3">
+                          <label className="form-label">Değer</label>
+                          <input
+                            className="form-control"
+                            type="number"
+                            step="0.0001"
+                            placeholder={isUnitMode ? "Kademeden gelir" : "10"}
+                            value={form.adjustment.value}
+                            disabled={isUnitMode}
+                            onChange={(event) => updateAdjustment("value", event.target.value)}
+                          />
+                        </div>
+                        <div className="col-md-3">
+                          <label className="form-label">Hesapla</label>
                           <select
                             className="form-select"
-                            value={form.adjustment.applyOn}
+                            value={form.adjustment.applyOn || "currentPrice"}
                             onChange={(event) => updateAdjustment("applyOn", event.target.value)}
                           >
-                            <option value="">Seçiniz</option>
                             {APPLY_ON_OPTIONS.map((item) => (
                               <option key={item.value} value={item.value}>
                                 {item.label}
@@ -772,325 +770,373 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  {isUnitMode && (
-                    <div className="col-12">
-                      <div className="border-top pt-3">
-                        <h6 className="overline-title text-primary mb-3">
-                          <HelpLabel help="Kullanıcı sayısı gibi miktara bağlı fiyatları tanımlamak için kullanılır. Her satır bir aralığı temsil eder.">
-                            Birim ve Kademeler
-                          </HelpLabel>
-                        </h6>
-                        <div className="row g-3 mb-3">
-                          <div className="col-md-5">
-                            <label className="form-label">
-                              <HelpLabel help="Hesaplamada kullanılacak dinamik alan adıdır.">
-                                Birim Alanı
-                              </HelpLabel>
-                            </label>
+                <div className="col-md-6">
+                  <label className="form-label">Hangi satış planı?</label>
+                  <select
+                    className="form-select"
+                    value={form.productLicenseOfferingId}
+                    onChange={(event) => updateForm("productLicenseOfferingId", event.target.value)}
+                  >
+                    <option value="">Tüm planlar</option>
+                    {licenseOfferings.map((offering) => (
+                      <option key={offering.id} value={offering.id}>
+                        {offering.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Hangi varyant?</label>
+                  <select
+                    className="form-select"
+                    value={form.productVariantId}
+                    onChange={(event) => updateForm("productVariantId", event.target.value)}
+                  >
+                    <option value="">Tüm varyantlar</option>
+                    {variants.map((variant) => (
+                      <option key={variant.id} value={variant.id}>
+                        {variant.name || variant.sku}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-md-3">
+                  <label className="form-label">Başlangıç</label>
+                  <input
+                    className="form-control"
+                    type="datetime-local"
+                    value={form.validFrom}
+                    onChange={(event) => updateForm("validFrom", event.target.value)}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Bitiş</label>
+                  <input
+                    className="form-control"
+                    type="datetime-local"
+                    value={form.validTo}
+                    onChange={(event) => updateForm("validTo", event.target.value)}
+                  />
+                </div>
+                <div className="col-md-2 d-flex align-items-end">
+                  <div className="custom-control custom-switch">
+                    <input
+                      type="checkbox"
+                      className="custom-control-input"
+                      id="pricing-rule-active"
+                      checked={form.isActive}
+                      onChange={(event) => updateForm("isActive", event.target.checked)}
+                    />
+                    <label className="custom-control-label" htmlFor="pricing-rule-active">
+                      Aktif
+                    </label>
+                  </div>
+                </div>
+                <div className="col-md-4 d-flex align-items-end">
+                  <Button
+                    color="light"
+                    outline
+                    type="button"
+                    className="w-100"
+                    onClick={() => setEngineOpen((current) => !current)}
+                  >
+                    <em className={`icon ni ni-chevron-${engineOpen ? "up" : "down"} me-1`} />
+                    Gelişmiş ayarlar
+                  </Button>
+                </div>
+
+                {engineOpen && (
+                  <div className="col-12">
+                    <div className="card card-bordered mb-0">
+                      <div className="card-inner">
+                        <h6 className="overline-title text-primary mb-3">Gelişmiş motor ayarları</h6>
+
+                        <div className="row g-3">
+                          <div className="col-md-4">
+                            <label className="form-label">Kural kodu</label>
                             <input
                               className="form-control"
-                              value={form.adjustment.unitField}
-                              onChange={(event) => updateAdjustment("unitField", event.target.value)}
+                              value={form.code}
+                              onChange={(event) => updateForm("code", event.target.value)}
                             />
                           </div>
-                          <div className="col-md-3">
-                            <label className="form-label">
-                              <HelpLabel help="Kademe tanımlı değilse bu sayıya kadar olan birimler ücretlendirilmez. Kademeler varsa kademeler esas alınır.">
-                                Ücretsiz Birim
-                              </HelpLabel>
-                            </label>
+                          <div className="col-md-2">
+                            <label className="form-label">Öncelik</label>
                             <input
                               className="form-control"
                               type="number"
-                              value={form.adjustment.freeUnits}
-                              onChange={(event) => updateAdjustment("freeUnits", event.target.value)}
+                              value={form.priority}
+                              onChange={(event) => updateForm("priority", event.target.value)}
                             />
                           </div>
-                          <div className="col-md-4">
-                            <label className="form-label">
-                              <HelpLabel help="Birim değeri küsuratlı gelirse nasıl yuvarlanacağını belirler. Kullanıcı sayısı gibi alanlarda genelde Yukarı seçilir.">
-                                Yuvarlama
-                              </HelpLabel>
-                            </label>
+                          <div className="col-md-3">
+                            <label className="form-label">Hesaplama</label>
                             <select
                               className="form-select"
-                              value={form.adjustment.rounding}
-                              onChange={(event) => updateAdjustment("rounding", event.target.value)}
+                              value={form.adjustment.mode}
+                              onChange={(event) => updateAdjustment("mode", event.target.value)}
                             >
-                              <option value="">Seçiniz</option>
-                              <option value="ceil">Yukarı</option>
-                              <option value="floor">Aşağı</option>
-                              <option value="round">En Yakın</option>
-                              <option value="none">Yok</option>
+                              <option value="">Sabit / tekil</option>
+                              <option value="unit">Birim bazlı</option>
                             </select>
                           </div>
-                        </div>
+                          <div className="col-md-3">
+                            <label className="form-label">Koşul mantığı</label>
+                            <select
+                              className="form-select"
+                              value={form.adjustment.conditionsOperator}
+                              onChange={(event) =>
+                                updateAdjustment("conditionsOperator", event.target.value as "all" | "any")
+                              }
+                            >
+                              <option value="all">Tüm koşullar sağlansın</option>
+                              <option value="any">Herhangi biri sağlansın</option>
+                            </select>
+                          </div>
 
-                        <div className="table-responsive">
-                          <table className="table table-middle mb-2">
-                            <thead className="table-light">
-                              <tr>
-                                <th>
-                                  <HelpLabel help="Bu kademe için birim aralığının başladığı değerdir.">
-                                    Başlangıç
-                                  </HelpLabel>
-                                </th>
-                                <th>
-                                  <HelpLabel help="Bu kademe için aralığın bittiği değerdir. Boş bırakılırsa üst sınır yoktur.">
-                                    Bitiş
-                                  </HelpLabel>
-                                </th>
-                                <th>
-                                  <HelpLabel help="Bu kademede uygulanacak hesaplama tipidir. Genelde sabit tutar veya yüzde kullanılır.">
-                                    Tip
-                                  </HelpLabel>
-                                </th>
-                                <th>
-                                  <HelpLabel help="Bu kademe eşleştiğinde uygulanacak tutar, yüzde veya çarpan değeridir.">
-                                    Değer
-                                  </HelpLabel>
-                                </th>
-                                <th className="text-end">İşlem</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {form.adjustment.tiers.map((tier, index) => (
-                                <tr key={index}>
-                                  <td>
-                                    <input
-                                      className="form-control"
-                                      type="number"
-                                      value={tier.from}
-                                      onChange={(event) => updateTier(index, "from", event.target.value)}
-                                    />
-                                  </td>
-                                  <td>
-                                    <input
-                                      className="form-control"
-                                      type="number"
-                                      value={tier.to}
-                                      onChange={(event) => updateTier(index, "to", event.target.value)}
-                                    />
-                                  </td>
-                                  <td>
+                          {isUnitMode && (
+                            <>
+                              <div className="col-md-4">
+                                <label className="form-label">Birim alanı</label>
+                                <input
+                                  className="form-control"
+                                  value={form.adjustment.unitField}
+                                  onChange={(event) => updateAdjustment("unitField", event.target.value)}
+                                />
+                              </div>
+                              <div className="col-md-4">
+                                <label className="form-label">Ücretsiz birim</label>
+                                <input
+                                  className="form-control"
+                                  type="number"
+                                  value={form.adjustment.freeUnits}
+                                  onChange={(event) => updateAdjustment("freeUnits", event.target.value)}
+                                />
+                              </div>
+                              <div className="col-md-4">
+                                <label className="form-label">Yuvarlama</label>
+                                <select
+                                  className="form-select"
+                                  value={form.adjustment.rounding}
+                                  onChange={(event) => updateAdjustment("rounding", event.target.value)}
+                                >
+                                  <option value="">Seçiniz</option>
+                                  <option value="ceil">Yukarı</option>
+                                  <option value="floor">Aşağı</option>
+                                  <option value="round">En yakın</option>
+                                  <option value="none">Yok</option>
+                                </select>
+                              </div>
+                            </>
+                          )}
+
+                          <div className="col-12">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                              <h6 className="title mb-0">Ek koşullar</h6>
+                              <Button color="light" size="sm" type="button" onClick={addCondition}>
+                                <em className="icon ni ni-plus me-1" />
+                                Koşul ekle
+                              </Button>
+                            </div>
+                            <div className="d-flex flex-column gap-2 h-100">
+                              {form.adjustment.conditions.map((condition, index) => (
+                                <div className="row g-2 align-items-end" key={index}>
+                                  <div className="col-md-5">
+                                    <label className="form-label">Alan</label>
                                     <select
                                       className="form-select"
-                                      value={tier.type}
-                                      onChange={(event) => updateTier(index, "type", event.target.value)}
+                                      value={condition.field}
+                                      onChange={(event) => updateCondition(index, "field", event.target.value)}
                                     >
-                                      <option value="">Seçiniz</option>
-                                      {ADJUSTMENT_TYPES.map((item) => (
-                                        <option key={item.value} value={item.value}>
-                                          {item.label}
+                                      <option value="">Alan seçiniz</option>
+                                      {conditionFieldOptions.map((field) => (
+                                        <option key={field.value} value={field.value}>
+                                          {field.label}
                                         </option>
                                       ))}
                                     </select>
-                                  </td>
-                                  <td>
+                                  </div>
+                                  <div className="col-md-3">
+                                    <label className="form-label">Karşılaştırma</label>
+                                    <select
+                                      className="form-select"
+                                      value={condition.operator}
+                                      onChange={(event) => updateCondition(index, "operator", event.target.value)}
+                                    >
+                                      <option value="">Seçiniz</option>
+                                      {CONDITION_OPERATORS.map((operator) => (
+                                        <option key={operator.value} value={operator.value}>
+                                          {operator.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="col-md-3">
+                                    <label className="form-label">Değer</label>
                                     <input
                                       className="form-control"
-                                      type="number"
-                                      step="0.0001"
-                                      value={tier.value}
-                                      onChange={(event) => updateTier(index, "value", event.target.value)}
+                                      value={condition.value}
+                                      onChange={(event) => updateCondition(index, "value", event.target.value)}
+                                      disabled={condition.operator === "exists"}
                                     />
-                                  </td>
-                                  <td className="text-end">
-                                    <Button color="danger" outline size="sm" type="button" onClick={() => removeTier(index)}>
+                                  </div>
+                                  <div className="col-md-1 text-end">
+                                    <Button color="danger" outline size="sm" type="button" onClick={() => removeCondition(index)}>
                                       Sil
                                     </Button>
-                                  </td>
-                                </tr>
+                                  </div>
+                                </div>
                               ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <Button color="light" size="sm" type="button" onClick={addTier}>
-                          <em className="icon ni ni-plus me-1" />
-                          Kademe Ekle
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="col-12">
-                    <div className="border-top pt-3">
-                      <h6 className="overline-title text-primary mb-3">
-                        <HelpLabel help="Kuralın üreteceği fiyat etkisini veya nihai fiyatı alt ve üst sınırlarla kontrol eder.">
-                          Limitler
-                        </HelpLabel>
-                      </h6>
-                      <div className="row g-3">
-                        <div className="col-md-3">
-                          <label className="form-label">
-                            <HelpLabel help="Kuralın oluşturabileceği en düşük fiyat etkisidir. Boş bırakılırsa alt sınır uygulanmaz.">
-                              Min. Etki
-                            </HelpLabel>
-                          </label>
-                          <input
-                            className="form-control"
-                            type="number"
-                            value={form.adjustment.minAdjustment}
-                            onChange={(event) => updateAdjustment("minAdjustment", event.target.value)}
-                          />
-                        </div>
-                        <div className="col-md-3">
-                          <label className="form-label">
-                            <HelpLabel help="Kuralın oluşturabileceği en yüksek fiyat etkisidir. Çok büyük indirim/artışları sınırlamak için kullanılır.">
-                              Maks. Etki
-                            </HelpLabel>
-                          </label>
-                          <input
-                            className="form-control"
-                            type="number"
-                            value={form.adjustment.maxAdjustment}
-                            onChange={(event) => updateAdjustment("maxAdjustment", event.target.value)}
-                          />
-                        </div>
-                        <div className="col-md-3">
-                          <label className="form-label">
-                            <HelpLabel help="Kural uygulandıktan sonra fiyatın inebileceği en düşük nihai tutardır.">
-                              Min. Final
-                            </HelpLabel>
-                          </label>
-                          <input
-                            className="form-control"
-                            type="number"
-                            value={form.adjustment.minFinalPrice}
-                            onChange={(event) => updateAdjustment("minFinalPrice", event.target.value)}
-                          />
-                        </div>
-                        <div className="col-md-3">
-                          <label className="form-label">
-                            <HelpLabel help="Kural uygulandıktan sonra fiyatın çıkabileceği en yüksek nihai tutardır.">
-                              Maks. Final
-                            </HelpLabel>
-                          </label>
-                          <input
-                            className="form-control"
-                            type="number"
-                            value={form.adjustment.maxFinalPrice}
-                            onChange={(event) => updateAdjustment("maxFinalPrice", event.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-12">
-                    <div className="border-top pt-3">
-                      <div className="d-flex justify-content-between align-items-center mb-3">
-                        <h6 className="overline-title text-primary mb-0">
-                          <HelpLabel help="Kuralın çalışması için sağlanması gereken şartlardır. Koşul yoksa kural diğer filtreler eşleştiğinde çalışır.">
-                            Koşullar
-                          </HelpLabel>
-                        </h6>
-                        <div className="d-flex gap-2 align-items-center h-100">
-                          <select
-                            className="form-select form-select-sm"
-                            value={form.adjustment.conditionsOperator}
-                            onChange={(event) =>
-                              updateAdjustment("conditionsOperator", event.target.value as "all" | "any")
-                            }
-                          >
-                            <option value="all">Tüm koşullar sağlansın</option>
-                            <option value="any">Herhangi biri sağlansın</option>
-                          </select>
-                          <Button color="light" size="sm" type="button" className="w-100" onClick={addCondition}>
-                            <em className="icon ni ni-plus me-1 " />
-                            Koşul Ekle
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="d-flex flex-column gap-2 h-100">
-                        {form.adjustment.conditions.map((condition, index) => (
-                          <div className="row g-2 align-items-end" key={index}>
-                            <div className="col-md-5">
-                              <label className="form-label">
-                                <HelpLabel help="Mevcut dinamik fiyatlandırma kurallarında kullanılan alanlardan seçilir.">
-                                  Alan
-                                </HelpLabel>
-                              </label>
-                              <select
-                                className="form-select"
-                                value={condition.field}
-                                onChange={(event) => updateCondition(index, "field", event.target.value)}
-                              >
-                                <option value="">Alan seçiniz</option>
-                                {conditionFieldOptions.map((field) => (
-                                  <option key={field.value} value={field.value}>
-                                    {field.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="col-md-3">
-                              <label className="form-label">
-                                <HelpLabel help="Alan ile değer arasındaki karşılaştırma türüdür.">
-                                  Operatör
-                                </HelpLabel>
-                              </label>
-                              <select
-                                className="form-select"
-                                value={condition.operator}
-                                onChange={(event) => updateCondition(index, "operator", event.target.value)}
-                              >
-                                <option value="">Seçiniz</option>
-                                {CONDITION_OPERATORS.map((operator) => (
-                                  <option key={operator.value} value={operator.value}>
-                                    {operator.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="col-md-3">
-                              <label className="form-label">
-                                <HelpLabel help="Karşılaştırılacak değerdir. Listeden biri operatöründe virgülle ayırın; Değer var operatöründe boş kalır.">
-                                  Değer
-                                </HelpLabel>
-                              </label>
-                              <input
-                                className="form-control"
-                                value={condition.value}
-                                onChange={(event) => updateCondition(index, "value", event.target.value)}
-                                disabled={condition.operator === "exists"}
-                              />
-                            </div>
-                            <div className="col-md-1 text-end">
-                              <Button color="danger" outline size="sm" type="button" onClick={() => removeCondition(index)}>
-                                Sil
-                              </Button>
+                              {!form.adjustment.conditions.length && (
+                                <p className="text-soft fs-13px mb-0">Ek koşul yok. Üstte seçilen kanal, müşteri grubu, plan ve varyant filtreleri kullanılacak.</p>
+                              )}
                             </div>
                           </div>
-                        ))}
+
+                          {isUnitMode && (
+                            <div className="col-12">
+                              <div className="d-flex justify-content-between align-items-center mb-2">
+                                <h6 className="title mb-0">Kademeler</h6>
+                                <Button color="light" size="sm" type="button" onClick={addTier}>
+                                  <em className="icon ni ni-plus me-1" />
+                                  Kademe ekle
+                                </Button>
+                              </div>
+                              <div className="table-responsive">
+                                <table className="table table-middle mb-0">
+                                  <thead className="table-light">
+                                    <tr>
+                                      <th>Başlangıç</th>
+                                      <th>Bitiş</th>
+                                      <th>Tip</th>
+                                      <th>Değer</th>
+                                      <th className="text-end">İşlem</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {form.adjustment.tiers.map((tier, index) => (
+                                      <tr key={index}>
+                                        <td>
+                                          <input
+                                            className="form-control"
+                                            type="number"
+                                            value={tier.from}
+                                            onChange={(event) => updateTier(index, "from", event.target.value)}
+                                          />
+                                        </td>
+                                        <td>
+                                          <input
+                                            className="form-control"
+                                            type="number"
+                                            value={tier.to}
+                                            onChange={(event) => updateTier(index, "to", event.target.value)}
+                                          />
+                                        </td>
+                                        <td>
+                                          <select
+                                            className="form-select"
+                                            value={tier.type}
+                                            onChange={(event) => updateTier(index, "type", event.target.value)}
+                                          >
+                                            <option value="">Seçiniz</option>
+                                            {ADJUSTMENT_TYPES.map((item) => (
+                                              <option key={item.value} value={item.value}>
+                                                {item.label}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </td>
+                                        <td>
+                                          <input
+                                            className="form-control"
+                                            type="number"
+                                            step="0.0001"
+                                            value={tier.value}
+                                            onChange={(event) => updateTier(index, "value", event.target.value)}
+                                          />
+                                        </td>
+                                        <td className="text-end">
+                                          <Button color="danger" outline size="sm" type="button" onClick={() => removeTier(index)}>
+                                            Sil
+                                          </Button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="col-12">
+                            <h6 className="title mb-2">Limitler</h6>
+                          </div>
+                          <div className="col-md-3">
+                            <label className="form-label">Min. etki</label>
+                            <input
+                              className="form-control"
+                              type="number"
+                              value={form.adjustment.minAdjustment}
+                              onChange={(event) => updateAdjustment("minAdjustment", event.target.value)}
+                            />
+                          </div>
+                          <div className="col-md-3">
+                            <label className="form-label">Maks. etki</label>
+                            <input
+                              className="form-control"
+                              type="number"
+                              value={form.adjustment.maxAdjustment}
+                              onChange={(event) => updateAdjustment("maxAdjustment", event.target.value)}
+                            />
+                          </div>
+                          <div className="col-md-3">
+                            <label className="form-label">Min. final</label>
+                            <input
+                              className="form-control"
+                              type="number"
+                              value={form.adjustment.minFinalPrice}
+                              onChange={(event) => updateAdjustment("minFinalPrice", event.target.value)}
+                            />
+                          </div>
+                          <div className="col-md-3">
+                            <label className="form-label">Maks. final</label>
+                            <input
+                              className="form-control"
+                              type="number"
+                              value={form.adjustment.maxFinalPrice}
+                              onChange={(event) => updateAdjustment("maxFinalPrice", event.target.value)}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
+                )}
 
-                  <div className="col-12 d-flex justify-content-end gap-2 h-100">
-                    <Button color="light" type="button" onClick={resetForm} disabled={pending}>
-                      Temizle
-                    </Button>
-                    <Button
-                      color="primary"
-                      type="button"
-                      onClick={handleSubmit}
-                      disabled={pending || !form.code.trim() || !form.name.trim()}
-                    >
-                      {pending ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2" />
-                          Kaydediliyor...
-                        </>
-                      ) : form.id ? (
-                        "Güncelle"
-                      ) : (
-                        "Kural Ekle"
-                      )}
-                    </Button>
-                  </div>
+                <div className="col-12 d-flex justify-content-end gap-2 h-100">
+                  <Button color="light" type="button" onClick={resetForm} disabled={pending}>
+                    Temizle
+                  </Button>
+                  <Button
+                    color="primary"
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={pending || !form.code.trim() || !form.name.trim()}
+                  >
+                    {pending ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" />
+                        Kaydediliyor...
+                      </>
+                    ) : form.id ? (
+                      "Güncelle"
+                    ) : (
+                      "Kural Ekle"
+                    )}
+                  </Button>
                 </div>
               </div>
             </div>

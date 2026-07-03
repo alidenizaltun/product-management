@@ -151,6 +151,83 @@
     }
 }
 
+.product-editor{
+    &-studio{
+        min-height: 0;
+    }
+    &-workflow{
+        &-card{
+            overflow: visible;
+        }
+        &-nav{
+            align-items: stretch;
+        }
+        &-button{
+            min-height: 2.25rem;
+            line-height: 1.2;
+            justify-content: center;
+            flex: 0 1 10.25rem;
+            white-space: nowrap;
+        }
+    }
+    &-section{
+        overflow: visible;
+        > .card-inner{
+            height: auto;
+            min-height: 0;
+        }
+        &-head{
+            height: auto !important;
+            min-height: 0;
+            align-items: flex-start;
+            > div{
+                min-width: 0;
+            }
+            .title{
+                line-height: 1.25;
+            }
+            .text-soft{
+                line-height: 1.5;
+            }
+        }
+    }
+    &-preview{
+        z-index: 5;
+        &-card{
+            display: flex;
+            flex-direction: column;
+            height: auto;
+            max-height: calc(100vh - 7.5rem);
+            overflow: hidden;
+        }
+        &-head{
+            height: auto !important;
+            min-height: 0;
+        }
+        &-body{
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        &-footer{
+            flex: 0 0 auto;
+            height: auto;
+            position: static;
+        }
+    }
+    &-checklist{
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
+        margin-bottom: 0;
+        &-item{
+            min-height: 1.5rem;
+            height: auto !important;
+            line-height: 1.35;
+        }
+    }
+}
+
 @media (max-width:420px) {
     .product{
         &-gallery{
@@ -166,6 +243,20 @@
         &-gallery{
             .slider-nav{
                 width: 384px;
+            }
+        }
+    }
+}
+
+@include media-breakpoint-down(xl) {
+    .product-editor{
+        &-preview{
+            position: static !important;
+            &-card{
+                max-height: none;
+            }
+            &-body{
+                overflow: visible;
             }
         }
     }

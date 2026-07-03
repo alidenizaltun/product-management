@@ -22,9 +22,11 @@ const STATUS_META: Record<number, { label: string; color: string }> = {
 interface ProductCardProps {
   product: ProductDto;
   onDelete: () => void;
+  selected?: boolean;
+  onSelectChange?: (selected: boolean) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete, selected = false, onSelectChange }) => {
   const kind = product.kind != null ? KIND_META[product.kind] : undefined;
   const status = product.status != null ? STATUS_META[product.status] : undefined;
   const detailUrl = `/products/${product.id}`;
@@ -34,8 +36,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) => {
   const showImage = Boolean(imageUrl) && !imageFailed;
 
   return (
-    <Card className="card-bordered product-card h-100">
+    <Card className={`card-bordered product-card h-100 ${selected ? "border-primary shadow-sm" : ""}`}>
       <div className="product-thumb">
+        {onSelectChange && (
+          <div className="position-absolute top-0 start-0 p-2" style={{ zIndex: 3 }}>
+            <div className="custom-control custom-checkbox">
+              <input
+                type="checkbox"
+                className="custom-control-input"
+                id={`select-product-${product.id}`}
+                checked={selected}
+                onChange={(event) => onSelectChange(event.target.checked)}
+                aria-label={`${product.name} seç`}
+              />
+              <label className="custom-control-label" htmlFor={`select-product-${product.id}`} />
+            </div>
+          </div>
+        )}
         <Link to={detailUrl} className="d-block">
           <div
             className="card-img-top bg-lighter d-flex align-items-center justify-content-center overflow-hidden"

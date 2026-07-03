@@ -212,7 +212,7 @@ export interface ProductFormValues {
   trackInventory: boolean;
   defaultCurrencyCode: string;
   unitDefinitionId?: string;
-  taxRate?: number;
+  taxRate: number;
   taxCode?: string;
   tags?: string;
   metadataJson?: string;

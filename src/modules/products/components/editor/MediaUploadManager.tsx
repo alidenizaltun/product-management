@@ -20,15 +20,16 @@ const emptyMedia = () => ({
 });
 
 const MediaUploadManager: React.FC = () => {
-  const { control, register, formState: { errors } } = useFormContext<ProductFormValues>();
+  const { control, register, watch, formState: { errors } } = useFormContext<ProductFormValues>();
   const { fields, append, remove } = useFieldArray({ control, name: "mediaItems" });
+  const mediaItems = watch("mediaItems");
 
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h6 className="overline-title text-primary mb-0">Medya Dosyaları</h6>
-          <p className="text-soft fs-13px mb-0">Ürün görselleri, videoları ve belgelerini ekleyin.</p>
+          <h6 className="overline-title text-primary mb-0">Medya Galerisi</h6>
+          <p className="text-soft fs-13px mb-0">Kapak görseli, galeri sırası ve alt metinleri ürün bağlamında yönetin.</p>
         </div>
         <button
           type="button"
@@ -40,6 +41,16 @@ const MediaUploadManager: React.FC = () => {
         </button>
       </div>
 
+      <button
+        type="button"
+        className="border border-dashed rounded bg-lighter text-center p-4 w-100 mb-3"
+        onClick={() => append({ ...emptyMedia(), isPrimary: fields.length === 0, sortOrder: fields.length + 1 })}
+      >
+        <em className="icon ni ni-upload-cloud fs-1 text-primary d-block mb-2" />
+        <span className="fw-medium d-block">Dosya veya bağlantı ekle</span>
+        <span className="text-soft fs-13px">İlk medya otomatik kapak olarak işaretlenir.</span>
+      </button>
+
       {fields.length === 0 && (
         <div className="text-center py-5 text-soft">
           <em className="icon ni ni-img fs-2 d-block mb-2" />
@@ -48,12 +59,16 @@ const MediaUploadManager: React.FC = () => {
       )}
 
       <div className="row g-3">
-        {fields.map((field, index) => (
-          <div key={field.id} className="col-12">
-            <div className="card card-bordered">
+        {fields.map((field, index) => {
+          const mediaItem = mediaItems?.[index];
+          const previewUrl = mediaItem?.thumbnailUrl || mediaItem?.url;
+
+          return (
+          <div key={field.id} className="col-lg-6">
+            <div className="card card-bordered h-100">
               <div className="card-inner">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <span className="badge bg-outline-primary">Medya #{index + 1}</span>
+                  <span className="badge bg-outline-primary">{index === 0 ? "Kapak adayı" : `Galeri #${index + 1}`}</span>
                   <button
                     type="button"
                     className="btn btn-sm btn-icon btn-trigger text-danger"
@@ -65,7 +80,25 @@ const MediaUploadManager: React.FC = () => {
                 </div>
 
                 <div className="row g-3">
-                  <div className="col-md-3">
+                  <div className="col-12">
+                    <div className="rounded bg-lighter border d-flex align-items-center justify-content-center overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
+                      {previewUrl ? (
+                        <img
+                          src={previewUrl}
+                          alt={mediaItem?.altText || `Medya ${index + 1}`}
+                          className="w-100 h-100"
+                          style={{ objectFit: "cover" }}
+                        />
+                      ) : (
+                        <div className="text-center text-soft">
+                          <em className="icon ni ni-img fs-1 d-block mb-2" />
+                          <span className="fs-13px">URL girildiğinde önizleme görünür.</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="col-md-4">
                     <label className="form-label">Medya Tipi</label>
                     <select
                       className="form-control form-select"
@@ -77,16 +110,7 @@ const MediaUploadManager: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className="col-md-3">
-                    <label className="form-label">MIME Tipi</label>
-                    <input
-                      className="form-control"
-                      placeholder="image/jpeg"
-                      {...register(`mediaItems.${index}.mimeType`)}
-                    />
-                  </div>
-
-                  <div className="col-md-3">
+                  <div className="col-md-4">
                     <label className="form-label">Sıralama</label>
                     <input
                       type="number"
@@ -97,7 +121,7 @@ const MediaUploadManager: React.FC = () => {
                     />
                   </div>
 
-                  <div className="col-md-3 d-flex align-items-end pb-1">
+                  <div className="col-md-4 d-flex align-items-end pb-1">
                     <div className="form-check form-switch">
                       <input
                         type="checkbox"
@@ -111,7 +135,7 @@ const MediaUploadManager: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="col-md-6">
+                  <div className="col-12">
                     <label className="form-label">URL <span className="text-danger">*</span></label>
                     <input
                       className={`form-control ${errors.mediaItems?.[index]?.url ? "is-invalid" : ""}`}
@@ -123,12 +147,21 @@ const MediaUploadManager: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="col-md-6">
+                  <div className="col-md-7">
                     <label className="form-label">Küçük Resim URL</label>
                     <input
                       className="form-control"
                       placeholder="https://example.com/thumb.jpg"
                       {...register(`mediaItems.${index}.thumbnailUrl`)}
+                    />
+                  </div>
+
+                  <div className="col-md-5">
+                    <label className="form-label">MIME Tipi</label>
+                    <input
+                      className="form-control"
+                      placeholder="image/jpeg"
+                      {...register(`mediaItems.${index}.mimeType`)}
                     />
                   </div>
 
@@ -144,7 +177,8 @@ const MediaUploadManager: React.FC = () => {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {fields.length > 0 && (

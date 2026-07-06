@@ -342,7 +342,15 @@ export interface ProductPricingRuleDto {
   productId: Uuid;
   productLicenseOfferingId?: Uuid | null;
   licenseOfferingId?: Uuid | null;
+  licenseOfferingTempId?: string | null;
   licenseOfferingName?: string | null;
+  productUnitId?: Uuid | null;
+  productUnitTempId?: string | null;
+  productUnitCode?: string | null;
+  productUnitName?: string | null;
+  unitDefinitionId?: Uuid | null;
+  unitDefinitionCode?: string | null;
+  unitDefinitionName?: string | null;
   productVariantId?: Uuid | null;
   variantName?: string | null;
   variantSku?: string | null;
@@ -370,8 +378,11 @@ export interface UpsertProductPricingRuleRequestDto {
   salesChannel?: string | null;
   customerGroupCode?: string | null;
   productVariantId?: Uuid | null;
+  productUnitId?: Uuid | null;
+  productUnitTempId?: string | null;
   productLicenseOfferingId?: Uuid | null;
   licenseOfferingId?: Uuid | null;
+  licenseOfferingTempId?: string | null;
   priceAdjustment?: ProductPricingRuleAdjustmentDto | null;
   priceAdjustmentJson?: string | null;
 }
@@ -379,6 +390,12 @@ export interface UpsertProductPricingRuleRequestDto {
 export interface ProductLicenseOfferingDto {
   id: Uuid;
   productId: Uuid;
+  productUnitId?: Uuid | null;
+  productUnitCode?: string | null;
+  productUnitName?: string | null;
+  unitDefinitionId?: Uuid | null;
+  unitDefinitionCode?: string | null;
+  unitDefinitionName?: string | null;
   licenseModel: number;
   name: string;
   description?: string;
@@ -439,6 +456,38 @@ export const UNIT_ROLE_LABELS: Record<UnitRole, string> = {
   3: 'Satın Alma Birimi',
 };
 
+export interface ProductUnitDto {
+  id: Uuid;
+  productId: Uuid;
+  unitDefinitionId: Uuid;
+  unitDefinitionCode?: string | null;
+  unitDefinitionName?: string | null;
+  code: string;
+  name: string;
+  description?: string | null;
+  role: UnitRole;
+  isDefault: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CreateProductUnitRequestDto {
+  id?: Uuid;
+  _tempId?: string;
+  unitDefinitionId: Uuid;
+  code: string;
+  name: string;
+  description?: string | null;
+  role: UnitRole;
+  isDefault: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export type UpdateProductUnitRequestDto = Omit<CreateProductUnitRequestDto, "id" | "_tempId">;
+
 export interface ProductUnitConversionDto {
   id: Uuid;
   productId: Uuid;
@@ -481,6 +530,7 @@ export interface ProductDetailDto extends ProductDto {
   softwarePricingTiers?: SoftwarePricingTierDto[];
   pricingRules?: ProductPricingRuleDto[];
   licenseOfferings?: ProductLicenseOfferingDto[];
+  productUnits?: ProductUnitDto[];
   unitConversions?: ProductUnitConversionDto[];
   inventoryTransactions?: InventoryTransactionDto[];
   inventoryReservations?: InventoryReservationDto[];
@@ -874,6 +924,7 @@ export interface UpdateProductPriceListItemRequestDto {
 
 export interface CreateFullProductRequestDto {
   product: CreateProductRequestDto;
+  productUnits?: CreateProductUnitRequestDto[];
   attributeValues?: Array<{
     attributeDefinitionId: Uuid;
     valueText: string;
@@ -1027,6 +1078,8 @@ export interface CreateFullProductRequestDto {
     id?: Uuid;
     /** Frontend'in tier eşleştirmesi için kullandığı geçici anahtar */
     _tempId?: string;
+    productUnitId?: Uuid;
+    productUnitTempId?: string;
     licenseModel: number;
     name: string;
     description?: string;
@@ -1043,6 +1096,24 @@ export interface CreateFullProductRequestDto {
     validTo?: string;
     isActive?: boolean;
     sortOrder?: number;
+  }>;
+  pricingRules?: Array<{
+    productLicenseOfferingId?: Uuid;
+    licenseOfferingId?: Uuid;
+    licenseOfferingTempId?: string;
+    productUnitId?: Uuid;
+    productUnitTempId?: string;
+    productVariantId?: Uuid | null;
+    code: string;
+    name: string;
+    priority: number;
+    isActive: boolean;
+    validFrom?: string | null;
+    validTo?: string | null;
+    salesChannel?: string | null;
+    customerGroupCode?: string | null;
+    priceAdjustment?: ProductPricingRuleAdjustmentDto | null;
+    priceAdjustmentJson?: string | null;
   }>;
 }
 

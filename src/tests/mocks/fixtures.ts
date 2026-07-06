@@ -162,6 +162,7 @@ export const mockProductDetailDto: ProductDetailDto = {
     serviceProfile: undefined,
     subscriptionProfile: undefined,
     modules: [],
+    productUnits: [],
     softwarePricingTiers: [],
     licenseOfferings: [],
     unitConversions: [],
@@ -224,6 +225,22 @@ export const mockSoftwareProductDetail: ProductDetailDto = {
             createdAt: NOW,
         },
     ],
+    productUnits: [
+        {
+            id: "product-unit-user",
+            productId: "prod-sw-001",
+            unitDefinitionId: "unit-user",
+            unitDefinitionCode: "USER",
+            unitDefinitionName: "Kullanıcı",
+            code: "USER",
+            name: "Kullanıcı",
+            role: 1,
+            isDefault: true,
+            isActive: true,
+            sortOrder: 0,
+            createdAt: NOW,
+        },
+    ],
     softwarePricingTiers: [
         {
             id: "tier-001",
@@ -246,6 +263,12 @@ export const mockSoftwareProductDetail: ProductDetailDto = {
         {
             id: "lo-001",
             productId: "prod-sw-001",
+            productUnitId: "product-unit-user",
+            productUnitCode: "USER",
+            productUnitName: "Kullanıcı",
+            unitDefinitionId: "unit-user",
+            unitDefinitionCode: "USER",
+            unitDefinitionName: "Kullanıcı",
             licenseModel: 1,
             name: "Standart Lisans",
             description: "1 yıllık standart lisans",

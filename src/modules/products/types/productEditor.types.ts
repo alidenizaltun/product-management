@@ -1,3 +1,5 @@
+import type { ProductPricingRuleAdjustmentDto } from "@/shared/types/productOperations.types";
+
 export type ProductProfileType = "physical" | "software" | "service" | "subscription";
 
 export interface AttributeValueForm {
@@ -167,9 +169,24 @@ export interface SoftwarePricingTierForm {
   isActive: boolean;
 }
 
+export interface ProductUnitForm {
+  id?: string;
+  _tempId?: string;
+  unitDefinitionId: string;
+  code: string;
+  name: string;
+  description?: string;
+  role: 1 | 2 | 3;
+  isDefault: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
 export interface LicenseOfferingForm {
   id?: string;
   _tempId?: string;
+  productUnitId?: string;
+  productUnitTempId?: string;
   licenseModel: number;
   name: string;
   description?: string;
@@ -186,6 +203,25 @@ export interface LicenseOfferingForm {
   validTo?: string;
   isActive: boolean;
   sortOrder: number;
+}
+
+export interface ProductPricingRuleForm {
+  id?: string;
+  productLicenseOfferingId?: string;
+  licenseOfferingTempId?: string;
+  productUnitId?: string;
+  productUnitTempId?: string;
+  productVariantId?: string | null;
+  code: string;
+  name: string;
+  priority: number;
+  isActive: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
+  salesChannel?: string | null;
+  customerGroupCode?: string | null;
+  priceAdjustment?: ProductPricingRuleAdjustmentDto | null;
+  priceAdjustmentJson?: string | null;
 }
 
 export interface UnitConversionForm {
@@ -235,7 +271,9 @@ export interface ProductFormValues {
   subscriptionProfile: SubscriptionProfileForm;
 
   modules: ProductModuleForm[];
+  productUnits: ProductUnitForm[];
   softwarePricingTiers: SoftwarePricingTierForm[];
   licenseOfferings: LicenseOfferingForm[];
+  pricingRules: ProductPricingRuleForm[];
   unitConversions: UnitConversionForm[];
 }

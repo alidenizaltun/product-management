@@ -7,15 +7,22 @@ import type {
   ProductLicenseOfferingDto,
   ProductPricingRuleAdjustmentDto,
   ProductPricingRuleDto,
+  ProductUnitDto,
   ProductVariantDto,
   UpsertProductPricingRuleRequestDto,
 } from "@/shared/types/productOperations.types";
 
+type ScopedLicenseOfferingOption = ProductLicenseOfferingDto & { _tempId?: string };
+type ScopedProductUnitOption = ProductUnitDto & { _tempId?: string };
+
 interface ProductPricingRulesPanelProps {
   productId?: string;
-  licenseOfferings?: ProductLicenseOfferingDto[];
+  licenseOfferings?: ScopedLicenseOfferingOption[];
+  productUnits?: ScopedProductUnitOption[];
   variants?: ProductVariantDto[];
   editable?: boolean;
+  draftRules?: ProductPricingRuleDto[];
+  onDraftRulesChange?: (rules: ProductPricingRuleDto[]) => void;
 }
 
 interface RuleFormState {
@@ -29,6 +36,9 @@ interface RuleFormState {
   salesChannel: string;
   customerGroupCode: string;
   productLicenseOfferingId: string;
+  licenseOfferingTempId: string;
+  productUnitId: string;
+  productUnitTempId: string;
   productVariantId: string;
   adjustment: AdjustmentFormState;
 }
@@ -319,6 +329,9 @@ const emptyForm = (): RuleFormState => ({
   salesChannel: "",
   customerGroupCode: "",
   productLicenseOfferingId: "",
+  licenseOfferingTempId: "",
+  productUnitId: "",
+  productUnitTempId: "",
   productVariantId: "",
   adjustment: adjustmentToForm(defaultAdjustment),
 });
@@ -431,6 +444,9 @@ const ruleToForm = (rule: ProductPricingRuleDto): RuleFormState => ({
   salesChannel: rule.salesChannel ?? "",
   customerGroupCode: rule.customerGroupCode ?? "",
   productLicenseOfferingId: rule.productLicenseOfferingId ?? rule.licenseOfferingId ?? "",
+  licenseOfferingTempId: rule.licenseOfferingTempId ?? "",
+  productUnitId: rule.productUnitId ?? "",
+  productUnitTempId: rule.productUnitTempId ?? "",
   productVariantId: rule.productVariantId ?? "",
   adjustment: adjustmentToForm(getAdjustment(rule)),
 });
@@ -453,8 +469,11 @@ const shortJsonSummary = (rule: ProductPricingRuleDto) => {
 const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   productId,
   licenseOfferings = [],
+  productUnits = [],
   variants = [],
   editable = false,
+  draftRules,
+  onDraftRulesChange,
 }) => {
   const { data, isLoading, isError, refetch } = useProductPricingRules(productId);
   const { createMutation, updateMutation, deleteMutation } = useProductPricingRuleMutations(productId);
@@ -463,12 +482,16 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   const [engineOpen, setEngineOpen] = useState(false);
 
   const rules = useMemo(
-    () => [...(data ?? [])].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)),
-    [data]
+    () => [...(productId ? data ?? [] : draftRules ?? [])].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)),
+    [data, draftRules, productId]
   );
   const offeringById = useMemo(
     () => new Map(licenseOfferings.map((offering) => [offering.id, offering])),
     [licenseOfferings]
+  );
+  const productUnitById = useMemo(
+    () => new Map(productUnits.map((unit) => [unit.id, unit])),
+    [productUnits]
   );
   const variantById = useMemo(
     () => new Map(variants.map((variant) => [variant.id, variant])),
@@ -583,16 +606,50 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       salesChannel: form.salesChannel.trim() || null,
       customerGroupCode: form.customerGroupCode.trim() || null,
       productVariantId: form.productVariantId || null,
+      productUnitId: form.productUnitId || null,
+      productUnitTempId: form.productUnitTempId || null,
       productLicenseOfferingId: form.productLicenseOfferingId || null,
+      licenseOfferingTempId: form.licenseOfferingTempId || null,
       priceAdjustment,
       priceAdjustmentJson: JSON.stringify(priceAdjustment),
     };
   };
 
   const handleSubmit = async () => {
-    if (!productId) return;
-
     const payload = buildPayload();
+
+    if (!productId && onDraftRulesChange) {
+      const draftRule: ProductPricingRuleDto = {
+        id: form.id || `draft-rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        productId: "",
+        productLicenseOfferingId: payload.productLicenseOfferingId ?? null,
+        licenseOfferingTempId: payload.licenseOfferingTempId ?? null,
+        productUnitId: payload.productUnitId ?? null,
+        productUnitTempId: payload.productUnitTempId ?? null,
+        productVariantId: payload.productVariantId ?? null,
+        salesChannel: payload.salesChannel ?? null,
+        customerGroupCode: payload.customerGroupCode ?? null,
+        code: payload.code,
+        name: payload.name,
+        priority: payload.priority,
+        isActive: payload.isActive,
+        validFrom: payload.validFrom,
+        validTo: payload.validTo,
+        priceAdjustment: payload.priceAdjustment,
+        priceAdjustmentJson: payload.priceAdjustmentJson,
+      };
+
+      onDraftRulesChange(
+        form.id
+          ? rules.map((rule) => (rule.id === form.id ? draftRule : rule))
+          : [...rules, draftRule]
+      );
+      showSuccess(form.id ? "Taslak kural güncellendi." : "Taslak kural eklendi.");
+      resetForm();
+      return;
+    }
+
+    if (!productId) return;
 
     try {
       if (form.id) {
@@ -611,6 +668,13 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   const handleDelete = async () => {
     if (!deleteTarget) return;
 
+    if (!productId && onDraftRulesChange) {
+      onDraftRulesChange(rules.filter((rule) => rule.id !== deleteTarget.id));
+      showSuccess("Taslak kural silindi.");
+      setDeleteTarget(null);
+      return;
+    }
+
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
       showSuccess("Fiyatlandırma kuralı silindi.");
@@ -620,7 +684,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     }
   };
 
-  if (!productId) {
+  if (!productId && !onDraftRulesChange) {
     return (
       <div className="card card-bordered">
         <div className="card-inner text-center py-5">
@@ -633,6 +697,46 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
   const pending = createMutation.isPending || updateMutation.isPending;
   const isUnitMode = form.adjustment.mode === "unit";
+  const selectedOfferingValue = form.productLicenseOfferingId
+    ? `id:${form.productLicenseOfferingId}`
+    : form.licenseOfferingTempId
+      ? `temp:${form.licenseOfferingTempId}`
+      : "";
+  const selectedProductUnitValue = form.productUnitId
+    ? `id:${form.productUnitId}`
+    : form.productUnitTempId
+      ? `temp:${form.productUnitTempId}`
+      : "";
+
+  const updateOfferingScope = (value: string) => {
+    if (value.startsWith("id:")) {
+      updateForm("productLicenseOfferingId", value.replace("id:", ""));
+      updateForm("licenseOfferingTempId", "");
+      return;
+    }
+    if (value.startsWith("temp:")) {
+      updateForm("productLicenseOfferingId", "");
+      updateForm("licenseOfferingTempId", value.replace("temp:", ""));
+      return;
+    }
+    updateForm("productLicenseOfferingId", "");
+    updateForm("licenseOfferingTempId", "");
+  };
+
+  const updateProductUnitScope = (value: string) => {
+    if (value.startsWith("id:")) {
+      updateForm("productUnitId", value.replace("id:", ""));
+      updateForm("productUnitTempId", "");
+      return;
+    }
+    if (value.startsWith("temp:")) {
+      updateForm("productUnitId", "");
+      updateForm("productUnitTempId", value.replace("temp:", ""));
+      return;
+    }
+    updateForm("productUnitId", "");
+    updateForm("productUnitTempId", "");
+  };
 
   return (
     <div className="row g-4">
@@ -772,22 +876,48 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                   </div>
                 </div>
 
-                <div className="col-md-6">
+                <div className="col-md-4">
                   <label className="form-label">Hangi satış planı?</label>
                   <select
                     className="form-select"
-                    value={form.productLicenseOfferingId}
-                    onChange={(event) => updateForm("productLicenseOfferingId", event.target.value)}
+                    value={selectedOfferingValue}
+                    onChange={(event) => updateOfferingScope(event.target.value)}
                   >
                     <option value="">Tüm planlar</option>
-                    {licenseOfferings.map((offering) => (
-                      <option key={offering.id} value={offering.id}>
-                        {offering.name}
-                      </option>
-                    ))}
+                    {licenseOfferings.map((offering) => {
+                      const value = offering.id ? `id:${offering.id}` : `temp:${offering._tempId}`;
+                      return (
+                        <option key={value} value={value}>
+                          {offering.name}
+                          {!offering.id ? " (kaydedilecek)" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
-                <div className="col-md-6">
+                <div className="col-md-4">
+                  <label className="form-label">
+                    <HelpLabel help="Bu seçim kuralın hangi ürün birimine ait olduğunu belirler; hesaplamada okunan feature alanı aşağıdaki Birim alanı bölümünden gelir.">
+                      Ürün birimi
+                    </HelpLabel>
+                  </label>
+                  <select
+                    className="form-select"
+                    value={selectedProductUnitValue}
+                    onChange={(event) => updateProductUnitScope(event.target.value)}
+                  >
+                    <option value="">Tüm ürün birimleri</option>
+                    {productUnits.filter((unit) => unit.isActive).map((unit) => {
+                      const value = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
+                      return (
+                        <option key={value} value={value}>
+                          {unit.name} ({unit.code}){!unit.id ? " (kaydedilecek)" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+                <div className="col-md-4">
                   <label className="form-label">Hangi varyant?</label>
                   <select
                     className="form-select"
@@ -1188,14 +1318,25 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                   {rules.map((rule) => {
                     const offeringId = rule.productLicenseOfferingId ?? rule.licenseOfferingId ?? "";
                     const variant = rule.productVariantId ? variantById.get(rule.productVariantId) : undefined;
+                    const tempOffering = rule.licenseOfferingTempId
+                      ? licenseOfferings.find((offering) => offering._tempId === rule.licenseOfferingTempId)
+                      : undefined;
                     const offeringLabel = rule.licenseOfferingName
+                      ?? tempOffering?.name
                       ?? (offeringId ? offeringById.get(offeringId)?.name ?? offeringId.slice(0, 8) : "");
+                    const tempProductUnit = rule.productUnitTempId
+                      ? productUnits.find((unit) => unit._tempId === rule.productUnitTempId)
+                      : undefined;
+                    const productUnitLabel = rule.productUnitName
+                      ?? rule.productUnitCode
+                      ?? tempProductUnit?.name
+                      ?? (rule.productUnitId ? productUnitById.get(rule.productUnitId)?.name ?? rule.productUnitId.slice(0, 8) : "");
                     const variantLabel = rule.variantName
                       ?? variant?.name
                       ?? variant?.sku
                       ?? (rule.productVariantId ? rule.productVariantId.slice(0, 8) : "");
                     const hasFilters = Boolean(
-                      offeringLabel || variantLabel || rule.salesChannel || rule.customerGroupCode
+                      offeringLabel || productUnitLabel || variantLabel || rule.salesChannel || rule.customerGroupCode
                     );
 
                     return (
@@ -1208,6 +1349,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                         <td className="fs-13px">{shortJsonSummary(rule)}</td>
                         <td className="fs-12">
                           {offeringLabel && <span className="badge bg-outline-primary me-1">{offeringLabel}</span>}
+                          {productUnitLabel && <span className="badge bg-outline-success me-1">{productUnitLabel}</span>}
                           {variantLabel && <span className="badge bg-outline-info me-1">{variantLabel}</span>}
                           {rule.salesChannel && <span className="badge bg-outline-secondary me-1">{rule.salesChannel}</span>}
                           {rule.customerGroupCode && <span className="badge bg-outline-warning me-1">{rule.customerGroupCode}</span>}

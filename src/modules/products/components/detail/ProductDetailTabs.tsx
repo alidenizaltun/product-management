@@ -13,6 +13,7 @@ import type {
   ProductModuleOfferingPriceDto,
   SoftwarePricingTierDto,
   ProductLicenseOfferingDto,
+  ProductUnitDto,
 } from "@/shared/types/productOperations.types";
 import ModuleOfferingPricesPanel from "./ModuleOfferingPricesPanel";
 import ProductPricingRulesPanel from "@/modules/products/components/pricing-rules/ProductPricingRulesPanel";
@@ -607,6 +608,32 @@ export const ModulesTab: React.FC<ModulesTabProps> = ({ productId, items, licens
 
 // ─── License Offerings Tab ────────────────────────────────────────────────────
 
+export const ProductUnitsTab: React.FC<{ items: ProductUnitDto[] }> = ({ items }) => {
+  if (!items.length) {
+    return <TabEmpty icon="grid-add-c" title="Ürün birimi yok" description="Bu ürüne ait fiyatlandırılabilir birim tanımlanmamış." />;
+  }
+
+  const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
+  return (
+    <div className="row g-3">
+      {sorted.map((unit) => (
+        <div key={unit.id} className="col-md-6 col-xl-4">
+          <DetailCard title={unit.name} subtitle={unit.code} icon="grid-add-c" fullHeight={false}>
+            <InfoRow label="Sözlük Birimi" value={unit.unitDefinitionName ?? unit.unitDefinitionCode} />
+            <InfoRow
+              label="Rol"
+              value={unit.role === 1 ? "Satış Birimi" : unit.role === 2 ? "Stok Birimi" : "Satın Alma Birimi"}
+            />
+            <InfoRow label="Varsayılan" value={<StatusBadge active={unit.isDefault} />} />
+            <InfoRow label="Durum" value={<StatusBadge active={unit.isActive} />} />
+            <InfoRow label="Sıra" value={unit.sortOrder} />
+          </DetailCard>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export const LicenseOfferingsTab: React.FC<{ items: ProductLicenseOfferingDto[] }> = ({ items }) => {
   if (!items.length) {
     return <TabEmpty icon="tag" title="Fiyatlandırma yok" description="Lisans modeli tanımlanmamış." />;
@@ -641,8 +668,8 @@ export const LicenseOfferingsTab: React.FC<{ items: ProductLicenseOfferingDto[] 
                   )}
                 </div>
                 <InfoRow label="Maks. Koltuk" value={lo.maxSeats} />
+                <InfoRow label="Ürün Birimi" value={lo.productUnitName ?? lo.productUnitCode ?? lo.unitDefinitionName} />
                 <InfoRow label="Deneme" value={lo.trialDays != null ? `${lo.trialDays} gün` : undefined} />
-                <InfoRow label="Oto. Yenileme" value={<StatusBadge active={lo.autoRenew} />} />
                 {lo.convertToOfferingName && (
                   <InfoRow label="Dönüşüm" value={lo.convertToOfferingName} />
                 )}
@@ -793,6 +820,12 @@ export const buildProductDetailTabs = (product: ProductDetailDto): TabItem[] => 
   if (isLicensable) {
     tabs.push(
       {
+        id: "product-units",
+        label: "Birimler",
+        badge: product.productUnits?.length || undefined,
+        content: <ProductUnitsTab items={product.productUnits ?? []} />,
+      },
+      {
         id: "license-offerings",
         label: "Fiyatlandırma",
         badge: product.licenseOfferings?.length || undefined,
@@ -806,6 +839,7 @@ export const buildProductDetailTabs = (product: ProductDetailDto): TabItem[] => 
           <ProductPricingRulesPanel
             productId={product.id}
             licenseOfferings={product.licenseOfferings ?? []}
+            productUnits={product.productUnits ?? []}
             variants={product.variants ?? []}
           />
         ),

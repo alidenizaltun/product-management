@@ -21,6 +21,7 @@ import {
 import ProductModulesTab from "@/modules/products/components/editor/ProductModulesTab";
 import SoftwarePricingTiersTab from "@/modules/products/components/editor/SoftwarePricingTiersTab";
 import LicenseOfferingsTab from "@/modules/products/components/editor/LicenseOfferingsTab";
+import ProductUnitsTab from "@/modules/products/components/editor/ProductUnitsTab";
 import GeneralInfoTab from "@/modules/products/components/editor/GeneralInfoTab";
 import VariantBuilder from "@/modules/products/components/editor/VariantBuilder";
 import PriceMatrix from "@/modules/products/components/editor/PriceMatrix";
@@ -288,8 +289,10 @@ const buildDefaultValues = (): ProductFormValues => ({
     subscriptionProfile: buildDefaultSubscription(),
 
     modules: [],
+    productUnits: [],
     softwarePricingTiers: [],
     licenseOfferings: [],
+    pricingRules: [],
     unitConversions: [],
 });
 
@@ -461,6 +464,18 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
             : buildDefaultSubscription(),
 
         // Yazılım modülleri ve lisans alanları
+        productUnits: (product.productUnits ?? []).map((unit) => ({
+            id: unit.id,
+            unitDefinitionId: unit.unitDefinitionId,
+            code: unit.code,
+            name: unit.name,
+            description: unit.description ?? "",
+            role: unit.role,
+            isDefault: unit.isDefault,
+            isActive: unit.isActive,
+            sortOrder: unit.sortOrder,
+        })),
+
         modules: (product.modules ?? []).map((m) => ({
             id: m.id,
             moduleCode: m.moduleCode,
@@ -493,6 +508,7 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
 
         licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
             id: lo.id,
+            productUnitId: lo.productUnitId ?? "",
             licenseModel: lo.licenseModel,
             name: lo.name,
             description: lo.description,
@@ -587,6 +603,7 @@ const ProductFormPage: React.FC = () => {
         general: getTabErrorCount(["productCode", "name", "defaultCurrencyCode"]),
         variants: getTabErrorCount(["variants"]),
         prices: getTabErrorCount(["prices"]),
+        productUnits: getTabErrorCount(["productUnits"]),
         attributes: getTabErrorCount(["attributeValues"]),
         categories: getTabErrorCount(["categoryMaps"]),
         suppliers: getTabErrorCount(["supplierMaps"]),
@@ -662,6 +679,22 @@ const ProductFormPage: React.FC = () => {
             softwareProfile: values.kind === 2 ? values.softwareProfile : undefined,
             serviceProfile: values.kind === 3 ? values.serviceProfile : undefined,
             subscriptionProfile: values.kind === 4 ? values.subscriptionProfile : undefined,
+            productUnits: values.productUnits?.length
+                ? values.productUnits
+                    .filter((unit) => Boolean(unit.unitDefinitionId) && Boolean(unit.code?.trim()) && Boolean(unit.name?.trim()))
+                    .map((unit) => ({
+                        id: unit.id || undefined,
+                        _tempId: unit._tempId || undefined,
+                        unitDefinitionId: unit.unitDefinitionId,
+                        code: unit.code.trim(),
+                        name: unit.name.trim(),
+                        description: unit.description?.trim() || undefined,
+                        role: Number(unit.role) as 1 | 2 | 3,
+                        isDefault: Boolean(unit.isDefault),
+                        isActive: Boolean(unit.isActive),
+                        sortOrder: Number.isFinite(unit.sortOrder) ? unit.sortOrder : 0,
+                    }))
+                : (isEdit ? [] : undefined),
             // Yazılım ürünü (kind=2) için ek lisans alanları
             modules: values.kind === 2 && values.modules?.length
                 ? values.modules.map((m) => ({
@@ -689,15 +722,44 @@ const ProductFormPage: React.FC = () => {
             softwarePricingTiers: undefined,
             licenseOfferings:
                 values.kind === 2 && values.licenseOfferings?.length
-                    ? values.licenseOfferings.map(({ id: loId, convertToOfferingId, _tempId, ...lo }) => ({
+                    ? values.licenseOfferings.map(({
+                        id: loId,
+                        convertToOfferingId,
+                        _tempId,
+                        productUnitId,
+                        productUnitTempId,
+                        ...lo
+                    }) => ({
                         ...lo,
                         id: loId || undefined,
                         // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
                         _tempId: _tempId || undefined,
+                        productUnitId: productUnitId || undefined,
+                        productUnitTempId: productUnitTempId || undefined,
                         convertToOfferingId: convertToOfferingId || undefined,
                         validFrom: lo.validFrom || null,
                         validTo: lo.validTo || null,
                         productId: id ?? undefined,
+                    }))
+                    : undefined,
+            pricingRules:
+                !isEdit && values.pricingRules?.length
+                    ? values.pricingRules.map((rule) => ({
+                        productLicenseOfferingId: rule.productLicenseOfferingId || undefined,
+                        licenseOfferingTempId: rule.licenseOfferingTempId || undefined,
+                        productUnitId: rule.productUnitId || undefined,
+                        productUnitTempId: rule.productUnitTempId || undefined,
+                        productVariantId: rule.productVariantId || null,
+                        code: rule.code,
+                        name: rule.name,
+                        priority: Number(rule.priority ?? 0),
+                        isActive: Boolean(rule.isActive),
+                        validFrom: rule.validFrom || null,
+                        validTo: rule.validTo || null,
+                        salesChannel: rule.salesChannel || null,
+                        customerGroupCode: rule.customerGroupCode || null,
+                        priceAdjustment: rule.priceAdjustment ?? null,
+                        priceAdjustmentJson: rule.priceAdjustmentJson ?? null,
                     }))
                     : undefined,
         };
@@ -747,11 +809,59 @@ const ProductFormPage: React.FC = () => {
     const isLicensable = kind === 2 || kind === 3 || kind === 4;
     // Rezervasyonlar; fiziksel veya hizmet türünde gösterilir
     const hasReservations = kind === 1 || kind === 3;
+    const pricingRuleProductUnits = isEdit
+        ? product?.productUnits ?? []
+        : (formValues.productUnits ?? []).map((unit) => ({
+            id: unit.id ?? "",
+            _tempId: unit._tempId,
+            productId: id ?? "",
+            unitDefinitionId: unit.unitDefinitionId,
+            code: unit.code,
+            name: unit.name,
+            description: unit.description,
+            role: unit.role,
+            isDefault: unit.isDefault,
+            isActive: unit.isActive,
+            sortOrder: unit.sortOrder,
+            createdAt: "",
+        }));
+    const pricingRuleLicenseOfferings = isEdit
+        ? product?.licenseOfferings ?? []
+        : (formValues.licenseOfferings ?? []).map((offering) => ({
+            id: offering.id ?? "",
+            _tempId: offering._tempId,
+            productId: id ?? "",
+            productUnitId: offering.productUnitId,
+            productUnitName: pricingRuleProductUnits.find((unit) => unit.id === offering.productUnitId || unit._tempId === offering.productUnitTempId)?.name,
+            licenseModel: Number(offering.licenseModel ?? 2),
+            name: offering.name || "Yeni Plan",
+            description: offering.description,
+            basePrice: Number(offering.basePrice ?? 0),
+            currencyCode: offering.currencyCode || "TRY",
+            billingPeriodUnit: offering.billingPeriodUnit,
+            billingPeriodValue: offering.billingPeriodValue,
+            autoRenew: Boolean(offering.autoRenew),
+            gracePeriodDays: offering.gracePeriodDays,
+            trialDays: offering.trialDays,
+            convertToOfferingId: offering.convertToOfferingId,
+            maxSeats: offering.maxSeats,
+            validFrom: offering.validFrom,
+            validTo: offering.validTo,
+            isActive: Boolean(offering.isActive),
+            sortOrder: Number(offering.sortOrder ?? 0),
+            createdAt: "",
+        }));
+    const draftPricingRules = (formValues.pricingRules ?? []).map((rule) => ({
+        ...rule,
+        id: rule.id ?? "",
+        productId: "",
+    }));
 
     const workflowErrorCounts: Record<WorkflowId, number> = {
         start: tabErrorCounts.general + tabErrorCounts.categories,
         sales:
             tabErrorCounts.prices +
+            tabErrorCounts.productUnits +
             tabErrorCounts.priceListItems +
             tabErrorCounts.inventory +
             tabErrorCounts.invTransactions,
@@ -801,6 +911,15 @@ const ProductFormPage: React.FC = () => {
             icon: "cart",
             content: (
                 <>
+                    {isLicensable && (
+                        <WorkflowSection
+                            icon="grid-add-c"
+                            title="Ürün Birimleri"
+                            description="Fiyatlandırma ve lisans tekliflerinde kullanılacak ürün içi birimleri tanımlayın."
+                        >
+                            <ProductUnitsTab productId={id} />
+                        </WorkflowSection>
+                    )}
                     <WorkflowSection
                         icon="coins"
                         title={isSoftware ? "Satış Planları" : "Fiyat Tarifleri"}
@@ -829,8 +948,37 @@ const ProductFormPage: React.FC = () => {
                         >
                             <SoftwarePricingTiersTab
                                 productId={id}
-                                licenseOfferings={product?.licenseOfferings ?? []}
+                                licenseOfferings={pricingRuleLicenseOfferings}
                                 variants={product?.variants ?? []}
+                                productUnits={pricingRuleProductUnits}
+                                draftRules={!id ? draftPricingRules : undefined}
+                                onDraftRulesChange={
+                                    !id
+                                        ? (rules) =>
+                                            form.setValue(
+                                                "pricingRules",
+                                                rules.map((rule) => ({
+                                                    id: rule.id,
+                                                    productLicenseOfferingId: rule.productLicenseOfferingId ?? undefined,
+                                                    licenseOfferingTempId: rule.licenseOfferingTempId ?? undefined,
+                                                    productUnitId: rule.productUnitId ?? undefined,
+                                                    productUnitTempId: rule.productUnitTempId ?? undefined,
+                                                    productVariantId: rule.productVariantId,
+                                                    code: rule.code,
+                                                    name: rule.name,
+                                                    priority: rule.priority,
+                                                    isActive: rule.isActive,
+                                                    validFrom: rule.validFrom,
+                                                    validTo: rule.validTo,
+                                                    salesChannel: rule.salesChannel,
+                                                    customerGroupCode: rule.customerGroupCode,
+                                                    priceAdjustment: rule.priceAdjustment,
+                                                    priceAdjustmentJson: rule.priceAdjustmentJson,
+                                                })),
+                                                { shouldDirty: true }
+                                            )
+                                        : undefined
+                                }
                             />
                         </WorkflowSection>
                     )}

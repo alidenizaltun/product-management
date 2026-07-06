@@ -56,8 +56,17 @@ function mapProductToFormSimple(product: typeof mockProductDetailDto) {
             name: m.name,
             isActive: m.isActive,
         })),
+        productUnits: (product.productUnits ?? []).map((unit) => ({
+            id: unit.id,
+            unitDefinitionId: unit.unitDefinitionId,
+            code: unit.code,
+            name: unit.name,
+            isDefault: unit.isDefault,
+            isActive: unit.isActive,
+        })),
         licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
             id: lo.id,
+            productUnitId: lo.productUnitId ?? "",
             name: lo.name,
             basePrice: lo.basePrice,
             isActive: lo.isActive,
@@ -117,6 +126,7 @@ describe("mapProductToForm - fiziksel ürün", () => {
 
     it("yazılım alanları (modules, licenseOfferings) boş gelir", () => {
         expect(form.modules).toHaveLength(0);
+        expect(form.productUnits).toHaveLength(0);
         expect(form.licenseOfferings).toHaveLength(0);
     });
 });
@@ -138,7 +148,15 @@ describe("mapProductToForm - yazılım ürünü (kind=2)", () => {
         expect(form.licenseOfferings).toHaveLength(1);
         expect(form.licenseOfferings[0].name).toBe("Standart Lisans");
         expect(form.licenseOfferings[0].basePrice).toBe(1200);
+        expect(form.licenseOfferings[0].productUnitId).toBe("product-unit-user");
         expect(form.licenseOfferings[0].isActive).toBe(true);
+    });
+
+    it("productUnits doğru map edilir", () => {
+        expect(form.productUnits).toHaveLength(1);
+        expect(form.productUnits[0].id).toBe("product-unit-user");
+        expect(form.productUnits[0].unitDefinitionId).toBe("unit-user");
+        expect(form.productUnits[0].isDefault).toBe(true);
     });
 
     it("fiziksel ürün alanları (variants, inventories, supplierMaps) boş gelir", () => {

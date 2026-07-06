@@ -47,13 +47,13 @@ const EMPTY_OFFERING = {
 const PLAN_TEMPLATES = [
     {
         title: "Aylık plan",
-        description: "Her ay yenilenen standart abonelik.",
+        description: "Aylık dönemli standart abonelik.",
         icon: "repeat",
         offering: { licenseModel: 2, name: "Aylık Plan", billingPeriodUnit: 3, billingPeriodValue: 1 },
     },
     {
         title: "Yıllık plan",
-        description: "Yıllık ödeme ve yenileme için.",
+        description: "Yıllık ödeme dönemine uygun plan.",
         icon: "calendar",
         offering: { licenseModel: 2, name: "Yıllık Plan", billingPeriodUnit: 4, billingPeriodValue: 1 },
     },
@@ -114,10 +114,12 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
         register,
         control,
         getValues,
+        setValue,
         formState: { errors },
     } = useFormContext<ProductFormValues>();
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const offering = useWatch({ control, name: `licenseOfferings.${index}` });
+    const productUnits = useWatch({ control, name: "productUnits" }) ?? [];
     const model = Number(offering?.licenseModel ?? 2);
     const meta = getModelMeta(model);
 
@@ -125,6 +127,29 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
     const showTrial = model === 5;
     const showSeats = model === 4;
     const saved = Boolean(offering?.id);
+    const productUnitValue = offering?.productUnitId
+        ? `id:${offering.productUnitId}`
+        : offering?.productUnitTempId
+            ? `temp:${offering.productUnitTempId}`
+            : "";
+    const hasUnsavedProductUnit = Boolean(offering?.productUnitTempId);
+
+    const changeProductUnit = (value: string) => {
+        if (value.startsWith("id:")) {
+            setValue(`licenseOfferings.${index}.productUnitId`, value.replace("id:", ""), { shouldDirty: true });
+            setValue(`licenseOfferings.${index}.productUnitTempId`, undefined, { shouldDirty: true });
+            return;
+        }
+
+        if (value.startsWith("temp:")) {
+            setValue(`licenseOfferings.${index}.productUnitId`, undefined, { shouldDirty: true });
+            setValue(`licenseOfferings.${index}.productUnitTempId`, value.replace("temp:", ""), { shouldDirty: true });
+            return;
+        }
+
+        setValue(`licenseOfferings.${index}.productUnitId`, undefined, { shouldDirty: true });
+        setValue(`licenseOfferings.${index}.productUnitTempId`, undefined, { shouldDirty: true });
+    };
 
     return (
         <div className={`card card-bordered border-${meta.color}`}>
@@ -241,6 +266,28 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                                     {lm.label}
                                 </option>
                             ))}
+                        </select>
+                    </div>
+
+                    <div className="col-md-4">
+                        <label className="form-label">Ürün birimi</label>
+                        <select
+                            className="form-control form-select"
+                            value={productUnitValue}
+                            onChange={(event) => changeProductUnit(event.target.value)}
+                        >
+                            <option value="">Varsayılan ürün birimi</option>
+                            {productUnits
+                                .filter((unit) => unit.isActive)
+                                .map((unit) => {
+                                    const optionValue = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
+                                    return (
+                                        <option key={optionValue} value={optionValue}>
+                                            {unit.name || unit.code}
+                                            {!unit.id ? " (kaydedilecek)" : ""}
+                                        </option>
+                                    );
+                                })}
                         </select>
                     </div>
 
@@ -371,19 +418,6 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                     )}
 
                     <div className="col-12 d-flex flex-wrap gap-4">
-                        {model !== 5 && (
-                            <div className="form-check form-switch">
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id={`offering-autorenew-${fieldId}`}
-                                    {...register(`licenseOfferings.${index}.autoRenew`)}
-                                />
-                                <label className="form-check-label" htmlFor={`offering-autorenew-${fieldId}`}>
-                                    Otomatik yenile
-                                </label>
-                            </div>
-                        )}
                         <div className="form-check form-switch">
                             <input
                                 type="checkbox"
@@ -401,9 +435,15 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                         <button
                             type="button"
                             className="btn btn-primary"
-                            disabled={!productId || saving}
+                            disabled={!productId || saving || hasUnsavedProductUnit}
                             onClick={onSave}
-                            title={!productId ? "Plan kaydetmek için önce ürünü kaydedin" : undefined}
+                            title={
+                                !productId
+                                    ? "Plan kaydetmek için önce ürünü kaydedin"
+                                    : hasUnsavedProductUnit
+                                        ? "Yeni ürün birimiyle birlikte kaydetmek için ana formu kaydedin"
+                                        : undefined
+                            }
                         >
                             {saving ? (
                                 <>
@@ -437,6 +477,7 @@ const toOptionalString = (value?: string | null) => {
 };
 
 const buildOfferingPayload = (offering: LicenseOfferingForm) => ({
+    productUnitId: toOptionalString(offering.productUnitId),
     licenseModel: Number(offering.licenseModel ?? 2),
     name: offering.name?.trim() || "Yeni Plan",
     description: toOptionalString(offering.description),

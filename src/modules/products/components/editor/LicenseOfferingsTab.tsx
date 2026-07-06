@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import { productsApi } from "@/modules/products/api/products.api";
-import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
+import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { queryKeys } from "@/services/query/queryKeys";
 import type { LicenseOfferingForm } from "@/modules/products/types/productEditor.types";
 
@@ -26,6 +26,8 @@ const BILLING_UNITS = [
 ];
 
 const EMPTY_OFFERING = {
+    productUnitIds: [] as string[],
+    productUnitTempIds: [] as string[],
     licenseModel: 2,
     name: "",
     description: "",
@@ -85,6 +87,30 @@ const formatMoney = (amount?: number, currency = "TRY") =>
         ? `${amount.toLocaleString("tr-TR")} ${currency}`
         : `0 ${currency}`;
 
+const toUnitScopeValues = (ids?: Array<string | null | undefined>, tempIds?: Array<string | null | undefined>) => [
+    ...(ids ?? []).filter(Boolean).map((id) => `id:${id}`),
+    ...(tempIds ?? []).filter(Boolean).map((id) => `temp:${id}`),
+];
+
+const splitUnitScopeValues = (values: string[]) => {
+    const productUnitIds = values
+        .filter((value) => value.startsWith("id:"))
+        .map((value) => value.replace("id:", ""))
+        .filter(Boolean);
+
+    const productUnitTempIds = values
+        .filter((value) => value.startsWith("temp:"))
+        .map((value) => value.replace("temp:", ""))
+        .filter(Boolean);
+
+    return {
+        productUnitIds,
+        productUnitTempIds,
+        productUnitId: productUnitIds[0],
+        productUnitTempId: productUnitIds.length === 0 ? productUnitTempIds[0] : undefined,
+    };
+};
+
 interface OfferingFieldsProps {
     index: number;
     fieldId: string;
@@ -127,28 +153,26 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
     const showTrial = model === 5;
     const showSeats = model === 4;
     const saved = Boolean(offering?.id);
-    const productUnitValue = offering?.productUnitId
-        ? `id:${offering.productUnitId}`
-        : offering?.productUnitTempId
-            ? `temp:${offering.productUnitTempId}`
-            : "";
-    const hasUnsavedProductUnit = Boolean(offering?.productUnitTempId);
+    const selectedUnitValues = toUnitScopeValues(
+        offering?.productUnitIds?.length ? offering.productUnitIds : offering?.productUnitId ? [offering.productUnitId] : [],
+        offering?.productUnitTempIds?.length
+            ? offering.productUnitTempIds
+            : offering?.productUnitTempId
+                ? [offering.productUnitTempId]
+                : []
+    );
+    const hasUnsavedProductUnit = selectedUnitValues.some((value) => value.startsWith("temp:"));
 
-    const changeProductUnit = (value: string) => {
-        if (value.startsWith("id:")) {
-            setValue(`licenseOfferings.${index}.productUnitId`, value.replace("id:", ""), { shouldDirty: true });
-            setValue(`licenseOfferings.${index}.productUnitTempId`, undefined, { shouldDirty: true });
-            return;
-        }
+    const changeProductUnit = (value: string, checked: boolean) => {
+        const values = checked
+            ? [...selectedUnitValues, value]
+            : selectedUnitValues.filter((item) => item !== value);
+        const scope = splitUnitScopeValues([...new Set(values)]);
 
-        if (value.startsWith("temp:")) {
-            setValue(`licenseOfferings.${index}.productUnitId`, undefined, { shouldDirty: true });
-            setValue(`licenseOfferings.${index}.productUnitTempId`, value.replace("temp:", ""), { shouldDirty: true });
-            return;
-        }
-
-        setValue(`licenseOfferings.${index}.productUnitId`, undefined, { shouldDirty: true });
-        setValue(`licenseOfferings.${index}.productUnitTempId`, undefined, { shouldDirty: true });
+        setValue(`licenseOfferings.${index}.productUnitIds`, scope.productUnitIds, { shouldDirty: true });
+        setValue(`licenseOfferings.${index}.productUnitTempIds`, scope.productUnitTempIds, { shouldDirty: true });
+        setValue(`licenseOfferings.${index}.productUnitId`, scope.productUnitId, { shouldDirty: true });
+        setValue(`licenseOfferings.${index}.productUnitTempId`, scope.productUnitTempId, { shouldDirty: true });
     };
 
     return (
@@ -271,24 +295,49 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
 
                     <div className="col-md-4">
                         <label className="form-label">Ürün birimi</label>
-                        <select
-                            className="form-control form-select"
-                            value={productUnitValue}
-                            onChange={(event) => changeProductUnit(event.target.value)}
-                        >
-                            <option value="">Varsayılan ürün birimi</option>
+                        <div className="border rounded p-3 bg-light">
+                            <div className="form-check mb-2">
+                                <input
+                                    type="checkbox"
+                                    className="form-check-input"
+                                    id={`offering-unit-default-${fieldId}`}
+                                    checked={selectedUnitValues.length === 0}
+                                    onChange={() => {
+                                        const scope = splitUnitScopeValues([]);
+                                        setValue(`licenseOfferings.${index}.productUnitIds`, scope.productUnitIds, { shouldDirty: true });
+                                        setValue(`licenseOfferings.${index}.productUnitTempIds`, scope.productUnitTempIds, { shouldDirty: true });
+                                        setValue(`licenseOfferings.${index}.productUnitId`, scope.productUnitId, { shouldDirty: true });
+                                        setValue(`licenseOfferings.${index}.productUnitTempId`, scope.productUnitTempId, { shouldDirty: true });
+                                    }}
+                                />
+                                <label className="form-check-label" htmlFor={`offering-unit-default-${fieldId}`}>
+                                    Varsayılan ürün birimi
+                                </label>
+                            </div>
                             {productUnits
-                                .filter((unit) => unit.isActive)
+                                .filter((unit) => unit.isActive && (unit.id || unit._tempId))
                                 .map((unit) => {
                                     const optionValue = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
                                     return (
-                                        <option key={optionValue} value={optionValue}>
-                                            {unit.name || unit.code}
-                                            {!unit.id ? " (kaydedilecek)" : ""}
-                                        </option>
+                                        <div className="form-check mb-2" key={optionValue}>
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                id={`offering-unit-${fieldId}-${optionValue}`}
+                                                checked={selectedUnitValues.includes(optionValue)}
+                                                onChange={(event) => changeProductUnit(optionValue, event.target.checked)}
+                                            />
+                                            <label className="form-check-label" htmlFor={`offering-unit-${fieldId}-${optionValue}`}>
+                                                {unit.name || unit.code}
+                                                {!unit.id ? " (kaydedilecek)" : ""}
+                                            </label>
+                                        </div>
                                     );
                                 })}
-                        </select>
+                            {productUnits.filter((unit) => unit.isActive && (unit.id || unit._tempId)).length === 0 && (
+                                <span className="text-soft fs-12px">Tanımlı ürün birimi yok.</span>
+                            )}
+                        </div>
                     </div>
 
                     {showBilling && (
@@ -476,25 +525,31 @@ const toOptionalString = (value?: string | null) => {
     return trimmed || undefined;
 };
 
-const buildOfferingPayload = (offering: LicenseOfferingForm) => ({
-    productUnitId: toOptionalString(offering.productUnitId),
-    licenseModel: Number(offering.licenseModel ?? 2),
-    name: offering.name?.trim() || "Yeni Plan",
-    description: toOptionalString(offering.description),
-    basePrice: toOptionalNumber(offering.basePrice) ?? 0,
-    currencyCode: offering.currencyCode?.trim() || "TRY",
-    billingPeriodUnit: toOptionalNumber(offering.billingPeriodUnit),
-    billingPeriodValue: toOptionalNumber(offering.billingPeriodValue),
-    autoRenew: Boolean(offering.autoRenew),
-    gracePeriodDays: toOptionalNumber(offering.gracePeriodDays),
-    trialDays: toOptionalNumber(offering.trialDays),
-    convertToOfferingId: toOptionalString(offering.convertToOfferingId),
-    maxSeats: toOptionalNumber(offering.maxSeats),
-    validFrom: toOptionalString(offering.validFrom),
-    validTo: toOptionalString(offering.validTo),
-    isActive: Boolean(offering.isActive),
-    sortOrder: toOptionalNumber(offering.sortOrder) ?? 0,
-});
+const buildOfferingPayload = (offering: LicenseOfferingForm) => {
+    const productUnitIds = (offering.productUnitIds?.length ? offering.productUnitIds : offering.productUnitId ? [offering.productUnitId] : [])
+        .filter(Boolean);
+
+    return {
+        productUnitId: productUnitIds[0] || undefined,
+        productUnitIds: productUnitIds.length ? productUnitIds : undefined,
+        licenseModel: Number(offering.licenseModel ?? 2),
+        name: offering.name?.trim() || "Yeni Plan",
+        description: toOptionalString(offering.description),
+        basePrice: toOptionalNumber(offering.basePrice) ?? 0,
+        currencyCode: offering.currencyCode?.trim() || "TRY",
+        billingPeriodUnit: toOptionalNumber(offering.billingPeriodUnit),
+        billingPeriodValue: toOptionalNumber(offering.billingPeriodValue),
+        autoRenew: Boolean(offering.autoRenew),
+        gracePeriodDays: toOptionalNumber(offering.gracePeriodDays),
+        trialDays: toOptionalNumber(offering.trialDays),
+        convertToOfferingId: toOptionalString(offering.convertToOfferingId),
+        maxSeats: toOptionalNumber(offering.maxSeats),
+        validFrom: toOptionalString(offering.validFrom),
+        validTo: toOptionalString(offering.validTo),
+        isActive: Boolean(offering.isActive),
+        sortOrder: toOptionalNumber(offering.sortOrder) ?? 0,
+    };
+};
 
 const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId }) => {
     const queryClient = useQueryClient();
@@ -522,6 +577,10 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId }) 
         if (!valid) return;
 
         const offering = getValues(`licenseOfferings.${index}`);
+        if (offering.productUnitTempIds?.length || offering.productUnitTempId) {
+            showWarning("Önce ürün birimini kaydedin, sonra planı kaydedebilirsiniz.");
+            return;
+        }
         const payload = buildOfferingPayload(offering);
 
         try {

@@ -54,6 +54,16 @@ const STATUS_LABELS: Record<number, string> = {
 const toFiniteNumber = (value: unknown, fallback = 0) =>
     typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
+const mapProductUnitIds = (item: {
+    productUnitIds?: string[];
+    productUnitId?: string | null;
+}) => item.productUnitIds?.length ? item.productUnitIds : item.productUnitId ? [item.productUnitId] : [];
+
+const mapProductUnitTempIds = (item: {
+    productUnitTempIds?: string[];
+    productUnitTempId?: string | null;
+}) => item.productUnitTempIds?.length ? item.productUnitTempIds : item.productUnitTempId ? [item.productUnitTempId] : [];
+
 interface ProductPreviewPanelProps {
     values: Partial<ProductFormValues>;
     totalErrorCount: number;
@@ -508,7 +518,10 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
 
         licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
             id: lo.id,
-            productUnitId: lo.productUnitId ?? "",
+            productUnitId: lo.productUnitId ?? lo.productUnitIds?.[0] ?? "",
+            productUnitTempId: lo.productUnitTempId ?? "",
+            productUnitIds: mapProductUnitIds(lo),
+            productUnitTempIds: mapProductUnitTempIds(lo),
             licenseModel: lo.licenseModel,
             name: lo.name,
             description: lo.description,
@@ -525,6 +538,27 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
             validTo: lo.validTo ? lo.validTo.slice(0, 10) : undefined,
             isActive: lo.isActive,
             sortOrder: lo.sortOrder,
+        })),
+
+        pricingRules: (product.pricingRules ?? []).map((rule) => ({
+            id: rule.id,
+            productLicenseOfferingId: rule.productLicenseOfferingId ?? rule.licenseOfferingId ?? undefined,
+            licenseOfferingTempId: rule.licenseOfferingTempId ?? undefined,
+            productUnitId: rule.productUnitId ?? rule.productUnitIds?.[0] ?? undefined,
+            productUnitTempId: rule.productUnitTempId ?? undefined,
+            productUnitIds: mapProductUnitIds(rule),
+            productUnitTempIds: mapProductUnitTempIds(rule),
+            productVariantId: rule.productVariantId,
+            code: rule.code,
+            name: rule.name,
+            priority: rule.priority,
+            isActive: rule.isActive,
+            validFrom: rule.validFrom,
+            validTo: rule.validTo,
+            salesChannel: rule.salesChannel,
+            customerGroupCode: rule.customerGroupCode,
+            priceAdjustment: rule.priceAdjustment,
+            priceAdjustmentJson: rule.priceAdjustmentJson,
         })),
 
         unitConversions: (product.unitConversions ?? []).map((uc) => ({
@@ -728,39 +762,67 @@ const ProductFormPage: React.FC = () => {
                         _tempId,
                         productUnitId,
                         productUnitTempId,
+                        productUnitIds,
+                        productUnitTempIds,
                         ...lo
-                    }) => ({
-                        ...lo,
-                        id: loId || undefined,
-                        // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
-                        _tempId: _tempId || undefined,
-                        productUnitId: productUnitId || undefined,
-                        productUnitTempId: productUnitTempId || undefined,
-                        convertToOfferingId: convertToOfferingId || undefined,
-                        validFrom: lo.validFrom || null,
-                        validTo: lo.validTo || null,
-                        productId: id ?? undefined,
-                    }))
+                    }) => {
+                        const savedUnitIds = (productUnitIds?.length ? productUnitIds : productUnitId ? [productUnitId] : [])
+                            .filter(Boolean);
+                        const tempUnitIds = (productUnitTempIds?.length ? productUnitTempIds : productUnitTempId ? [productUnitTempId] : [])
+                            .filter(Boolean);
+
+                        return {
+                            ...lo,
+                            id: loId || undefined,
+                            // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
+                            _tempId: _tempId || undefined,
+                            productUnitId: savedUnitIds[0] || undefined,
+                            productUnitTempId: savedUnitIds.length === 0 ? tempUnitIds[0] || undefined : undefined,
+                            productUnitIds: savedUnitIds.length ? savedUnitIds : undefined,
+                            productUnitTempIds: tempUnitIds.length ? tempUnitIds : undefined,
+                            convertToOfferingId: convertToOfferingId || undefined,
+                            validFrom: lo.validFrom || null,
+                            validTo: lo.validTo || null,
+                            productId: id ?? undefined,
+                        };
+                    })
                     : undefined,
             pricingRules:
                 !isEdit && values.pricingRules?.length
-                    ? values.pricingRules.map((rule) => ({
-                        productLicenseOfferingId: rule.productLicenseOfferingId || undefined,
-                        licenseOfferingTempId: rule.licenseOfferingTempId || undefined,
-                        productUnitId: rule.productUnitId || undefined,
-                        productUnitTempId: rule.productUnitTempId || undefined,
-                        productVariantId: rule.productVariantId || null,
-                        code: rule.code,
-                        name: rule.name,
-                        priority: Number(rule.priority ?? 0),
-                        isActive: Boolean(rule.isActive),
-                        validFrom: rule.validFrom || null,
-                        validTo: rule.validTo || null,
-                        salesChannel: rule.salesChannel || null,
-                        customerGroupCode: rule.customerGroupCode || null,
-                        priceAdjustment: rule.priceAdjustment ?? null,
-                        priceAdjustmentJson: rule.priceAdjustmentJson ?? null,
-                    }))
+                    ? values.pricingRules.map((rule) => {
+                        const savedUnitIds = (rule.productUnitIds?.length
+                            ? rule.productUnitIds
+                            : rule.productUnitId
+                                ? [rule.productUnitId]
+                                : [])
+                            .filter(Boolean);
+                        const tempUnitIds = (rule.productUnitTempIds?.length
+                            ? rule.productUnitTempIds
+                            : rule.productUnitTempId
+                                ? [rule.productUnitTempId]
+                                : [])
+                            .filter(Boolean);
+
+                        return {
+                            productLicenseOfferingId: rule.productLicenseOfferingId || undefined,
+                            licenseOfferingTempId: rule.licenseOfferingTempId || undefined,
+                            productUnitId: savedUnitIds[0] || undefined,
+                            productUnitTempId: savedUnitIds.length === 0 ? tempUnitIds[0] || undefined : undefined,
+                            productUnitIds: savedUnitIds.length ? savedUnitIds : undefined,
+                            productUnitTempIds: tempUnitIds.length ? tempUnitIds : undefined,
+                            productVariantId: rule.productVariantId || null,
+                            code: rule.code,
+                            name: rule.name,
+                            priority: Number(rule.priority ?? 0),
+                            isActive: Boolean(rule.isActive),
+                            validFrom: rule.validFrom || null,
+                            validTo: rule.validTo || null,
+                            salesChannel: rule.salesChannel || null,
+                            customerGroupCode: rule.customerGroupCode || null,
+                            priceAdjustment: rule.priceAdjustment ?? null,
+                            priceAdjustmentJson: rule.priceAdjustmentJson ?? null,
+                        };
+                    })
                     : undefined,
         };
 
@@ -827,30 +889,53 @@ const ProductFormPage: React.FC = () => {
         }));
     const pricingRuleLicenseOfferings = isEdit
         ? product?.licenseOfferings ?? []
-        : (formValues.licenseOfferings ?? []).map((offering) => ({
-            id: offering.id ?? "",
-            _tempId: offering._tempId,
-            productId: id ?? "",
-            productUnitId: offering.productUnitId,
-            productUnitName: pricingRuleProductUnits.find((unit) => unit.id === offering.productUnitId || unit._tempId === offering.productUnitTempId)?.name,
-            licenseModel: Number(offering.licenseModel ?? 2),
-            name: offering.name || "Yeni Plan",
-            description: offering.description,
-            basePrice: Number(offering.basePrice ?? 0),
-            currencyCode: offering.currencyCode || "TRY",
-            billingPeriodUnit: offering.billingPeriodUnit,
-            billingPeriodValue: offering.billingPeriodValue,
-            autoRenew: Boolean(offering.autoRenew),
-            gracePeriodDays: offering.gracePeriodDays,
-            trialDays: offering.trialDays,
-            convertToOfferingId: offering.convertToOfferingId,
-            maxSeats: offering.maxSeats,
-            validFrom: offering.validFrom,
-            validTo: offering.validTo,
-            isActive: Boolean(offering.isActive),
-            sortOrder: Number(offering.sortOrder ?? 0),
-            createdAt: "",
-        }));
+        : (formValues.licenseOfferings ?? []).map((offering) => {
+            const productUnitIds = (offering.productUnitIds?.length
+                ? offering.productUnitIds
+                : offering.productUnitId
+                    ? [offering.productUnitId]
+                    : [])
+                .filter(Boolean);
+            const productUnitTempIds = (offering.productUnitTempIds?.length
+                ? offering.productUnitTempIds
+                : offering.productUnitTempId
+                    ? [offering.productUnitTempId]
+                    : [])
+                .filter(Boolean);
+            const productUnits = [
+                ...productUnitIds.map((unitId) => pricingRuleProductUnits.find((unit) => unit.id === unitId)).filter(Boolean),
+                ...productUnitTempIds.map((tempId) => pricingRuleProductUnits.find((unit) => unit._tempId === tempId)).filter(Boolean),
+            ];
+
+            return {
+                id: offering.id ?? "",
+                _tempId: offering._tempId,
+                productId: id ?? "",
+                productUnitId: productUnitIds[0],
+                productUnitTempId: productUnitIds.length === 0 ? productUnitTempIds[0] : undefined,
+                productUnitIds,
+                productUnitTempIds,
+                productUnits,
+                productUnitName: productUnits.map((unit) => unit?.name).filter(Boolean).join(", "),
+                licenseModel: Number(offering.licenseModel ?? 2),
+                name: offering.name || "Yeni Plan",
+                description: offering.description,
+                basePrice: Number(offering.basePrice ?? 0),
+                currencyCode: offering.currencyCode || "TRY",
+                billingPeriodUnit: offering.billingPeriodUnit,
+                billingPeriodValue: offering.billingPeriodValue,
+                autoRenew: Boolean(offering.autoRenew),
+                gracePeriodDays: offering.gracePeriodDays,
+                trialDays: offering.trialDays,
+                convertToOfferingId: offering.convertToOfferingId,
+                maxSeats: offering.maxSeats,
+                validFrom: offering.validFrom,
+                validTo: offering.validTo,
+                isActive: Boolean(offering.isActive),
+                sortOrder: Number(offering.sortOrder ?? 0),
+                createdAt: "",
+            };
+        });
     const draftPricingRules = (formValues.pricingRules ?? []).map((rule) => ({
         ...rule,
         id: rule.id ?? "",
@@ -963,6 +1048,8 @@ const ProductFormPage: React.FC = () => {
                                                     licenseOfferingTempId: rule.licenseOfferingTempId ?? undefined,
                                                     productUnitId: rule.productUnitId ?? undefined,
                                                     productUnitTempId: rule.productUnitTempId ?? undefined,
+                                                    productUnitIds: rule.productUnitIds ?? [],
+                                                    productUnitTempIds: rule.productUnitTempIds ?? [],
                                                     productVariantId: rule.productVariantId,
                                                     code: rule.code,
                                                     name: rule.name,

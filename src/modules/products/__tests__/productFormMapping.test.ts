@@ -9,6 +9,36 @@ import { mockProductDetailDto, mockSoftwareProductDetail } from "@/tests/mocks/f
 // Alternatif: fonksiyonu ayrı bir utils dosyasına taşıyıp export etmek.
 // Bu test aynı zamanda o refactoring'in yapılması gerektiğini gösterir.
 
+const mapProductUnitIds = (item: { productUnitIds?: string[]; productUnitId?: string | null }) =>
+    item.productUnitIds?.length ? item.productUnitIds : item.productUnitId ? [item.productUnitId] : [];
+
+const buildLicenseOfferingPayload = (offering: {
+    productUnitId?: string;
+    productUnitTempId?: string;
+    productUnitIds?: string[];
+    productUnitTempIds?: string[];
+}) => {
+    const productUnitIds = (offering.productUnitIds?.length
+        ? offering.productUnitIds
+        : offering.productUnitId
+            ? [offering.productUnitId]
+            : [])
+        .filter(Boolean);
+    const productUnitTempIds = (offering.productUnitTempIds?.length
+        ? offering.productUnitTempIds
+        : offering.productUnitTempId
+            ? [offering.productUnitTempId]
+            : [])
+        .filter(Boolean);
+
+    return {
+        productUnitId: productUnitIds[0] || undefined,
+        productUnitTempId: productUnitIds.length === 0 ? productUnitTempIds[0] || undefined : undefined,
+        productUnitIds: productUnitIds.length ? productUnitIds : undefined,
+        productUnitTempIds: productUnitTempIds.length ? productUnitTempIds : undefined,
+    };
+};
+
 function mapProductToFormSimple(product: typeof mockProductDetailDto) {
     return {
         productCode: product.productCode ?? "",
@@ -66,10 +96,18 @@ function mapProductToFormSimple(product: typeof mockProductDetailDto) {
         })),
         licenseOfferings: (product.licenseOfferings ?? []).map((lo) => ({
             id: lo.id,
-            productUnitId: lo.productUnitId ?? "",
+            productUnitId: lo.productUnitId ?? lo.productUnitIds?.[0] ?? "",
+            productUnitIds: mapProductUnitIds(lo),
             name: lo.name,
             basePrice: lo.basePrice,
             isActive: lo.isActive,
+        })),
+        pricingRules: (product.pricingRules ?? []).map((rule) => ({
+            id: rule.id,
+            productUnitId: rule.productUnitId ?? rule.productUnitIds?.[0] ?? "",
+            productUnitIds: mapProductUnitIds(rule),
+            code: rule.code,
+            name: rule.name,
         })),
     };
 }
@@ -149,14 +187,36 @@ describe("mapProductToForm - yazılım ürünü (kind=2)", () => {
         expect(form.licenseOfferings[0].name).toBe("Standart Lisans");
         expect(form.licenseOfferings[0].basePrice).toBe(1200);
         expect(form.licenseOfferings[0].productUnitId).toBe("product-unit-user");
+        expect(form.licenseOfferings[0].productUnitIds).toEqual(["product-unit-user", "product-unit-branch"]);
         expect(form.licenseOfferings[0].isActive).toBe(true);
     });
 
     it("productUnits doğru map edilir", () => {
-        expect(form.productUnits).toHaveLength(1);
+        expect(form.productUnits).toHaveLength(2);
         expect(form.productUnits[0].id).toBe("product-unit-user");
         expect(form.productUnits[0].unitDefinitionId).toBe("unit-user");
         expect(form.productUnits[0].isDefault).toBe(true);
+    });
+
+    it("pricingRules ürün birimi dizilerini map eder", () => {
+        expect(form.pricingRules).toHaveLength(1);
+        expect(form.pricingRules[0].productUnitIds).toEqual(["product-unit-user", "product-unit-branch"]);
+    });
+
+    it("full-save payload ilk kayıtlı birimi legacy alanda tutar", () => {
+        const payload = buildLicenseOfferingPayload(form.licenseOfferings[0]);
+
+        expect(payload.productUnitIds).toEqual(["product-unit-user", "product-unit-branch"]);
+        expect(payload.productUnitId).toBe("product-unit-user");
+    });
+
+    it("taslak ürün birimi temp id dizilerini full-save payload içinde korur", () => {
+        const payload = buildLicenseOfferingPayload({
+            productUnitTempIds: ["product-unit-temp-user", "product-unit-temp-branch"],
+        });
+
+        expect(payload.productUnitTempIds).toEqual(["product-unit-temp-user", "product-unit-temp-branch"]);
+        expect(payload.productUnitTempId).toBe("product-unit-temp-user");
     });
 
     it("fiziksel ürün alanları (variants, inventories, supplierMaps) boş gelir", () => {

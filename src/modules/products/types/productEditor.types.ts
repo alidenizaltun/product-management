@@ -187,6 +187,8 @@ export interface LicenseOfferingForm {
   _tempId?: string;
   productUnitId?: string;
   productUnitTempId?: string;
+  productUnitIds?: string[];
+  productUnitTempIds?: string[];
   licenseModel: number;
   name: string;
   description?: string;
@@ -211,6 +213,8 @@ export interface ProductPricingRuleForm {
   licenseOfferingTempId?: string;
   productUnitId?: string;
   productUnitTempId?: string;
+  productUnitIds?: string[];
+  productUnitTempIds?: string[];
   productVariantId?: string | null;
   code: string;
   name: string;

@@ -165,16 +165,38 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
 
         const licenseOfferings = getValues("licenseOfferings") ?? [];
         licenseOfferings.forEach((offering, index) => {
-            if (offering.productUnitTempId !== tempId) return;
-            setValue(`licenseOfferings.${index}.productUnitId`, createdId, { shouldDirty: true });
-            setValue(`licenseOfferings.${index}.productUnitTempId`, undefined, { shouldDirty: true });
+            const tempIds = offering.productUnitTempIds ?? [];
+            const hasTempReference = offering.productUnitTempId === tempId || tempIds.includes(tempId);
+            if (!hasTempReference) return;
+
+            const productUnitIds = [...(offering.productUnitIds ?? []), createdId].filter(Boolean);
+            const productUnitTempIds = tempIds.filter((id) => id !== tempId);
+            setValue(`licenseOfferings.${index}.productUnitIds`, [...new Set(productUnitIds)], { shouldDirty: true });
+            setValue(`licenseOfferings.${index}.productUnitTempIds`, productUnitTempIds, { shouldDirty: true });
+            setValue(`licenseOfferings.${index}.productUnitId`, productUnitIds[0], { shouldDirty: true });
+            setValue(
+                `licenseOfferings.${index}.productUnitTempId`,
+                productUnitIds.length === 0 ? productUnitTempIds[0] : undefined,
+                { shouldDirty: true }
+            );
         });
 
         const pricingRules = getValues("pricingRules") ?? [];
         pricingRules.forEach((rule, index) => {
-            if (rule.productUnitTempId !== tempId) return;
-            setValue(`pricingRules.${index}.productUnitId`, createdId, { shouldDirty: true });
-            setValue(`pricingRules.${index}.productUnitTempId`, undefined, { shouldDirty: true });
+            const tempIds = rule.productUnitTempIds ?? [];
+            const hasTempReference = rule.productUnitTempId === tempId || tempIds.includes(tempId);
+            if (!hasTempReference) return;
+
+            const productUnitIds = [...(rule.productUnitIds ?? []), createdId].filter(Boolean);
+            const productUnitTempIds = tempIds.filter((id) => id !== tempId);
+            setValue(`pricingRules.${index}.productUnitIds`, [...new Set(productUnitIds)], { shouldDirty: true });
+            setValue(`pricingRules.${index}.productUnitTempIds`, productUnitTempIds, { shouldDirty: true });
+            setValue(`pricingRules.${index}.productUnitId`, productUnitIds[0], { shouldDirty: true });
+            setValue(
+                `pricingRules.${index}.productUnitTempId`,
+                productUnitIds.length === 0 ? productUnitTempIds[0] : undefined,
+                { shouldDirty: true }
+            );
         });
     };
 

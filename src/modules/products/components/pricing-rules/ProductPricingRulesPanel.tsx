@@ -1,7 +1,7 @@
 import React, { useId, useMemo, useState } from "react";
 import { Button, UncontrolledTooltip } from "reactstrap";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
-import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
+import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { useProductPricingRuleMutations, useProductPricingRules } from "@/modules/products/hooks/useProductPricingRules";
 import type {
   ProductLicenseOfferingDto,
@@ -39,6 +39,8 @@ interface RuleFormState {
   licenseOfferingTempId: string;
   productUnitId: string;
   productUnitTempId: string;
+  productUnitIds: string[];
+  productUnitTempIds: string[];
   productVariantId: string;
   adjustment: AdjustmentFormState;
 }
@@ -332,6 +334,8 @@ const emptyForm = (): RuleFormState => ({
   licenseOfferingTempId: "",
   productUnitId: "",
   productUnitTempId: "",
+  productUnitIds: [],
+  productUnitTempIds: [],
   productVariantId: "",
   adjustment: adjustmentToForm(defaultAdjustment),
 });
@@ -433,6 +437,35 @@ const fromDateTimeInput = (value: string) => {
   return Number.isNaN(date.getTime()) ? value : date.toISOString();
 };
 
+const mapProductUnitIds = (rule: {
+  productUnitIds?: string[];
+  productUnitId?: string | null;
+}) => rule.productUnitIds?.length ? rule.productUnitIds : rule.productUnitId ? [rule.productUnitId] : [];
+
+const toUnitScopeValues = (ids?: Array<string | null | undefined>, tempIds?: Array<string | null | undefined>) => [
+  ...(ids ?? []).filter(Boolean).map((id) => `id:${id}`),
+  ...(tempIds ?? []).filter(Boolean).map((id) => `temp:${id}`),
+];
+
+const splitUnitScopeValues = (values: string[]) => {
+  const productUnitIds = values
+    .filter((value) => value.startsWith("id:"))
+    .map((value) => value.replace("id:", ""))
+    .filter(Boolean);
+
+  const productUnitTempIds = values
+    .filter((value) => value.startsWith("temp:"))
+    .map((value) => value.replace("temp:", ""))
+    .filter(Boolean);
+
+  return {
+    productUnitIds,
+    productUnitTempIds,
+    productUnitId: productUnitIds[0] ?? "",
+    productUnitTempId: productUnitIds.length === 0 ? productUnitTempIds[0] ?? "" : "",
+  };
+};
+
 const ruleToForm = (rule: ProductPricingRuleDto): RuleFormState => ({
   id: rule.id,
   code: rule.code ?? "",
@@ -445,8 +478,10 @@ const ruleToForm = (rule: ProductPricingRuleDto): RuleFormState => ({
   customerGroupCode: rule.customerGroupCode ?? "",
   productLicenseOfferingId: rule.productLicenseOfferingId ?? rule.licenseOfferingId ?? "",
   licenseOfferingTempId: rule.licenseOfferingTempId ?? "",
-  productUnitId: rule.productUnitId ?? "",
+  productUnitId: rule.productUnitId ?? rule.productUnitIds?.[0] ?? "",
   productUnitTempId: rule.productUnitTempId ?? "",
+  productUnitIds: mapProductUnitIds(rule),
+  productUnitTempIds: rule.productUnitTempIds ?? (rule.productUnitTempId ? [rule.productUnitTempId] : []),
   productVariantId: rule.productVariantId ?? "",
   adjustment: adjustmentToForm(getAdjustment(rule)),
 });
@@ -595,6 +630,14 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
   const buildPayload = (): UpsertProductPricingRuleRequestDto => {
     const priceAdjustment = formToAdjustment(form.adjustment);
+    const productUnitIds = (form.productUnitIds.length ? form.productUnitIds : form.productUnitId ? [form.productUnitId] : [])
+      .filter(Boolean);
+    const productUnitTempIds = (form.productUnitTempIds.length
+      ? form.productUnitTempIds
+      : form.productUnitTempId
+        ? [form.productUnitTempId]
+        : [])
+      .filter(Boolean);
 
     return {
       code: form.code.trim(),
@@ -606,8 +649,10 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       salesChannel: form.salesChannel.trim() || null,
       customerGroupCode: form.customerGroupCode.trim() || null,
       productVariantId: form.productVariantId || null,
-      productUnitId: form.productUnitId || null,
-      productUnitTempId: form.productUnitTempId || null,
+      productUnitId: productUnitIds[0] || null,
+      productUnitTempId: productUnitIds.length === 0 ? productUnitTempIds[0] || null : null,
+      productUnitIds: productUnitIds.length ? productUnitIds : undefined,
+      productUnitTempIds: productUnitTempIds.length ? productUnitTempIds : undefined,
       productLicenseOfferingId: form.productLicenseOfferingId || null,
       licenseOfferingTempId: form.licenseOfferingTempId || null,
       priceAdjustment,
@@ -616,6 +661,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   };
 
   const handleSubmit = async () => {
+    if (productId && (form.productUnitTempIds.length || form.productUnitTempId)) {
+      showWarning("Önce ürün birimini kaydedin, sonra kuralı kaydedebilirsiniz.");
+      return;
+    }
+
     const payload = buildPayload();
 
     if (!productId && onDraftRulesChange) {
@@ -626,6 +676,8 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
         licenseOfferingTempId: payload.licenseOfferingTempId ?? null,
         productUnitId: payload.productUnitId ?? null,
         productUnitTempId: payload.productUnitTempId ?? null,
+        productUnitIds: payload.productUnitIds ?? [],
+        productUnitTempIds: payload.productUnitTempIds ?? [],
         productVariantId: payload.productVariantId ?? null,
         salesChannel: payload.salesChannel ?? null,
         customerGroupCode: payload.customerGroupCode ?? null,
@@ -702,11 +754,10 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     : form.licenseOfferingTempId
       ? `temp:${form.licenseOfferingTempId}`
       : "";
-  const selectedProductUnitValue = form.productUnitId
-    ? `id:${form.productUnitId}`
-    : form.productUnitTempId
-      ? `temp:${form.productUnitTempId}`
-      : "";
+  const selectedProductUnitValues = toUnitScopeValues(
+    form.productUnitIds.length ? form.productUnitIds : form.productUnitId ? [form.productUnitId] : [],
+    form.productUnitTempIds.length ? form.productUnitTempIds : form.productUnitTempId ? [form.productUnitTempId] : []
+  );
 
   const updateOfferingScope = (value: string) => {
     if (value.startsWith("id:")) {
@@ -723,19 +774,19 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     updateForm("licenseOfferingTempId", "");
   };
 
-  const updateProductUnitScope = (value: string) => {
-    if (value.startsWith("id:")) {
-      updateForm("productUnitId", value.replace("id:", ""));
-      updateForm("productUnitTempId", "");
-      return;
-    }
-    if (value.startsWith("temp:")) {
-      updateForm("productUnitId", "");
-      updateForm("productUnitTempId", value.replace("temp:", ""));
-      return;
-    }
-    updateForm("productUnitId", "");
-    updateForm("productUnitTempId", "");
+  const updateProductUnitScope = (value: string, checked: boolean) => {
+    const values = checked
+      ? [...selectedProductUnitValues, value]
+      : selectedProductUnitValues.filter((item) => item !== value);
+    const scope = splitUnitScopeValues([...new Set(values)]);
+
+    setForm((current) => ({
+      ...current,
+      productUnitId: scope.productUnitId,
+      productUnitTempId: scope.productUnitTempId,
+      productUnitIds: scope.productUnitIds,
+      productUnitTempIds: scope.productUnitTempIds,
+    }));
   };
 
   return (
@@ -901,21 +952,49 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                       Ürün birimi
                     </HelpLabel>
                   </label>
-                  <select
-                    className="form-select"
-                    value={selectedProductUnitValue}
-                    onChange={(event) => updateProductUnitScope(event.target.value)}
-                  >
-                    <option value="">Tüm ürün birimleri</option>
-                    {productUnits.filter((unit) => unit.isActive).map((unit) => {
+                  <div className="border rounded p-3 bg-light">
+                    <div className="form-check mb-2">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="pricing-rule-unit-all"
+                        checked={selectedProductUnitValues.length === 0}
+                        onChange={() => {
+                          const scope = splitUnitScopeValues([]);
+                          setForm((current) => ({
+                            ...current,
+                            productUnitId: scope.productUnitId,
+                            productUnitTempId: scope.productUnitTempId,
+                            productUnitIds: scope.productUnitIds,
+                            productUnitTempIds: scope.productUnitTempIds,
+                          }));
+                        }}
+                      />
+                      <label className="form-check-label" htmlFor="pricing-rule-unit-all">
+                        Tüm ürün birimleri
+                      </label>
+                    </div>
+                    {productUnits.filter((unit) => unit.isActive && (unit.id || unit._tempId)).map((unit) => {
                       const value = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
                       return (
-                        <option key={value} value={value}>
-                          {unit.name} ({unit.code}){!unit.id ? " (kaydedilecek)" : ""}
-                        </option>
+                        <div className="form-check mb-2" key={value}>
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id={`pricing-rule-unit-${value}`}
+                            checked={selectedProductUnitValues.includes(value)}
+                            onChange={(event) => updateProductUnitScope(value, event.target.checked)}
+                          />
+                          <label className="form-check-label" htmlFor={`pricing-rule-unit-${value}`}>
+                            {unit.name} ({unit.code}){!unit.id ? " (kaydedilecek)" : ""}
+                          </label>
+                        </div>
                       );
                     })}
-                  </select>
+                    {productUnits.filter((unit) => unit.isActive && (unit.id || unit._tempId)).length === 0 && (
+                      <span className="text-soft fs-12px">Tanımlı ürün birimi yok.</span>
+                    )}
+                  </div>
                 </div>
                 <div className="col-md-4">
                   <label className="form-label">Hangi varyant?</label>
@@ -1324,13 +1403,28 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                     const offeringLabel = rule.licenseOfferingName
                       ?? tempOffering?.name
                       ?? (offeringId ? offeringById.get(offeringId)?.name ?? offeringId.slice(0, 8) : "");
-                    const tempProductUnit = rule.productUnitTempId
-                      ? productUnits.find((unit) => unit._tempId === rule.productUnitTempId)
-                      : undefined;
-                    const productUnitLabel = rule.productUnitName
-                      ?? rule.productUnitCode
-                      ?? tempProductUnit?.name
-                      ?? (rule.productUnitId ? productUnitById.get(rule.productUnitId)?.name ?? rule.productUnitId.slice(0, 8) : "");
+                    const savedUnitIds = rule.productUnitIds?.length
+                      ? rule.productUnitIds
+                      : rule.productUnitId
+                        ? [rule.productUnitId]
+                        : [];
+                    const tempUnitIds = rule.productUnitTempIds?.length
+                      ? rule.productUnitTempIds
+                      : rule.productUnitTempId
+                        ? [rule.productUnitTempId]
+                        : [];
+                    const productUnitLabels = rule.productUnits?.length
+                      ? rule.productUnits.map((unit) => unit.name || unit.code).filter(Boolean)
+                      : [
+                        ...savedUnitIds.map((unitId) => productUnitById.get(unitId)?.name ?? productUnitById.get(unitId)?.code ?? unitId.slice(0, 8)),
+                        ...tempUnitIds.map((tempId) => {
+                          const unit = productUnits.find((item) => item._tempId === tempId);
+                          return unit?.name ?? unit?.code ?? tempId.slice(0, 8);
+                        }),
+                      ];
+                    const productUnitLabel = productUnitLabels.length
+                      ? productUnitLabels.join(", ")
+                      : rule.productUnitName ?? rule.productUnitCode ?? rule.unitDefinitionName ?? "";
                     const variantLabel = rule.variantName
                       ?? variant?.name
                       ?? variant?.sku

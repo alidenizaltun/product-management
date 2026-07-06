@@ -36,6 +36,16 @@ import {
   StatusBadge,
 } from "./shared";
 
+const getUnitNames = (item: {
+  productUnits?: ProductUnitDto[];
+  productUnitName?: string | null;
+  productUnitCode?: string | null;
+  unitDefinitionName?: string | null;
+}) =>
+  item.productUnits?.length
+    ? item.productUnits.map((unit) => unit.name).filter(Boolean).join(", ")
+    : item.productUnitName ?? item.productUnitCode ?? item.unitDefinitionName;
+
 // ─── General Tab ─────────────────────────────────────────────────────────────
 
 export const GeneralTab: React.FC<{ product: ProductDetailDto }> = ({ product }) => (
@@ -668,7 +678,7 @@ export const LicenseOfferingsTab: React.FC<{ items: ProductLicenseOfferingDto[] 
                   )}
                 </div>
                 <InfoRow label="Maks. Koltuk" value={lo.maxSeats} />
-                <InfoRow label="Ürün Birimi" value={lo.productUnitName ?? lo.productUnitCode ?? lo.unitDefinitionName} />
+                <InfoRow label="Ürün Birimi" value={getUnitNames(lo)} />
                 <InfoRow label="Deneme" value={lo.trialDays != null ? `${lo.trialDays} gün` : undefined} />
                 {lo.convertToOfferingName && (
                   <InfoRow label="Dönüşüm" value={lo.convertToOfferingName} />

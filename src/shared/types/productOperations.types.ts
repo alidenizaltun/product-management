@@ -346,6 +346,9 @@ export interface ProductPricingRuleDto {
   licenseOfferingName?: string | null;
   productUnitId?: Uuid | null;
   productUnitTempId?: string | null;
+  productUnitIds?: Uuid[];
+  productUnitTempIds?: string[];
+  productUnits?: ProductUnitDto[];
   productUnitCode?: string | null;
   productUnitName?: string | null;
   unitDefinitionId?: Uuid | null;
@@ -380,6 +383,8 @@ export interface UpsertProductPricingRuleRequestDto {
   productVariantId?: Uuid | null;
   productUnitId?: Uuid | null;
   productUnitTempId?: string | null;
+  productUnitIds?: Uuid[];
+  productUnitTempIds?: string[];
   productLicenseOfferingId?: Uuid | null;
   licenseOfferingId?: Uuid | null;
   licenseOfferingTempId?: string | null;
@@ -391,6 +396,10 @@ export interface ProductLicenseOfferingDto {
   id: Uuid;
   productId: Uuid;
   productUnitId?: Uuid | null;
+  productUnitTempId?: string | null;
+  productUnitIds?: Uuid[];
+  productUnitTempIds?: string[];
+  productUnits?: ProductUnitDto[];
   productUnitCode?: string | null;
   productUnitName?: string | null;
   unitDefinitionId?: Uuid | null;
@@ -1080,6 +1089,8 @@ export interface CreateFullProductRequestDto {
     _tempId?: string;
     productUnitId?: Uuid;
     productUnitTempId?: string;
+    productUnitIds?: Uuid[];
+    productUnitTempIds?: string[];
     licenseModel: number;
     name: string;
     description?: string;
@@ -1103,6 +1114,8 @@ export interface CreateFullProductRequestDto {
     licenseOfferingTempId?: string;
     productUnitId?: Uuid;
     productUnitTempId?: string;
+    productUnitIds?: Uuid[];
+    productUnitTempIds?: string[];
     productVariantId?: Uuid | null;
     code: string;
     name: string;

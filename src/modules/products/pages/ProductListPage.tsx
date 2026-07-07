@@ -149,7 +149,7 @@ const ProductListPage: React.FC = () => {
           {selectedProducts.length > 0 && (
             <div className="card card-bordered bg-lighter mb-3">
               <div className="card-inner py-3">
-                <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 align-items-center h-100">
                   <div className="d-flex align-items-center gap-2">
                     <span className="btn btn-icon btn-primary">
                       <em className="icon ni ni-check" />
@@ -159,7 +159,7 @@ const ProductListPage: React.FC = () => {
                       <div className="text-soft fs-12px">Bu sayfadaki seçili ürünler üzerinde işlem yapın.</div>
                     </div>
                   </div>
-                  <div className="d-flex flex-wrap gap-2">
+                  <div className="d-flex flex-wrap gap-2 h-100">
                     <Button color="light" size="sm" type="button" disabled>
                       <em className="icon ni ni-check-circle me-1" />
                       Aktif yap

@@ -30,11 +30,25 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const name = watch("name");
     const productCode = watch("productCode");
+    const kind = watch("kind");
     const taxRate = watch("taxRate");
+    const isPhysicalProduct = Number(kind ?? 1) === 1;
+    const isSoftwareProduct = Number(kind ?? 1) === 2;
 
     useEffect(() => {
-        unitDefinitionsApi.getLookup().then(setUnitLookup).catch(() => { });
-    }, []);
+        if (isSoftwareProduct) {
+            setValue("trackInventory", false, { shouldDirty: true, shouldValidate: true });
+        }
+
+        if (!isPhysicalProduct) {
+            setValue("unitDefinitionId", "", { shouldDirty: false, shouldValidate: false });
+            return;
+        }
+
+        if (unitLookup.length === 0) {
+            unitDefinitionsApi.getLookup().then(setUnitLookup).catch(() => { });
+        }
+    }, [isPhysicalProduct, isSoftwareProduct, setValue, unitLookup.length]);
 
     const suggestSku = () => {
         const seed = (name || "urun")
@@ -187,17 +201,19 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
                         <input className="form-control" placeholder="EAN / UPC barkod" {...register("barcode")} />
                     </div>
 
-                    <div className="col-md-4">
-                        <label className="form-label">Ölçü Birimi</label>
-                        <select className="form-control form-select" {...register("unitDefinitionId")}>
-                            <option value="">— Seçiniz —</option>
-                            {unitLookup.map((unit) => (
-                                <option key={unit.id} value={unit.id}>
-                                    {unit.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    {isPhysicalProduct && (
+                        <div className="col-md-4">
+                            <label className="form-label">Ölçü Birimi</label>
+                            <select className="form-control form-select" {...register("unitDefinitionId")}>
+                                <option value="">— Seçiniz —</option>
+                                {unitLookup.map((unit) => (
+                                    <option key={unit.id} value={unit.id}>
+                                        {unit.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     <div className="col-md-4">
                         <label className="form-label">Vergi Oranı (%)</label>
@@ -287,12 +303,23 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
                                 </label>
                             </div>
                             <div className="form-check form-switch">
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id="chk-trackInventory"
-                                    {...register("trackInventory")}
-                                />
+                                {isSoftwareProduct ? (
+                                    <input
+                                        type="checkbox"
+                                        className="form-check-input"
+                                        id="chk-trackInventory"
+                                        checked={false}
+                                        disabled
+                                        readOnly
+                                    />
+                                ) : (
+                                    <input
+                                        type="checkbox"
+                                        className="form-check-input"
+                                        id="chk-trackInventory"
+                                        {...register("trackInventory")}
+                                    />
+                                )}
                                 <label className="form-check-label" htmlFor="chk-trackInventory">
                                     Stok Takibi
                                 </label>

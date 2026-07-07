@@ -36,7 +36,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete, selected =
   const showImage = Boolean(imageUrl) && !imageFailed;
 
   return (
-    <Card className={`card-bordered product-card h-100 ${selected ? "border-primary shadow-sm" : ""}`}>
+    <Card className={`card-bordered product-card h-100 ${selected ? "border-primary shadow-sm h-100" : ""}`}>
       <div className="product-thumb">
         {onSelectChange && (
           <div className="position-absolute top-0 start-0 p-2" style={{ zIndex: 3 }}>
@@ -75,7 +75,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete, selected =
           </div>
         </Link>
 
-        <ul className="product-badges">
+        <ul className="product-badges ms-4">
           {kind && (
             <li>
               <span className={`badge bg-${kind.color}`}>{kind.label}</span>

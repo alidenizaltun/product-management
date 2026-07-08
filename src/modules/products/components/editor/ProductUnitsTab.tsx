@@ -1,4 +1,14 @@
 import React, { useEffect, useState } from "react";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+    SortableContext,
+    arrayMove,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
@@ -40,16 +50,43 @@ interface ProductUnitsTabProps {
     productId?: string;
 }
 
+const SortableUnitCard: React.FC<{
+    id: string;
+    children: (dragHandleProps: {
+        attributes: ReturnType<typeof useSortable>["attributes"];
+        listeners: ReturnType<typeof useSortable>["listeners"];
+    }) => React.ReactNode;
+}> = ({ id, children }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`pricing-sortable-item ${isDragging ? "is-dragging" : ""}`}
+            style={{
+                transform: CSS.Transform.toString(transform),
+                transition,
+            }}
+        >
+            {children({ attributes, listeners })}
+        </div>
+    );
+};
+
 const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
     const queryClient = useQueryClient();
     const { control, register, setValue, getValues } = useFormContext<ProductFormValues>();
-    const { fields, append, remove, swap } = useFieldArray({ control, name: "productUnits" });
+    const { fields, append, remove, move } = useFieldArray({ control, name: "productUnits" });
     const productUnits = useWatch({ control, name: "productUnits" }) ?? [];
     const [unitDefinitions, setUnitDefinitions] = useState<UnitDefinitionDto[]>([]);
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [quickAddIndex, setQuickAddIndex] = useState<number | null>(null);
     const [quickDefinition, setQuickDefinition] = useState<QuickUnitDefinitionForm>(EMPTY_QUICK_DEFINITION);
     const [creatingDefinition, setCreatingDefinition] = useState(false);
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
 
     useEffect(() => {
         unitDefinitionsApi.getAll().then(setUnitDefinitions).catch(() => setUnitDefinitions([]));
@@ -127,6 +164,24 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
         productUnits.forEach((_, unitIndex) => {
             setValue(`productUnits.${unitIndex}.isDefault`, checked && unitIndex === index, { shouldDirty: true });
         });
+    };
+
+    const reorderUnits = (oldIndex: number, newIndex: number) => {
+        if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
+
+        move(oldIndex, newIndex);
+        arrayMove(productUnits, oldIndex, newIndex).forEach((_, unitIndex) => {
+            setValue(`productUnits.${unitIndex}.sortOrder`, unitIndex, { shouldDirty: true });
+        });
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = fields.findIndex((field) => field.id === active.id);
+        const newIndex = fields.findIndex((field) => field.id === over.id);
+        reorderUnits(oldIndex, newIndex);
     };
 
     const buildPayload = (unit: ProductUnitForm): CreateProductUnitRequestDto | null => {
@@ -253,13 +308,17 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                     <p className="mb-0">Henüz ürün birimi eklenmedi.</p>
                 </div>
             ) : (
-                <div className="d-flex flex-column gap-3 h-100">
-                    {fields.map((field, index) => {
-                        const unit = productUnits[index];
-                        const saved = Boolean(unit?.id);
-                        const saving = savingIndex === index;
-                        return (
-                            <div className="card card-bordered" key={field.id}>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
+                        <div className="d-flex flex-column gap-3 h-100">
+                            {fields.map((field, index) => {
+                                const unit = productUnits[index];
+                                const saved = Boolean(unit?.id);
+                                const saving = savingIndex === index;
+                                return (
+                                    <SortableUnitCard id={field.id} key={field.id}>
+                                        {({ attributes, listeners }) => (
+                                            <div className="card card-bordered">
                                 <div className="card-inner">
                                     <div className="d-flex justify-content-between align-items-start gap-3 mb-3 h-100">
                                         <div>
@@ -275,9 +334,18 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                         <div className="d-flex gap-1 h-100">
                                             <button
                                                 type="button"
+                                                className="btn btn-sm btn-icon btn-outline-light pricing-drag-handle"
+                                                title="Sürükleyerek sırala"
+                                                {...attributes}
+                                                {...listeners}
+                                            >
+                                                <em className="icon ni ni-drag" />
+                                            </button>
+                                            <button
+                                                type="button"
                                                 className="btn btn-sm btn-icon btn-outline-light"
                                                 disabled={index === 0}
-                                                onClick={() => swap(index, index - 1)}
+                                                onClick={() => reorderUnits(index, index - 1)}
                                                 title="Yukarı taşı"
                                             >
                                                 <em className="icon ni ni-chevron-up" />
@@ -286,7 +354,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                 type="button"
                                                 className="btn btn-sm btn-icon btn-outline-light"
                                                 disabled={index === fields.length - 1}
-                                                onClick={() => swap(index, index + 1)}
+                                                onClick={() => reorderUnits(index, index + 1)}
                                                 title="Aşağı taşı"
                                             >
                                                 <em className="icon ni ni-chevron-down" />
@@ -409,10 +477,14 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                                            </div>
+                                        )}
+                                    </SortableUnitCard>
+                                );
+                            })}
+                        </div>
+                    </SortableContext>
+                </DndContext>
             )}
 
             <Modal isOpen={quickAddIndex != null} toggle={closeQuickAdd} centered>

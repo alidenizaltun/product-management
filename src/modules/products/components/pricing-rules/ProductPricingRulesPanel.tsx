@@ -14,6 +14,7 @@ import type {
 
 type ScopedLicenseOfferingOption = ProductLicenseOfferingDto & { _tempId?: string };
 type ScopedProductUnitOption = ProductUnitDto & { _tempId?: string };
+const UNIT_DRAG_MIME = "application/x-product-unit-ref";
 
 interface ProductPricingRulesPanelProps {
   productId?: string;
@@ -758,20 +759,53 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     form.productUnitIds.length ? form.productUnitIds : form.productUnitId ? [form.productUnitId] : [],
     form.productUnitTempIds.length ? form.productUnitTempIds : form.productUnitTempId ? [form.productUnitTempId] : []
   );
+  const selectedOffering = selectedOfferingValue
+    ? licenseOfferings.find((offering) => {
+      const value = offering.id ? `id:${offering.id}` : `temp:${offering._tempId}`;
+      return value === selectedOfferingValue;
+    })
+    : undefined;
+  const selectedOfferingUnitValues = selectedOffering
+    ? toUnitScopeValues(
+      selectedOffering.productUnitIds?.length
+        ? selectedOffering.productUnitIds
+        : selectedOffering.productUnitId
+          ? [selectedOffering.productUnitId]
+          : [],
+      selectedOffering.productUnitTempIds?.length
+        ? selectedOffering.productUnitTempIds
+        : selectedOffering.productUnitTempId
+          ? [selectedOffering.productUnitTempId]
+          : []
+    )
+    : [];
+  const selectableProductUnits = selectedOffering
+    ? productUnits.filter((unit) => {
+      const value = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
+      return selectedOfferingUnitValues.includes(value);
+    })
+    : productUnits;
 
   const updateOfferingScope = (value: string) => {
+    const nextScope = {
+      productLicenseOfferingId: "",
+      licenseOfferingTempId: "",
+    };
+
     if (value.startsWith("id:")) {
-      updateForm("productLicenseOfferingId", value.replace("id:", ""));
-      updateForm("licenseOfferingTempId", "");
-      return;
+      nextScope.productLicenseOfferingId = value.replace("id:", "");
+    } else if (value.startsWith("temp:")) {
+      nextScope.licenseOfferingTempId = value.replace("temp:", "");
     }
-    if (value.startsWith("temp:")) {
-      updateForm("productLicenseOfferingId", "");
-      updateForm("licenseOfferingTempId", value.replace("temp:", ""));
-      return;
-    }
-    updateForm("productLicenseOfferingId", "");
-    updateForm("licenseOfferingTempId", "");
+
+    setForm((current) => ({
+      ...current,
+      ...nextScope,
+      productUnitId: "",
+      productUnitTempId: "",
+      productUnitIds: [],
+      productUnitTempIds: [],
+    }));
   };
 
   const updateProductUnitScope = (value: string, checked: boolean) => {
@@ -787,6 +821,20 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       productUnitIds: scope.productUnitIds,
       productUnitTempIds: scope.productUnitTempIds,
     }));
+  };
+
+  const handleProductUnitDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    const value = event.dataTransfer.getData(UNIT_DRAG_MIME);
+    if (!value) return;
+
+    event.preventDefault();
+    const allowed = selectableProductUnits.some((unit) => (unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`) === value);
+    if (!allowed) {
+      showWarning("Bu birim seçili satış planına bağlı değil.");
+      return;
+    }
+
+    updateProductUnitScope(value, true);
   };
 
   return (
@@ -833,6 +881,122 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
               )}
 
               <div className="row g-3">
+                <div className="col-12">
+                  <div className="pricing-rule-scope-panel">
+                    <div className="pricing-rule-scope-copy">
+                      <span className="overline-title text-primary">Önce kapsam</span>
+                      <p className="mb-0 text-soft">
+                        Kuralın hangi satış planına uygulanacağını seçin. Tüm planlar seçiliyse tüm ürün birimleri, tek plan seçiliyse yalnızca o plana bağlı birimler seçilebilir.
+                      </p>
+                    </div>
+                    <div className="row g-3 align-items-end">
+                      <div className="col-md-4">
+                        <label className="form-label">
+                          <HelpLabel help="Satış planı müşterinin satın aldığı pakettir. Tüm planlar seçilirse bu kural ürünün bütün paketlerinde çalışır; tek plan seçerseniz kural sadece o pakete uygulanır.">
+                            Hangi satış planı?
+                          </HelpLabel>
+                        </label>
+                        <select
+                          className="form-select"
+                          value={selectedOfferingValue}
+                          onChange={(event) => updateOfferingScope(event.target.value)}
+                        >
+                          <option value="">Tüm planlar</option>
+                          {licenseOfferings.map((offering) => {
+                            const value = offering.id ? `id:${offering.id}` : `temp:${offering._tempId}`;
+                            return (
+                              <option key={value} value={value}>
+                                {offering.name}
+                                {!offering.id ? " (kaydedilecek)" : ""}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label">
+                          <HelpLabel help="Birim seçimi, kuralın hangi fiyatlandırma parametrelerine uygulanacağını belirler. Plan seçtiyseniz yalnızca o plana bağlı birimler görünür; tüm planlar seçiliyse tüm birimler seçilebilir.">
+                            Ürün birimi
+                          </HelpLabel>
+                        </label>
+                        <div
+                          className="pricing-unit-dropzone"
+                          onDragOver={(event) => {
+                            if (event.dataTransfer.types.includes(UNIT_DRAG_MIME)) {
+                              event.preventDefault();
+                              event.dataTransfer.dropEffect = "copy";
+                            }
+                          }}
+                          onDrop={handleProductUnitDrop}
+                        >
+                          <div className="pricing-unit-dropzone-hint">
+                            <em className="icon ni ni-drag" />
+                            Birimi buraya bırak
+                          </div>
+                          <div className="form-check">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              id="pricing-rule-unit-all"
+                              checked={selectedProductUnitValues.length === 0}
+                              onChange={() => {
+                                const scope = splitUnitScopeValues([]);
+                                setForm((current) => ({
+                                  ...current,
+                                  productUnitId: scope.productUnitId,
+                                  productUnitTempId: scope.productUnitTempId,
+                                  productUnitIds: scope.productUnitIds,
+                                  productUnitTempIds: scope.productUnitTempIds,
+                                }));
+                              }}
+                            />
+                            <label className="form-check-label" htmlFor="pricing-rule-unit-all">
+                              {selectedOffering ? "Paketin tüm birimleri" : "Tüm ürün birimleri"}
+                            </label>
+                          </div>
+                          {selectableProductUnits.filter((unit) => unit.isActive && (unit.id || unit._tempId)).map((unit) => {
+                            const value = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
+                            return (
+                              <div className="form-check" key={value}>
+                                <input
+                                  type="checkbox"
+                                  className="form-check-input"
+                                  id={`pricing-rule-unit-${value}`}
+                                  checked={selectedProductUnitValues.includes(value)}
+                                  onChange={(event) => updateProductUnitScope(value, event.target.checked)}
+                                />
+                                <label className="form-check-label" htmlFor={`pricing-rule-unit-${value}`}>
+                                  {unit.name} ({unit.code}){!unit.id ? " (kaydedilecek)" : ""}
+                                </label>
+                              </div>
+                            );
+                          })}
+                          {selectableProductUnits.filter((unit) => unit.isActive && (unit.id || unit._tempId)).length === 0 && (
+                            <span className="text-soft fs-12px">
+                              {selectedOffering ? "Seçili plana bağlı birim yok." : "Tanımlı ürün birimi yok."}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label">Hangi varyant?</label>
+                        <select
+                          className="form-select"
+                          value={form.productVariantId}
+                          onChange={(event) => updateForm("productVariantId", event.target.value)}
+                        >
+                          <option value="">Tüm varyantlar</option>
+                          {variants.map((variant) => (
+                            <option key={variant.id} value={variant.id}>
+                              {variant.name || variant.sku}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="col-lg-6">
                   <label className="form-label">
                     Kural adı <span className="text-danger">*</span>
@@ -925,91 +1089,6 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="col-md-4">
-                  <label className="form-label">Hangi satış planı?</label>
-                  <select
-                    className="form-select"
-                    value={selectedOfferingValue}
-                    onChange={(event) => updateOfferingScope(event.target.value)}
-                  >
-                    <option value="">Tüm planlar</option>
-                    {licenseOfferings.map((offering) => {
-                      const value = offering.id ? `id:${offering.id}` : `temp:${offering._tempId}`;
-                      return (
-                        <option key={value} value={value}>
-                          {offering.name}
-                          {!offering.id ? " (kaydedilecek)" : ""}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label">
-                    <HelpLabel help="Bu seçim kuralın hangi ürün birimine ait olduğunu belirler; hesaplamada okunan feature alanı aşağıdaki Birim alanı bölümünden gelir.">
-                      Ürün birimi
-                    </HelpLabel>
-                  </label>
-                  <div className="border rounded p-3 bg-light">
-                    <div className="form-check mb-2">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id="pricing-rule-unit-all"
-                        checked={selectedProductUnitValues.length === 0}
-                        onChange={() => {
-                          const scope = splitUnitScopeValues([]);
-                          setForm((current) => ({
-                            ...current,
-                            productUnitId: scope.productUnitId,
-                            productUnitTempId: scope.productUnitTempId,
-                            productUnitIds: scope.productUnitIds,
-                            productUnitTempIds: scope.productUnitTempIds,
-                          }));
-                        }}
-                      />
-                      <label className="form-check-label" htmlFor="pricing-rule-unit-all">
-                        Tüm ürün birimleri
-                      </label>
-                    </div>
-                    {productUnits.filter((unit) => unit.isActive && (unit.id || unit._tempId)).map((unit) => {
-                      const value = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
-                      return (
-                        <div className="form-check mb-2" key={value}>
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id={`pricing-rule-unit-${value}`}
-                            checked={selectedProductUnitValues.includes(value)}
-                            onChange={(event) => updateProductUnitScope(value, event.target.checked)}
-                          />
-                          <label className="form-check-label" htmlFor={`pricing-rule-unit-${value}`}>
-                            {unit.name} ({unit.code}){!unit.id ? " (kaydedilecek)" : ""}
-                          </label>
-                        </div>
-                      );
-                    })}
-                    {productUnits.filter((unit) => unit.isActive && (unit.id || unit._tempId)).length === 0 && (
-                      <span className="text-soft fs-12px">Tanımlı ürün birimi yok.</span>
-                    )}
-                  </div>
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label">Hangi varyant?</label>
-                  <select
-                    className="form-select"
-                    value={form.productVariantId}
-                    onChange={(event) => updateForm("productVariantId", event.target.value)}
-                  >
-                    <option value="">Tüm varyantlar</option>
-                    {variants.map((variant) => (
-                      <option key={variant.id} value={variant.id}>
-                        {variant.name || variant.sku}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 <div className="col-md-3">
@@ -1468,7 +1547,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                               className="me-1"
                               onClick={() => {
                                 setForm(ruleToForm(rule));
-                            }}
+                              }}
                             >
                               Düzenle
                             </Button>

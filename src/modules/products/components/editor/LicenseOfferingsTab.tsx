@@ -1,4 +1,14 @@
 import React, { useState } from "react";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+    SortableContext,
+    arrayMove,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
@@ -6,6 +16,16 @@ import { productsApi } from "@/modules/products/api/products.api";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { queryKeys } from "@/services/query/queryKeys";
 import type { LicenseOfferingForm } from "@/modules/products/types/productEditor.types";
+
+const UNIT_DRAG_MIME = "application/x-product-unit-ref";
+
+interface AssignableProductUnit {
+    id?: string;
+    _tempId?: string;
+    code?: string;
+    name?: string;
+    isActive?: boolean;
+}
 
 const generateTempId = () =>
     `temp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -87,6 +107,12 @@ const formatMoney = (amount?: number, currency = "TRY") =>
         ? `${amount.toLocaleString("tr-TR")} ${currency}`
         : `0 ${currency}`;
 
+const HelpInfo: React.FC<{ text: string }> = ({ text }) => (
+    <span className="pricing-help-inline" title={text} aria-label={text}>
+        <em className="icon ni ni-info" />
+    </span>
+);
+
 const toUnitScopeValues = (ids?: Array<string | null | undefined>, tempIds?: Array<string | null | undefined>) => [
     ...(ids ?? []).filter(Boolean).map((id) => `id:${id}`),
     ...(tempIds ?? []).filter(Boolean).map((id) => `temp:${id}`),
@@ -111,10 +137,36 @@ const splitUnitScopeValues = (values: string[]) => {
     };
 };
 
+type SortableHandleProps = {
+    attributes: ReturnType<typeof useSortable>["attributes"];
+    listeners: ReturnType<typeof useSortable>["listeners"];
+};
+
+const SortableOfferingCard: React.FC<{
+    id: string;
+    children: (dragHandleProps: SortableHandleProps) => React.ReactNode;
+}> = ({ id, children }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`pricing-sortable-item ${isDragging ? "is-dragging" : ""}`}
+            style={{
+                transform: CSS.Transform.toString(transform),
+                transition,
+            }}
+        >
+            {children({ attributes, listeners })}
+        </div>
+    );
+};
+
 interface OfferingFieldsProps {
     index: number;
     fieldId: string;
     productId?: string;
+    availableProductUnits: AssignableProductUnit[];
     saving: boolean;
     onRemove: () => void;
     onMoveUp: () => void;
@@ -122,12 +174,14 @@ interface OfferingFieldsProps {
     onSave: () => void;
     canMoveUp: boolean;
     canMoveDown: boolean;
+    dragHandleProps: SortableHandleProps;
 }
 
 const OfferingFields: React.FC<OfferingFieldsProps> = ({
     index,
     fieldId,
     productId,
+    availableProductUnits,
     saving,
     onRemove,
     onMoveUp,
@@ -135,6 +189,7 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
     onSave,
     canMoveUp,
     canMoveDown,
+    dragHandleProps,
 }) => {
     const {
         register,
@@ -145,7 +200,9 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
     } = useFormContext<ProductFormValues>();
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const offering = useWatch({ control, name: `licenseOfferings.${index}` });
-    const productUnits = useWatch({ control, name: "productUnits" }) ?? [];
+    const watchedProductUnits = useWatch({ control, name: "productUnits" }) ?? [];
+    const productUnits = availableProductUnits.length ? availableProductUnits : watchedProductUnits;
+    const assignableProductUnits = productUnits.filter((unit) => unit.isActive !== false && (unit.id || unit._tempId));
     const model = Number(offering?.licenseModel ?? 2);
     const meta = getModelMeta(model);
 
@@ -175,6 +232,14 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
         setValue(`licenseOfferings.${index}.productUnitTempId`, scope.productUnitTempId, { shouldDirty: true });
     };
 
+    const handleUnitDrop = (event: React.DragEvent<HTMLDivElement>) => {
+        const value = event.dataTransfer.getData(UNIT_DRAG_MIME);
+        if (!value) return;
+
+        event.preventDefault();
+        changeProductUnit(value, true);
+    };
+
     return (
         <div className={`card card-bordered border-${meta.color}`}>
             <div className="card-inner">
@@ -191,6 +256,15 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                     </div>
 
                     <div className="d-flex gap-1 h-100">
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-icon btn-outline-light pricing-drag-handle"
+                            title="Sürükleyerek sırala"
+                            {...dragHandleProps.attributes}
+                            {...dragHandleProps.listeners}
+                        >
+                            <em className="icon ni ni-drag" />
+                        </button>
                         <button
                             type="button"
                             className="btn btn-sm btn-icon btn-outline-light"
@@ -292,11 +366,41 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                             ))}
                         </select>
                     </div>
+                    <div className="col-md-4">
+                        <label className="form-label">Faturalama</label>
+                        <select
+                            className="form-control form-select"
+                            {...register(`licenseOfferings.${index}.billingPeriodUnit`, { valueAsNumber: true })}
+                        >
+                            <option value="">Seçiniz</option>
+                            {BILLING_UNITS.map((bu) => (
+                                <option key={bu.value} value={bu.value}>
+                                    {bu.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
                     <div className="col-md-4">
-                        <label className="form-label">Ürün birimi</label>
-                        <div className="border rounded p-3 bg-light">
-                            <div className="form-check mb-2">
+                        <label className="form-label d-inline-flex align-items-center gap-1">
+                            Paket birimleri
+                            <HelpInfo text="Bu paket hangi fiyatlandırma birimleriyle çalışacaksa onları seçin. Örneğin bu pakette kullanıcı bazlı ücret yoksa kullanıcı birimini seçmeyin. Üstteki birim paletinden buraya sürükleyerek de ekleyebilirsiniz." />
+                        </label>
+                        <div
+                            className="pricing-unit-dropzone"
+                            onDragOver={(event) => {
+                                if (event.dataTransfer.types.includes(UNIT_DRAG_MIME)) {
+                                    event.preventDefault();
+                                    event.dataTransfer.dropEffect = "copy";
+                                }
+                            }}
+                            onDrop={handleUnitDrop}
+                        >
+                            <div className="pricing-unit-dropzone-hint">
+                                <em className="icon ni ni-drag" />
+                                Birimi buraya bırak
+                            </div>
+                            <div className="form-check">
                                 <input
                                     type="checkbox"
                                     className="form-check-input"
@@ -311,51 +415,35 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                                     }}
                                 />
                                 <label className="form-check-label" htmlFor={`offering-unit-default-${fieldId}`}>
-                                    Varsayılan ürün birimi
+                                    Bu pakette birim kullanılmayacak
                                 </label>
                             </div>
-                            {productUnits
-                                .filter((unit) => unit.isActive && (unit.id || unit._tempId))
-                                .map((unit) => {
-                                    const optionValue = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
-                                    return (
-                                        <div className="form-check mb-2" key={optionValue}>
-                                            <input
-                                                type="checkbox"
-                                                className="form-check-input"
-                                                id={`offering-unit-${fieldId}-${optionValue}`}
-                                                checked={selectedUnitValues.includes(optionValue)}
-                                                onChange={(event) => changeProductUnit(optionValue, event.target.checked)}
-                                            />
-                                            <label className="form-check-label" htmlFor={`offering-unit-${fieldId}-${optionValue}`}>
-                                                {unit.name || unit.code}
-                                                {!unit.id ? " (kaydedilecek)" : ""}
-                                            </label>
-                                        </div>
-                                    );
-                                })}
-                            {productUnits.filter((unit) => unit.isActive && (unit.id || unit._tempId)).length === 0 && (
-                                <span className="text-soft fs-12px">Tanımlı ürün birimi yok.</span>
+                            {assignableProductUnits.map((unit) => {
+                                const optionValue = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
+                                return (
+                                    <div className="form-check" key={optionValue}>
+                                        <input
+                                            type="checkbox"
+                                            className="form-check-input"
+                                            id={`offering-unit-${fieldId}-${optionValue}`}
+                                            checked={selectedUnitValues.includes(optionValue)}
+                                            onChange={(event) => changeProductUnit(optionValue, event.target.checked)}
+                                        />
+                                        <label className="form-check-label" htmlFor={`offering-unit-${fieldId}-${optionValue}`}>
+                                            {unit.name || unit.code}
+                                            {!unit.id ? " (kaydedilecek)" : ""}
+                                        </label>
+                                    </div>
+                                );
+                            })}
+                            {assignableProductUnits.length === 0 && (
+                                <span className="text-soft fs-12px">Önce Ürün Birimleri adımında birim ekleyin.</span>
                             )}
                         </div>
                     </div>
 
                     {showBilling && (
                         <>
-                            <div className="col-md-4">
-                                <label className="form-label">Faturalama</label>
-                                <select
-                                    className="form-control form-select"
-                                    {...register(`licenseOfferings.${index}.billingPeriodUnit`, { valueAsNumber: true })}
-                                >
-                                    <option value="">Seçiniz</option>
-                                    {BILLING_UNITS.map((bu) => (
-                                        <option key={bu.value} value={bu.value}>
-                                            {bu.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
                             <div className="col-md-4">
                                 <label className="form-label">Periyot</label>
                                 <input
@@ -515,6 +603,7 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
 
 interface LicenseOfferingsTabProps {
     productId?: string;
+    productUnits?: AssignableProductUnit[];
 }
 
 const toOptionalNumber = (value?: number) =>
@@ -551,11 +640,16 @@ const buildOfferingPayload = (offering: LicenseOfferingForm) => {
     };
 };
 
-const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId }) => {
+const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, productUnits = [] }) => {
     const queryClient = useQueryClient();
     const { control, getValues, setValue, trigger } = useFormContext<ProductFormValues>();
-    const { fields, append, remove, swap } = useFieldArray({ control, name: "licenseOfferings" });
+    const { fields, append, remove, move } = useFieldArray({ control, name: "licenseOfferings" });
+    const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
 
     const addTemplate = (template: typeof PLAN_TEMPLATES[number]) => {
         append({
@@ -564,6 +658,24 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId }) 
             _tempId: generateTempId(),
             sortOrder: fields.length + 1,
         });
+    };
+
+    const reorderOfferings = (oldIndex: number, newIndex: number) => {
+        if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
+
+        move(oldIndex, newIndex);
+        arrayMove(licenseOfferings, oldIndex, newIndex).forEach((_, offeringIndex) => {
+            setValue(`licenseOfferings.${offeringIndex}.sortOrder`, offeringIndex + 1, { shouldDirty: true });
+        });
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = fields.findIndex((field) => field.id === active.id);
+        const newIndex = fields.findIndex((field) => field.id === over.id);
+        reorderOfferings(oldIndex, newIndex);
     };
 
     const saveOffering = async (index: number) => {
@@ -610,7 +722,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId }) 
                 <div>
                     <h6 className="overline-title text-primary mb-0">Satış Planları</h6>
                     <p className="text-soft fs-12 mb-0">
-                        Abonelik, deneme, koltuk bazlı veya tek seferlik satış planını şablonla oluşturun.
+                        Paketi oluşturun, sonra bu pakette kullanılacak fiyatlandırma birimlerini seçin.
                     </p>
                 </div>
                 <button
@@ -651,23 +763,32 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId }) 
                     </p>
                 </div>
             ) : (
-                <div className="d-flex flex-column gap-3 h-100">
-                    {fields.map((field, index) => (
-                        <OfferingFields
-                            key={field.id}
-                            index={index}
-                            fieldId={field.id}
-                            productId={productId}
-                            saving={savingIndex === index}
-                            onRemove={() => remove(index)}
-                            onMoveUp={() => swap(index, index - 1)}
-                            onMoveDown={() => swap(index, index + 1)}
-                            onSave={() => void saveOffering(index)}
-                            canMoveUp={index > 0}
-                            canMoveDown={index < fields.length - 1}
-                        />
-                    ))}
-                </div>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
+                        <div className="d-flex flex-column gap-3 h-100">
+                            {fields.map((field, index) => (
+                                <SortableOfferingCard id={field.id} key={field.id}>
+                                    {(dragHandleProps) => (
+                                        <OfferingFields
+                                            index={index}
+                                            fieldId={field.id}
+                                            productId={productId}
+                                            availableProductUnits={productUnits}
+                                            saving={savingIndex === index}
+                                            onRemove={() => remove(index)}
+                                            onMoveUp={() => reorderOfferings(index, index - 1)}
+                                            onMoveDown={() => reorderOfferings(index, index + 1)}
+                                            onSave={() => void saveOffering(index)}
+                                            canMoveUp={index > 0}
+                                            canMoveDown={index < fields.length - 1}
+                                            dragHandleProps={dragHandleProps}
+                                        />
+                                    )}
+                                </SortableOfferingCard>
+                            ))}
+                        </div>
+                    </SortableContext>
+                </DndContext>
             )}
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button } from "reactstrap";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { parseApiErrors, toFormPath } from "@/utils/apiErrors";
@@ -20,8 +20,8 @@ import {
 } from "@/modules/products/types/productEditor.types";
 import ProductModulesTab from "@/modules/products/components/editor/ProductModulesTab";
 import SoftwarePricingTiersTab from "@/modules/products/components/editor/SoftwarePricingTiersTab";
-import LicenseOfferingsTab from "@/modules/products/components/editor/LicenseOfferingsTab";
 import ProductUnitsTab from "@/modules/products/components/editor/ProductUnitsTab";
+import SoftwarePricingStudio from "@/modules/products/components/editor/SoftwarePricingStudio";
 import GeneralInfoTab from "@/modules/products/components/editor/GeneralInfoTab";
 import VariantBuilder from "@/modules/products/components/editor/VariantBuilder";
 import PriceMatrix from "@/modules/products/components/editor/PriceMatrix";
@@ -36,6 +36,10 @@ import PriceListItemTab from "@/modules/products/components/editor/PriceListItem
 import ProfileEditor from "@/modules/products/components/editor/ProfileEditor";
 
 type WorkflowId = "start" | "sales" | "enrich" | "advanced";
+
+interface ProductFormRouteState {
+    openWorkflow?: WorkflowId;
+}
 
 const KIND_LABELS: Record<number, string> = {
     1: "Fiziksel",
@@ -67,16 +71,16 @@ const mapProductUnitTempIds = (item: {
 interface ProductPreviewPanelProps {
     values: Partial<ProductFormValues>;
     totalErrorCount: number;
-    isDirty: boolean;
     isPending: boolean;
+    submitLabel: string;
     onSubmit: () => void;
 }
 
 const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
     values,
     totalErrorCount,
-    isDirty,
     isPending,
+    submitLabel,
     onSubmit,
 }) => {
     const mediaItems = values.mediaItems ?? [];
@@ -190,7 +194,7 @@ const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
                         ) : (
                             <>
                                 <Icon name="save" className="me-1" id="" style={{}} />
-                                {isDirty ? "Değişiklikleri Kaydet" : "Kaydet"}
+                                {submitLabel}
                             </>
                         )}
                     </Button>
@@ -594,8 +598,10 @@ const countErrors = (value: unknown): number => {
 
 const ProductFormPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { id } = useParams();
     const isEdit = Boolean(id);
+    const routeState = location.state as ProductFormRouteState | null;
 
     const { data: product, isLoading } = useProductDetail(id);
     const { createFullMutation, updateFullMutation } = useProductMutations();
@@ -619,6 +625,13 @@ const ProductFormPage: React.FC = () => {
             reset(mapProductToForm(product));
         }
     }, [product, reset]);
+
+    useEffect(() => {
+        if (!routeState?.openWorkflow) return;
+
+        setActiveWorkflow(routeState.openWorkflow);
+        navigate(location.pathname, { replace: true, state: null });
+    }, [location.pathname, navigate, routeState?.openWorkflow]);
 
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -834,7 +847,9 @@ const ProductFormPage: React.FC = () => {
             }
 
             const created = await createFullMutation.mutateAsync(fullPayload);
-            navigate(`/products/${created.id}`);
+            navigate(`/products/${created.id}/edit`, {
+                state: { openWorkflow: "sales" } satisfies ProductFormRouteState,
+            });
         } catch (err: unknown) {
             const { fieldErrors, generalErrors } = parseApiErrors(err);
 
@@ -857,6 +872,7 @@ const ProductFormPage: React.FC = () => {
     };
 
     const isPending = createFullMutation.isPending || updateFullMutation.isPending;
+    const submitLabel = isEdit ? "Değişiklikleri Kaydet" : "Kaydet ve Devam Et";
 
     // kind: 1=Fiziksel, 2=Yazılım, 3=Hizmet, 4=Abonelik
     const kindValue = useWatch({ control: form.control, name: "kind" });
@@ -941,6 +957,33 @@ const ProductFormPage: React.FC = () => {
         id: rule.id ?? "",
         productId: "",
     }));
+    const handleDraftRulesChange = !id
+        ? (rules: ProductDetailDto["pricingRules"]) =>
+            form.setValue(
+                "pricingRules",
+                (rules ?? []).map((rule) => ({
+                    id: rule.id,
+                    productLicenseOfferingId: rule.productLicenseOfferingId ?? undefined,
+                    licenseOfferingTempId: rule.licenseOfferingTempId ?? undefined,
+                    productUnitId: rule.productUnitId ?? undefined,
+                    productUnitTempId: rule.productUnitTempId ?? undefined,
+                    productUnitIds: rule.productUnitIds ?? [],
+                    productUnitTempIds: rule.productUnitTempIds ?? [],
+                    productVariantId: rule.productVariantId,
+                    code: rule.code,
+                    name: rule.name,
+                    priority: rule.priority,
+                    isActive: rule.isActive,
+                    validFrom: rule.validFrom,
+                    validTo: rule.validTo,
+                    salesChannel: rule.salesChannel,
+                    customerGroupCode: rule.customerGroupCode,
+                    priceAdjustment: rule.priceAdjustment,
+                    priceAdjustmentJson: rule.priceAdjustmentJson,
+                })),
+                { shouldDirty: true }
+            )
+        : undefined;
 
     const workflowErrorCounts: Record<WorkflowId, number> = {
         start: tabErrorCounts.general + tabErrorCounts.categories,
@@ -996,78 +1039,59 @@ const ProductFormPage: React.FC = () => {
             icon: "cart",
             content: (
                 <>
-                    {isLicensable && (
-                        <WorkflowSection
-                            icon="grid-add-c"
-                            title="Ürün Birimleri"
-                            description="Fiyatlandırma ve lisans tekliflerinde kullanılacak ürün içi birimleri tanımlayın."
-                        >
-                            <ProductUnitsTab productId={id} />
-                        </WorkflowSection>
-                    )}
-                    <WorkflowSection
-                        icon="coins"
-                        title={isSoftware ? "Satış Planları" : "Fiyat Tarifleri"}
-                        description={
-                            isSoftware
-                                ? "Aylık, yıllık, deneme veya koltuk bazlı planı şablonla başlatın; detayları yalnızca gerektiğinde açın."
-                                : "Temel fiyatı bir kartla başlatın; kampanya, bayi veya kanal fiyatlarını ayrı tarifler olarak ekleyin."
-                        }
-                    >
-                        {isSoftware ? (
-                            <LicenseOfferingsTab productId={id} />
-                        ) : (
-                            <>
-                                <PriceMatrix />
-                                <div className="border-top mt-4 pt-4">
-                                    <PriceListItemTab />
-                                </div>
-                            </>
-                        )}
-                    </WorkflowSection>
-                    {isLicensable && (
+                    {isSoftware ? (
                         <WorkflowSection
                             icon="layers"
-                            title="Dinamik Kurallar"
-                            description="Miktar, müşteri grubu veya kullanım gibi istisnaları ürün kaydedildikten sonra blok mantığıyla yönetin."
+                            title="Yazılım Fiyatlandırma Stüdyosu"
+                            description="Birim, satış planı ve dinamik kuralları aynı bağlamda kurarak fiyatlandırmayı tamamlayın."
                         >
-                            <SoftwarePricingTiersTab
+                            <SoftwarePricingStudio
                                 productId={id}
                                 licenseOfferings={pricingRuleLicenseOfferings}
                                 variants={product?.variants ?? []}
                                 productUnits={pricingRuleProductUnits}
                                 draftRules={!id ? draftPricingRules : undefined}
-                                onDraftRulesChange={
-                                    !id
-                                        ? (rules) =>
-                                            form.setValue(
-                                                "pricingRules",
-                                                rules.map((rule) => ({
-                                                    id: rule.id,
-                                                    productLicenseOfferingId: rule.productLicenseOfferingId ?? undefined,
-                                                    licenseOfferingTempId: rule.licenseOfferingTempId ?? undefined,
-                                                    productUnitId: rule.productUnitId ?? undefined,
-                                                    productUnitTempId: rule.productUnitTempId ?? undefined,
-                                                    productUnitIds: rule.productUnitIds ?? [],
-                                                    productUnitTempIds: rule.productUnitTempIds ?? [],
-                                                    productVariantId: rule.productVariantId,
-                                                    code: rule.code,
-                                                    name: rule.name,
-                                                    priority: rule.priority,
-                                                    isActive: rule.isActive,
-                                                    validFrom: rule.validFrom,
-                                                    validTo: rule.validTo,
-                                                    salesChannel: rule.salesChannel,
-                                                    customerGroupCode: rule.customerGroupCode,
-                                                    priceAdjustment: rule.priceAdjustment,
-                                                    priceAdjustmentJson: rule.priceAdjustmentJson,
-                                                })),
-                                                { shouldDirty: true }
-                                            )
-                                        : undefined
-                                }
+                                onDraftRulesChange={handleDraftRulesChange}
                             />
                         </WorkflowSection>
+                    ) : (
+                        <>
+                            {isLicensable && (
+                                <WorkflowSection
+                                    icon="grid-add-c"
+                                    title="Ürün Birimleri"
+                                    description="Fiyatlandırma ve lisans tekliflerinde kullanılacak ürün içi birimleri tanımlayın."
+                                >
+                                    <ProductUnitsTab productId={id} />
+                                </WorkflowSection>
+                            )}
+                            <WorkflowSection
+                                icon="coins"
+                                title="Fiyat Tarifleri"
+                                description="Temel fiyatı bir kartla başlatın; kampanya, bayi veya kanal fiyatlarını ayrı tarifler olarak ekleyin."
+                            >
+                                <PriceMatrix />
+                                <div className="border-top mt-4 pt-4">
+                                    <PriceListItemTab />
+                                </div>
+                            </WorkflowSection>
+                            {isLicensable && (
+                                <WorkflowSection
+                                    icon="layers"
+                                    title="Dinamik Kurallar"
+                                    description="Miktar, müşteri grubu veya kullanım gibi istisnaları ürün kaydedildikten sonra blok mantığıyla yönetin."
+                                >
+                                    <SoftwarePricingTiersTab
+                                        productId={id}
+                                        licenseOfferings={pricingRuleLicenseOfferings}
+                                        variants={product?.variants ?? []}
+                                        productUnits={pricingRuleProductUnits}
+                                        draftRules={!id ? draftPricingRules : undefined}
+                                        onDraftRulesChange={handleDraftRulesChange}
+                                    />
+                                </WorkflowSection>
+                            )}
+                        </>
                     )}
                     {isPhysical && (
                         <WorkflowSection
@@ -1195,7 +1219,7 @@ const ProductFormPage: React.FC = () => {
                                         disabled={isPending}
                                         onClick={() => navigate("/products")}
                                     >
-                                        İptal
+                                        Ürün Listesine Dön
                                     </Button>
                                     <Button color="primary py-2" type="submit" disabled={isPending}>
                                         {isPending ? (
@@ -1206,7 +1230,7 @@ const ProductFormPage: React.FC = () => {
                                         ) : (
                                             <>
                                                 <Icon name="save" className="me-1" id="" style={{}} />
-                                                Kaydet
+                                                {submitLabel}
                                             </>
                                         )}
                                     </Button>
@@ -1252,6 +1276,7 @@ const ProductFormPage: React.FC = () => {
                                                         {workflows.map((workflow) => {
                                                             const active = workflow.id === activeWorkflow;
                                                             const errorCount = workflowErrorCounts[workflow.id];
+                                                            const lockedUntilSaved = !isEdit && workflow.id !== "start";
 
                                                             return (
                                                                 <button
@@ -1260,6 +1285,12 @@ const ProductFormPage: React.FC = () => {
                                                                     className={`btn ${
                                                                         active ? "btn-primary" : "btn-outline-light"
                                                                     } product-editor-workflow-button d-flex align-items-center gap-2 h-100`}
+                                                                    disabled={lockedUntilSaved}
+                                                                    title={
+                                                                        lockedUntilSaved
+                                                                            ? "Diğer adımlara geçmek için önce Başla adımını kaydedin"
+                                                                            : undefined
+                                                                    }
                                                                     onClick={() => setActiveWorkflow(workflow.id)}
                                                                 >
                                                                     <em className={`icon ni ni-${workflow.icon}`} />
@@ -1294,8 +1325,8 @@ const ProductFormPage: React.FC = () => {
                                             <ProductPreviewPanel
                                                 values={formValues}
                                                 totalErrorCount={totalErrorCount}
-                                                isDirty={isDirty}
                                                 isPending={isPending}
+                                                submitLabel={submitLabel}
                                                 onSubmit={() => void handleSubmit(onSubmit)()}
                                             />
                                         </div>

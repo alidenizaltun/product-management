@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Collapse } from "reactstrap";
 import { useFormContext, useWatch } from "react-hook-form";
 import ProductUnitsTab from "@/modules/products/components/editor/ProductUnitsTab";
 import LicenseOfferingsTab from "@/modules/products/components/editor/LicenseOfferingsTab";
@@ -14,6 +15,7 @@ import type {
 type ProductUnitOption = ProductUnitDto & { _tempId?: string };
 type LicenseOfferingOption = ProductLicenseOfferingDto & { _tempId?: string };
 const UNIT_DRAG_MIME = "application/x-product-unit-ref";
+type StudioStepKey = "units" | "offerings" | "rules";
 
 interface SoftwarePricingStudioProps {
     productId?: string;
@@ -66,6 +68,11 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
     const activeOfferings = visibleOfferings.filter((offering) => offering.isActive);
     const activeRules = visibleRules.filter((rule) => rule.isActive);
     const [skipUnitPricing, setSkipUnitPricing] = useState(false);
+    const [openSteps, setOpenSteps] = useState<Record<StudioStepKey, boolean>>({
+        units: true,
+        offerings: false,
+        rules: false,
+    });
     const canConfigureOfferings = activeUnits.length > 0 || skipUnitPricing;
     const canConfigureRules = canConfigureOfferings && activeOfferings.length > 0;
 
@@ -93,9 +100,13 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
         },
     ];
 
+    const toggleStep = (step: StudioStepKey) => {
+        setOpenSteps((current) => ({ ...current, [step]: !current[step] }));
+    };
+
     return (
         <div className="software-pricing-studio">
-            <div className="software-pricing-studio-summary mb-4">
+            {/* <div className="software-pricing-studio-summary mb-4">
                 <div>
                     <div className="d-flex align-items-center gap-2 mb-1">
                         <span className="overline-title text-primary mb-0">Fiyatlandırma Stüdyosu</span>
@@ -111,44 +122,9 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
                         </div>
                     ))}
                 </div>
-            </div>
+            </div> */}
 
             <div className="software-pricing-studio-flow">
-                <section className="software-pricing-studio-step">
-                    <div className="software-pricing-studio-step-head">
-                        <span className="software-pricing-studio-step-no">1</span>
-                        <div>
-                            <h6 className="title mb-1">Ürün Birimleri</h6>
-                            <p className="text-soft fs-13px mb-0">Planların ve kuralların kullanacağı ürün içi fiyatlandırma birimlerini kurun.</p>
-                        </div>
-                    </div>
-                    <div className="alert alert-info d-flex align-items-start gap-2 py-2 mb-3 h-100">
-                        <em className="icon ni ni-info mt-1" />
-                        <span>
-                            Yazılım fiyatı kullanıcı, lisans, modül, API çağrısı gibi bir parametreye göre değişiyorsa önce burada o birimleri tanımlayın. Ürün sabit paket fiyatıyla satılacaksa aşağıdaki seçeneği işaretleyip paket adımına geçebilirsiniz.
-                        </span>
-                    </div>
-                    <ProductUnitsTab productId={productId} />
-                    <div className="software-pricing-studio-decision mt-3">
-                        <div className="form-check form-switch">
-                            <input
-                                type="checkbox"
-                                className="form-check-input"
-                                id="software-pricing-no-unit"
-                                checked={skipUnitPricing}
-                                disabled={activeUnits.length > 0}
-                                onChange={(event) => setSkipUnitPricing(event.target.checked)}
-                            />
-                            <label className="form-check-label" htmlFor="software-pricing-no-unit">
-                                Bu ürün için fiyatlandırma parametresi yok
-                            </label>
-                        </div>
-                        <p className="text-soft fs-12px mb-0">
-                            Bu seçim, paketlerin herhangi bir ürün birimine bağlanmadan oluşturulacağını belirtir. Sonradan birim eklerseniz paket ve kural adımlarında o birimleri kullanabilirsiniz.
-                        </p>
-                    </div>
-                </section>
-
                 {activeUnits.length > 0 && (
                     <div className="software-pricing-studio-unit-tray">
                         <div className="software-pricing-studio-unit-tray-head">
@@ -195,7 +171,58 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
                 )}
 
                 <section className="software-pricing-studio-step">
-                    <div className="software-pricing-studio-step-head">
+                    <button
+                        type="button"
+                        className="software-pricing-studio-step-head"
+                        onClick={() => toggleStep("units")}
+                        aria-expanded={openSteps.units}
+                    >
+                        <span className="software-pricing-studio-step-no">1</span>
+                        <div>
+                            <h6 className="title mb-1">Ürün Birimleri</h6>
+                            <p className="text-soft fs-13px mb-0">Planların ve kuralların kullanacağı ürün içi fiyatlandırma birimlerini kurun.</p>
+                        </div>
+                        <span className="software-pricing-studio-step-summary">
+                            {activeUnits.length ? `${activeUnits.length} aktif birim` : skipUnitPricing ? "Parametresiz" : "Bekliyor"}
+                        </span>
+                        <em className={`icon ni ni-chevron-${openSteps.units ? "up" : "down"}`} />
+                    </button>
+                    <Collapse isOpen={openSteps.units}>
+                        <div className="alert alert-info d-flex align-items-start gap-2 py-2 mb-3 h-100">
+                            <em className="icon ni ni-info mt-1" />
+                            <span>
+                                Yazılım fiyatı kullanıcı, lisans, modül, API çağrısı gibi bir parametreye göre değişiyorsa önce burada o birimleri tanımlayın. Ürün sabit paket fiyatıyla satılacaksa aşağıdaki seçeneği işaretleyip paket adımına geçebilirsiniz.
+                            </span>
+                        </div>
+                        <ProductUnitsTab productId={productId} />
+                        <div className="software-pricing-studio-decision mt-3">
+                            <div className="form-check form-switch">
+                                <input
+                                    type="checkbox"
+                                    className="form-check-input"
+                                    id="software-pricing-no-unit"
+                                    checked={skipUnitPricing}
+                                    disabled={activeUnits.length > 0}
+                                    onChange={(event) => setSkipUnitPricing(event.target.checked)}
+                                />
+                                <label className="form-check-label" htmlFor="software-pricing-no-unit">
+                                    Bu ürün için fiyatlandırma parametresi yok
+                                </label>
+                            </div>
+                            <p className="text-soft fs-12px mb-0">
+                                Bu seçim, paketlerin herhangi bir ürün birimine bağlanmadan oluşturulacağını belirtir. Sonradan birim eklerseniz paket ve kural adımlarında o birimleri kullanabilirsiniz.
+                            </p>
+                        </div>
+                    </Collapse>
+                </section>
+
+                <section className="software-pricing-studio-step">
+                    <button
+                        type="button"
+                        className="software-pricing-studio-step-head"
+                        onClick={() => toggleStep("offerings")}
+                        aria-expanded={openSteps.offerings}
+                    >
                         <span className="software-pricing-studio-step-no">2</span>
                         <div>
                             <h6 className="title mb-1">Satış Planları</h6>
@@ -203,22 +230,33 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
                                 Satış planı müşterinin satın alacağı pakettir. En az bir plan eklenmeden dinamik fiyatlandırma kuralı oluşturulamaz.
                             </p>
                         </div>
-                    </div>
-                    {canConfigureOfferings ? (
-                        <LicenseOfferingsTab productId={productId} productUnits={visibleUnits} />
-                    ) : (
-                        <div className="software-pricing-studio-lock">
-                            <em className="icon ni ni-lock" />
-                            <div>
-                                <strong>Önce birim kararını tamamlayın.</strong>
-                                <p className="mb-0 text-soft">Bir ürün birimi ekleyin veya bu ürünün fiyatlandırma parametresi olmadığını işaretleyin.</p>
+                        <span className="software-pricing-studio-step-summary">
+                            {activeOfferings.length ? `${activeOfferings.length} aktif plan` : "Eksik"}
+                        </span>
+                        <em className={`icon ni ni-chevron-${openSteps.offerings ? "up" : "down"}`} />
+                    </button>
+                    <Collapse isOpen={openSteps.offerings}>
+                        {canConfigureOfferings ? (
+                            <LicenseOfferingsTab productId={productId} productUnits={visibleUnits} />
+                        ) : (
+                            <div className="software-pricing-studio-lock">
+                                <em className="icon ni ni-lock" />
+                                <div>
+                                    <strong>Önce birim kararını tamamlayın.</strong>
+                                    <p className="mb-0 text-soft">Bir ürün birimi ekleyin veya bu ürünün fiyatlandırma parametresi olmadığını işaretleyin.</p>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </Collapse>
                 </section>
 
                 <section className="software-pricing-studio-step">
-                    <div className="software-pricing-studio-step-head">
+                    <button
+                        type="button"
+                        className="software-pricing-studio-step-head"
+                        onClick={() => toggleStep("rules")}
+                        aria-expanded={openSteps.rules}
+                    >
                         <span className="software-pricing-studio-step-no">3</span>
                         <div>
                             <h6 className="title mb-1">Dinamik Kurallar</h6>
@@ -226,25 +264,31 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
                                 Kurallar seçilen planın fiyatına uygulanır. Önce kuralın hangi plana uygulanacağını, sonra gerekiyorsa o planın birimlerini seçin.
                             </p>
                         </div>
-                    </div>
-                    {canConfigureRules ? (
-                        <SoftwarePricingTiersTab
-                            productId={productId}
-                            licenseOfferings={licenseOfferings}
-                            productUnits={productUnits}
-                            variants={variants}
-                            draftRules={draftRules}
-                            onDraftRulesChange={onDraftRulesChange}
-                        />
-                    ) : (
-                        <div className="software-pricing-studio-lock">
-                            <em className="icon ni ni-lock" />
-                            <div>
-                                <strong>Önce en az bir satış planı ekleyin.</strong>
-                                <p className="mb-0 text-soft">Kural motoru, hangi paketin fiyatını değiştireceğini bilmeden çalıştırılmaz.</p>
+                        <span className="software-pricing-studio-step-summary">
+                            {activeRules.length ? `${activeRules.length} aktif kural` : "Opsiyonel"}
+                        </span>
+                        <em className={`icon ni ni-chevron-${openSteps.rules ? "up" : "down"}`} />
+                    </button>
+                    <Collapse isOpen={openSteps.rules}>
+                        {canConfigureRules ? (
+                            <SoftwarePricingTiersTab
+                                productId={productId}
+                                licenseOfferings={licenseOfferings}
+                                productUnits={productUnits}
+                                variants={variants}
+                                draftRules={draftRules}
+                                onDraftRulesChange={onDraftRulesChange}
+                            />
+                        ) : (
+                            <div className="software-pricing-studio-lock">
+                                <em className="icon ni ni-lock" />
+                                <div>
+                                    <strong>Önce en az bir satış planı ekleyin.</strong>
+                                    <p className="mb-0 text-soft">Kural motoru, hangi paketin fiyatını değiştireceğini bilmeden çalıştırılmaz.</p>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </Collapse>
                 </section>
             </div>
         </div>

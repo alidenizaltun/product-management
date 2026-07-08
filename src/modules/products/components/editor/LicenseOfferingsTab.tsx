@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
@@ -11,6 +11,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { Collapse, UncontrolledTooltip } from "reactstrap";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import { productsApi } from "@/modules/products/api/products.api";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
@@ -107,11 +108,33 @@ const formatMoney = (amount?: number, currency = "TRY") =>
         ? `${amount.toLocaleString("tr-TR")} ${currency}`
         : `0 ${currency}`;
 
-const HelpInfo: React.FC<{ text: string }> = ({ text }) => (
-    <span className="pricing-help-inline" title={text} aria-label={text}>
-        <em className="icon ni ni-info" />
-    </span>
-);
+interface HelpLabelProps {
+    children: React.ReactNode;
+    help: string;
+}
+
+const HelpLabel: React.FC<HelpLabelProps> = ({ children, help }) => {
+    const reactId = useId();
+    const id = `offering-help-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
+
+    return (
+        <span className="d-inline-flex align-items-center gap-1">
+            <span>{children}</span>
+            <button
+                type="button"
+                id={id}
+                className="btn btn-xs btn-trigger btn-icon text-soft p-0"
+                aria-label={`${children} hakkında bilgi`}
+                onClick={(event) => event.preventDefault()}
+            >
+                <em className="icon ni ni-info" />
+            </button>
+            <UncontrolledTooltip autohide={false} placement="top" target={id}>
+                {help}
+            </UncontrolledTooltip>
+        </span>
+    );
+};
 
 const toUnitScopeValues = (ids?: Array<string | null | undefined>, tempIds?: Array<string | null | undefined>) => [
     ...(ids ?? []).filter(Boolean).map((id) => `id:${id}`),
@@ -172,6 +195,8 @@ interface OfferingFieldsProps {
     onMoveUp: () => void;
     onMoveDown: () => void;
     onSave: () => void;
+    isOpen: boolean;
+    onToggle: () => void;
     canMoveUp: boolean;
     canMoveDown: boolean;
     dragHandleProps: SortableHandleProps;
@@ -187,6 +212,8 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
     onMoveUp,
     onMoveDown,
     onSave,
+    isOpen,
+    onToggle,
     canMoveUp,
     canMoveDown,
     dragHandleProps,
@@ -258,6 +285,14 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                     <div className="d-flex gap-1 h-100">
                         <button
                             type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={onToggle}
+                        >
+                            <em className={`icon ni ni-chevron-${isOpen ? "up" : "down"} me-1`} />
+                            {isOpen ? "Kapat" : "Düzenle"}
+                        </button>
+                        <button
+                            type="button"
                             className="btn btn-sm btn-icon btn-outline-light pricing-drag-handle"
                             title="Sürükleyerek sırala"
                             {...dragHandleProps.attributes}
@@ -294,10 +329,14 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                     </div>
                 </div>
 
+                <Collapse isOpen={isOpen}>
                 <div className="row g-3 align-items-end">
                     <div className="col-lg-4">
                         <label className="form-label">
-                            Plan adı <span className="text-danger">*</span>
+                            <HelpLabel help="Müşterinin satın alacağı paketin görünen adıdır. Aylık Plan, Yıllık Plan veya Kurumsal Paket gibi satışta anlaşılır bir ad kullanın.">
+                                Plan adı
+                            </HelpLabel>{" "}
+                            <span className="text-danger">*</span>
                         </label>
                         <input
                             className="form-control form-control-lg"
@@ -313,7 +352,10 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
 
                     <div className="col-lg-5">
                         <label className="form-label">
-                            Taban fiyat <span className="text-danger">*</span>
+                            <HelpLabel help="Bu satış planının dinamik kurallar çalışmadan önceki başlangıç fiyatıdır. İndirim, artırım veya kademeli hesaplamalar bu fiyat üzerinden uygulanabilir.">
+                                Taban fiyat
+                            </HelpLabel>{" "}
+                            <span className="text-danger">*</span>
                         </label>
                         <div className="input-group input-group-lg">
                             <input
@@ -354,7 +396,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                     </div>
 
                     <div className="col-md-4">
-                        <label className="form-label">Satış modeli</label>
+                        <label className="form-label">
+                            <HelpLabel help="Planın hangi satış mantığıyla sunulacağını belirler. Abonelik dönemsel yenileme, tek seferlik kalıcı lisans, kullanım bazlı tüketim, koltuk bazlı kullanıcı sayısı ve deneme geçici erişim senaryoları içindir.">
+                                Satış modeli
+                            </HelpLabel>
+                        </label>
                         <select
                             className="form-control form-select"
                             {...register(`licenseOfferings.${index}.licenseModel`, { valueAsNumber: true })}
@@ -367,7 +413,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                         </select>
                     </div>
                     <div className="col-md-4">
-                        <label className="form-label">Faturalama</label>
+                        <label className="form-label">
+                            <HelpLabel help="Abonelik planlarında ücretin hangi zaman birimine göre yenileneceğini belirtir. Örneğin ay seçilirse plan aylık, yıl seçilirse yıllık dönemle fiyatlanır.">
+                                Faturalama birimi
+                            </HelpLabel>
+                        </label>
                         <select
                             className="form-control form-select"
                             {...register(`licenseOfferings.${index}.billingPeriodUnit`, { valueAsNumber: true })}
@@ -382,9 +432,10 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                     </div>
 
                     <div className="col-md-4">
-                        <label className="form-label d-inline-flex align-items-center gap-1">
-                            Paket birimleri
-                            <HelpInfo text="Bu paket hangi fiyatlandırma birimleriyle çalışacaksa onları seçin. Örneğin bu pakette kullanıcı bazlı ücret yoksa kullanıcı birimini seçmeyin. Üstteki birim paletinden buraya sürükleyerek de ekleyebilirsiniz." />
+                        <label className="form-label">
+                            <HelpLabel help="Bu planın hangi ürün birimleriyle çalışacağını seçer. Örneğin kullanıcı bazlı ücret varsa kullanıcı birimini, cihaz bazlı ücret varsa cihaz birimini plana bağlayın. Üstteki birim paletinden buraya sürükleyerek de ekleyebilirsiniz.">
+                                Paket birimleri
+                            </HelpLabel>
                         </label>
                         <div
                             className="pricing-unit-dropzone"
@@ -415,7 +466,9 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                                     }}
                                 />
                                 <label className="form-check-label" htmlFor={`offering-unit-default-${fieldId}`}>
-                                    Bu pakette birim kullanılmayacak
+                                    <HelpLabel help="Plan sabit paket fiyatıyla satılacaksa ve kullanıcı, cihaz, işlem adedi gibi bir fiyatlandırma birimine bağlı olmayacaksa bu seçeneği kullanın.">
+                                        Birimsiz paket
+                                    </HelpLabel>
                                 </label>
                             </div>
                             {assignableProductUnits.map((unit) => {
@@ -445,7 +498,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                     {showBilling && (
                         <>
                             <div className="col-md-4">
-                                <label className="form-label">Periyot</label>
+                                <label className="form-label">
+                                    <HelpLabel help="Seçilen faturalama biriminden kaç adet kullanılacağını belirtir. Ay birimi ve 1 periyot aylık, ay birimi ve 3 periyot üç aylık plan anlamına gelir.">
+                                        Fatura periyodu
+                                    </HelpLabel>
+                                </label>
                                 <input
                                     type="number"
                                     min="1"
@@ -459,7 +516,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
 
                     {showSeats && (
                         <div className="col-md-4">
-                            <label className="form-label">Maks. koltuk</label>
+                            <label className="form-label">
+                                <HelpLabel help="Bu planla kullanılabilecek en yüksek kullanıcı veya koltuk sayısını belirtir. Boş bırakılırsa plan tarafında özel bir üst sınır uygulanmayabilir.">
+                                    Koltuk üst sınırı
+                                </HelpLabel>
+                            </label>
                             <input
                                 type="number"
                                 min="1"
@@ -472,7 +533,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
 
                     {showTrial && (
                         <div className="col-md-4">
-                            <label className="form-label">Deneme süresi</label>
+                            <label className="form-label">
+                                <HelpLabel help="Deneme planının kaç gün geçerli olacağını belirtir. Süre dolduğunda müşteri ücretli plana geçmek veya erişimi sonlandırmak zorunda kalabilir.">
+                                    Deneme süresi
+                                </HelpLabel>
+                            </label>
                             <div className="input-group">
                                 <input
                                     type="number"
@@ -489,7 +554,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                     {advancedOpen && (
                         <>
                             <div className="col-12">
-                                <label className="form-label">Açıklama</label>
+                                <label className="form-label">
+                                    <HelpLabel help="Planın müşteriye veya operasyon ekibine ne sunduğunu açıklayan opsiyonel metindir. Kapsam, hedef müşteri tipi veya özel notlar burada tutulabilir.">
+                                        Plan açıklaması
+                                    </HelpLabel>
+                                </label>
                                 <input
                                     className="form-control"
                                     placeholder="Plan hakkında kısa açıklama..."
@@ -498,7 +567,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                             </div>
 
                             <div className="col-md-3">
-                                <label className="form-label">Sıra</label>
+                                <label className="form-label">
+                                    <HelpLabel help="Satış planlarının ekranda hangi sırayla gösterileceğini belirler. Küçük sayı daha önce görünür.">
+                                        Gösterim sırası
+                                    </HelpLabel>
+                                </label>
                                 <input
                                     type="number"
                                     min="0"
@@ -509,7 +582,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                             </div>
 
                             <div className="col-md-3">
-                                <label className="form-label">İzin süresi</label>
+                                <label className="form-label">
+                                    <HelpLabel help="Abonelik yenileme veya ödeme gecikmesi durumunda erişimin kaç gün daha tolere edileceğini belirtir. Bu süre operasyonel esneklik sağlar.">
+                                        Ödeme toleransı
+                                    </HelpLabel>
+                                </label>
                                 <div className="input-group">
                                     <input
                                         type="number"
@@ -523,7 +600,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                             </div>
 
                             <div className="col-md-3">
-                                <label className="form-label">Başlangıç</label>
+                                <label className="form-label">
+                                    <HelpLabel help="Planın satışa veya kullanıma açılacağı başlangıç tarihidir. Boş bırakılırsa plan için başlangıç tarihi kısıtı uygulanmayabilir.">
+                                        Geçerlilik başlangıcı
+                                    </HelpLabel>
+                                </label>
                                 <input
                                     type="date"
                                     className="form-control"
@@ -531,7 +612,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                                 />
                             </div>
                             <div className="col-md-3">
-                                <label className="form-label">Bitiş</label>
+                                <label className="form-label">
+                                    <HelpLabel help="Planın satış veya kullanım için geçerli olacağı son tarihtir. Kampanya veya dönemsel planlarda bu alanla bitiş sınırı verilir.">
+                                        Geçerlilik bitişi
+                                    </HelpLabel>
+                                </label>
                                 <input
                                     type="date"
                                     className={`form-control ${errors.licenseOfferings?.[index]?.validTo ? "is-invalid" : ""}`}
@@ -563,7 +648,9 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                                 {...register(`licenseOfferings.${index}.isActive`)}
                             />
                             <label className="form-check-label" htmlFor={`offering-active-${fieldId}`}>
-                                Aktif
+                                <HelpLabel help="Pasif planlar ürün üzerinde saklanır ancak satışa hazır aktif paket gibi değerlendirilmez. Taslak veya geçici olarak kapatılmış planlar için kullanılabilir.">
+                                    Plan aktif
+                                </HelpLabel>
                             </label>
                         </div>
                     </div>
@@ -596,6 +683,7 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                         </button>
                     </div>
                 </div>
+                </Collapse>
             </div>
         </div>
     );
@@ -646,17 +734,49 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
     const { fields, append, remove, move } = useFieldArray({ control, name: "licenseOfferings" });
     const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
+    const [openOfferingCards, setOpenOfferingCards] = useState<Set<string>>(new Set());
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
     const addTemplate = (template: typeof PLAN_TEMPLATES[number]) => {
+        const tempId = generateTempId();
         append({
             ...EMPTY_OFFERING,
             ...template.offering,
-            _tempId: generateTempId(),
+            _tempId: tempId,
             sortOrder: fields.length + 1,
+        });
+        setOpenOfferingCards((current) => new Set(current).add(`temp:${tempId}`));
+    };
+
+    const addEmptyOffering = () => {
+        const tempId = generateTempId();
+        append({ ...EMPTY_OFFERING, _tempId: tempId, sortOrder: fields.length + 1 });
+        setOpenOfferingCards((current) => new Set(current).add(`temp:${tempId}`));
+    };
+
+    const getOfferingCardKey = (offering: LicenseOfferingForm | undefined, fallbackId: string) =>
+        offering?.id ? `id:${offering.id}` : offering?._tempId ? `temp:${offering._tempId}` : fallbackId;
+
+    const toggleOfferingCard = (key: string) => {
+        setOpenOfferingCards((current) => {
+            const next = new Set(current);
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+            return next;
+        });
+    };
+
+    const closeOfferingCard = (key: string) => {
+        setOpenOfferingCards((current) => {
+            const next = new Set(current);
+            next.delete(key);
+            return next;
         });
     };
 
@@ -694,6 +814,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
             return;
         }
         const payload = buildOfferingPayload(offering);
+        const cardKey = getOfferingCardKey(offering, fields[index]?.id ?? String(index));
 
         try {
             setSavingIndex(index);
@@ -709,6 +830,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
 
             await queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(productId) });
             await queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+            closeOfferingCard(cardKey);
         } catch (error) {
             showApiError(error);
         } finally {
@@ -728,7 +850,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                 <button
                     type="button"
                     className="btn btn-sm btn-outline-primary"
-                    onClick={() => append({ ...EMPTY_OFFERING, _tempId: generateTempId(), sortOrder: fields.length + 1 })}
+                    onClick={addEmptyOffering}
                 >
                     <em className="icon ni ni-plus me-1" />
                     Boş plan
@@ -766,26 +888,32 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
                         <div className="d-flex flex-column gap-3 h-100">
-                            {fields.map((field, index) => (
-                                <SortableOfferingCard id={field.id} key={field.id}>
-                                    {(dragHandleProps) => (
-                                        <OfferingFields
-                                            index={index}
-                                            fieldId={field.id}
-                                            productId={productId}
-                                            availableProductUnits={productUnits}
-                                            saving={savingIndex === index}
-                                            onRemove={() => remove(index)}
-                                            onMoveUp={() => reorderOfferings(index, index - 1)}
-                                            onMoveDown={() => reorderOfferings(index, index + 1)}
-                                            onSave={() => void saveOffering(index)}
-                                            canMoveUp={index > 0}
-                                            canMoveDown={index < fields.length - 1}
-                                            dragHandleProps={dragHandleProps}
-                                        />
-                                    )}
-                                </SortableOfferingCard>
-                            ))}
+                            {fields.map((field, index) => {
+                                const offering = licenseOfferings[index];
+                                const cardKey = getOfferingCardKey(offering, field.id);
+                                return (
+                                    <SortableOfferingCard id={field.id} key={field.id}>
+                                        {(dragHandleProps) => (
+                                            <OfferingFields
+                                                index={index}
+                                                fieldId={field.id}
+                                                productId={productId}
+                                                availableProductUnits={productUnits}
+                                                saving={savingIndex === index}
+                                                onRemove={() => remove(index)}
+                                                onMoveUp={() => reorderOfferings(index, index - 1)}
+                                                onMoveDown={() => reorderOfferings(index, index + 1)}
+                                                onSave={() => void saveOffering(index)}
+                                                isOpen={openOfferingCards.has(cardKey)}
+                                                onToggle={() => toggleOfferingCard(cardKey)}
+                                                canMoveUp={index > 0}
+                                                canMoveDown={index < fields.length - 1}
+                                                dragHandleProps={dragHandleProps}
+                                            />
+                                        )}
+                                    </SortableOfferingCard>
+                                );
+                            })}
                         </div>
                     </SortableContext>
                 </DndContext>

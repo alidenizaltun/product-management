@@ -356,12 +356,34 @@
         background: $white;
     }
     &-step-head{
+        width: 100%;
         display: flex;
         align-items: flex-start;
         gap: .75rem;
         margin-bottom: 1rem;
         padding-bottom: 1rem;
+        border: 0;
         border-bottom: 1px solid $light-200;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+        .icon{
+            flex: 0 0 auto;
+            color: $base-light;
+            font-size: 1rem;
+            line-height: 2rem;
+        }
+        &[aria-expanded="false"]{
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom-color: transparent;
+        }
+        &:hover{
+            .title{
+                color: $accent-color;
+            }
+        }
     }
     &-step-no{
         display: inline-flex;
@@ -375,6 +397,21 @@
         color: $white;
         font-weight: 700;
         line-height: 1;
+    }
+    &-step-summary{
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 auto;
+        min-height: 1.75rem;
+        margin-left: auto;
+        padding: .25rem .625rem;
+        border: 1px solid $light-200;
+        border-radius: 999px;
+        background: $light-100;
+        color: $base-light;
+        font-size: 12px;
+        line-height: 1.2;
+        white-space: nowrap;
     }
     &-decision{
         display: flex;

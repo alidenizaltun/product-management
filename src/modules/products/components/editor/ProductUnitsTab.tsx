@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
@@ -11,16 +11,16 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
+import { Button, Collapse, Modal, ModalBody, ModalFooter, ModalHeader, UncontrolledTooltip } from "reactstrap";
 import { unitDefinitionsApi } from "@/services/unitDefinitions/unitDefinitions.api";
 import { productsApi } from "@/modules/products/api/products.api";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { queryKeys } from "@/services/query/queryKeys";
 import type { ProductFormValues, ProductUnitForm } from "@/modules/products/types/productEditor.types";
 import type { CreateProductUnitRequestDto, UnitDefinitionDto, UnitRole } from "@/shared/types/productOperations.types";
-import { UNIT_ROLE_LABELS } from "@/shared/types/productOperations.types";
 
 const generateTempId = () => `product-unit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const DEFAULT_PRODUCT_UNIT_ROLE: UnitRole = 1;
 
 const EMPTY_UNIT: ProductUnitForm = {
     _tempId: "",
@@ -28,7 +28,7 @@ const EMPTY_UNIT: ProductUnitForm = {
     code: "",
     name: "",
     description: "",
-    role: 1,
+    role: DEFAULT_PRODUCT_UNIT_ROLE,
     isDefault: false,
     isActive: true,
     sortOrder: 0,
@@ -49,6 +49,34 @@ const EMPTY_QUICK_DEFINITION: QuickUnitDefinitionForm = {
 interface ProductUnitsTabProps {
     productId?: string;
 }
+
+interface HelpLabelProps {
+    children: React.ReactNode;
+    help: string;
+}
+
+const HelpLabel: React.FC<HelpLabelProps> = ({ children, help }) => {
+    const reactId = useId();
+    const id = `unit-help-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
+
+    return (
+        <span className="d-inline-flex align-items-center gap-1">
+            <span>{children}</span>
+            <button
+                type="button"
+                id={id}
+                className="btn btn-xs btn-trigger btn-icon text-soft p-0"
+                aria-label={`${children} hakkında bilgi`}
+                onClick={(event) => event.preventDefault()}
+            >
+                <em className="icon ni ni-info" />
+            </button>
+            <UncontrolledTooltip autohide={false} placement="top" target={id}>
+                {help}
+            </UncontrolledTooltip>
+        </span>
+    );
+};
 
 const SortableUnitCard: React.FC<{
     id: string;
@@ -83,6 +111,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
     const [quickAddIndex, setQuickAddIndex] = useState<number | null>(null);
     const [quickDefinition, setQuickDefinition] = useState<QuickUnitDefinitionForm>(EMPTY_QUICK_DEFINITION);
     const [creatingDefinition, setCreatingDefinition] = useState(false);
+    const [openUnitCards, setOpenUnitCards] = useState<Set<string>>(new Set());
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -93,11 +122,36 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
     }, []);
 
     const addUnit = () => {
+        const tempId = generateTempId();
         append({
             ...EMPTY_UNIT,
-            _tempId: generateTempId(),
+            _tempId: tempId,
             isDefault: fields.length === 0,
             sortOrder: fields.length,
+        });
+        setOpenUnitCards((current) => new Set(current).add(`temp:${tempId}`));
+    };
+
+    const getUnitCardKey = (unit: ProductUnitForm | undefined, fallbackId: string) =>
+        unit?.id ? `id:${unit.id}` : unit?._tempId ? `temp:${unit._tempId}` : fallbackId;
+
+    const toggleUnitCard = (key: string) => {
+        setOpenUnitCards((current) => {
+            const next = new Set(current);
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+            return next;
+        });
+    };
+
+    const closeUnitCard = (key: string) => {
+        setOpenUnitCards((current) => {
+            const next = new Set(current);
+            next.delete(key);
+            return next;
         });
     };
 
@@ -201,7 +255,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
             code,
             name,
             description: unit.description?.trim() || undefined,
-            role: Number(unit.role) as UnitRole,
+            role: DEFAULT_PRODUCT_UNIT_ROLE,
             isDefault: Boolean(unit.isDefault),
             isActive: Boolean(unit.isActive),
             sortOrder: Number.isFinite(unit.sortOrder) ? unit.sortOrder : 0,
@@ -259,9 +313,11 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
         const unit = getValues(`productUnits.${index}`);
         const payload = buildPayload(unit);
         if (!payload) return;
+        const cardKey = getUnitCardKey(unit, fields[index]?.id ?? String(index));
 
         if (!productId) {
             showSuccess("Birim taslağa eklendi. Ürün kaydedildiğinde backend'e gönderilecek.");
+            closeUnitCard(cardKey);
             return;
         }
 
@@ -280,6 +336,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
             }
 
             await invalidateProductUnits();
+            closeUnitCard(cardKey);
         } catch (error) {
             showApiError(error);
         } finally {
@@ -315,6 +372,8 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                 const unit = productUnits[index];
                                 const saved = Boolean(unit?.id);
                                 const saving = savingIndex === index;
+                                const cardKey = getUnitCardKey(unit, field.id);
+                                const isCardOpen = openUnitCards.has(cardKey);
                                 return (
                                     <SortableUnitCard id={field.id} key={field.id}>
                                         {({ attributes, listeners }) => (
@@ -322,9 +381,6 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                 <div className="card-inner">
                                     <div className="d-flex justify-content-between align-items-start gap-3 mb-3 h-100">
                                         <div>
-                                            <span className="badge badge-dim bg-primary mb-1">
-                                                {UNIT_ROLE_LABELS[(Number(unit?.role) as UnitRole) || 1]}
-                                            </span>
                                             <h6 className="title mb-0">{unit?.name || `Birim #${index + 1}`}</h6>
                                             <p className="text-soft fs-12px mb-0">
                                                 {unit?.code || "Kod bekleniyor"}
@@ -332,6 +388,14 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                             </p>
                                         </div>
                                         <div className="d-flex gap-1 h-100">
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-primary"
+                                                onClick={() => toggleUnitCard(cardKey)}
+                                            >
+                                                <em className={`icon ni ni-chevron-${isCardOpen ? "up" : "down"} me-1`} />
+                                                {isCardOpen ? "Kapat" : "Düzenle"}
+                                            </button>
                                             <button
                                                 type="button"
                                                 className="btn btn-sm btn-icon btn-outline-light pricing-drag-handle"
@@ -370,9 +434,14 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                         </div>
                                     </div>
 
+                                    <Collapse isOpen={isCardOpen}>
                                     <div className="row g-3 align-items-end">
                                         <div className="col-md-4">
-                                            <label className="form-label">Birim sözlüğü</label>
+                                            <label className="form-label">
+                                                <HelpLabel help="Üründe kullanacağınız temel ölçü veya kullanım birimini sözlükten seçer. Seçilen sözlük değeri ürün içi kod ve ad alanlarını otomatik doldurur.">
+                                                    Birim sözlüğü
+                                                </HelpLabel>
+                                            </label>
                                             <div className="input-group">
                                                 <select
                                                     className="form-select"
@@ -396,33 +465,36 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="col-md-2">
-                                            <label className="form-label">Ürün içi kod</label>
+                                        <div className="col-md-4">
+                                            <label className="form-label">
+                                                <HelpLabel help="Bu ürün içinde birimi kısa ve teknik olarak tanımlayan koddur. Örneğin USER, DEVICE veya API_CALL gibi kural ve planlarda kolay tanınacak bir değer kullanın.">
+                                                    Ürün birim kodu
+                                                </HelpLabel>
+                                            </label>
                                             <input className="form-control" {...register(`productUnits.${index}.code`)} />
                                         </div>
-                                        <div className="col-md-3">
-                                            <label className="form-label">Ürün içi ad</label>
+                                        <div className="col-md-4">
+                                            <label className="form-label">
+                                                <HelpLabel help="Bu birimin ekranda kullanıcıya görünecek adıdır. Satış planı ve fiyatlandırma kuralı seçicilerinde bu ad üzerinden anlaşılır.">
+                                                    Ürün birim adı
+                                                </HelpLabel>
+                                            </label>
                                             <input className="form-control" {...register(`productUnits.${index}.name`)} />
                                         </div>
-                                        <div className="col-md-3">
-                                            <label className="form-label">Rol</label>
-                                            <select
-                                                className="form-select"
-                                                {...register(`productUnits.${index}.role`, { valueAsNumber: true })}
-                                            >
-                                                {Object.entries(UNIT_ROLE_LABELS).map(([value, label]) => (
-                                                    <option key={value} value={value}>
-                                                        {label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label">Açıklama</label>
+                                        <div className="col-md-5">
+                                            <label className="form-label">
+                                                <HelpLabel help="Bu birimin hangi fiyatlandırma senaryosu için kullanılacağını açıklayan opsiyonel nottur. Örneğin kullanıcı başına, şube başına veya işlem adedi gibi bağlam yazılabilir.">
+                                                    Birim açıklaması
+                                                </HelpLabel>
+                                            </label>
                                             <input className="form-control" {...register(`productUnits.${index}.description`)} />
                                         </div>
                                         <div className="col-md-2">
-                                            <label className="form-label">Sıra</label>
+                                            <label className="form-label">
+                                                <HelpLabel help="Birimlerin listelerde hangi sırayla gösterileceğini belirler. Küçük sayı daha önce görünür.">
+                                                    Gösterim sırası
+                                                </HelpLabel>
+                                            </label>
                                             <input
                                                 type="number"
                                                 min="0"
@@ -440,7 +512,9 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                     onChange={(event) => setDefault(index, event.target.checked)}
                                                 />
                                                 <label className="form-check-label" htmlFor={`product-unit-default-${field.id}`}>
-                                                    Varsayılan
+                                                    <HelpLabel help="Bu ürün için ana veya varsayılan fiyatlandırma birimini belirtir. Plan veya kural tarafında özel seçim yapılmadığında referans alınacak birim olarak kullanılabilir.">
+                                                        Varsayılan birim
+                                                    </HelpLabel>
                                                 </label>
                                             </div>
                                             <div className="form-check form-switch">
@@ -451,7 +525,9 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                     {...register(`productUnits.${index}.isActive`)}
                                                 />
                                                 <label className="form-check-label" htmlFor={`product-unit-active-${field.id}`}>
-                                                    Aktif
+                                                    <HelpLabel help="Pasif birimler ürün üzerinde saklanır ancak yeni satış planı ve fiyatlandırma kuralı seçimlerinde aktif birim gibi kullanılmaz.">
+                                                        Birim aktif
+                                                    </HelpLabel>
                                                 </label>
                                             </div>
                                         </div>
@@ -476,6 +552,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                             </button>
                                         </div>
                                     </div>
+                                    </Collapse>
                                 </div>
                                             </div>
                                         )}
@@ -493,7 +570,10 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                     <div className="row g-3">
                         <div className="col-md-4">
                             <label className="form-label">
-                                Kod <span className="text-danger">*</span>
+                                <HelpLabel help="Birim sözlüğüne eklenecek kısa koddur. Kod daha sonra ürün birimi seçildiğinde ürün içi kod alanına da aktarılır.">
+                                    Sözlük kodu
+                                </HelpLabel>{" "}
+                                <span className="text-danger">*</span>
                             </label>
                             <input
                                 className="form-control text-uppercase"
@@ -507,7 +587,10 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                         </div>
                         <div className="col-md-8">
                             <label className="form-label">
-                                Ad <span className="text-danger">*</span>
+                                <HelpLabel help="Birim sözlüğünde görünecek anlaşılır addır. Örneğin Adet, Kullanıcı, Cihaz veya API Çağrısı gibi iş dilindeki ad kullanılmalıdır.">
+                                    Sözlük adı
+                                </HelpLabel>{" "}
+                                <span className="text-danger">*</span>
                             </label>
                             <input
                                 className="form-control"
@@ -520,7 +603,11 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                             />
                         </div>
                         <div className="col-12">
-                            <label className="form-label">Açıklama</label>
+                            <label className="form-label">
+                                <HelpLabel help="Birim sözlüğü kaydının ne için kullanılacağını açıklayan opsiyonel bilgidir. Benzer birimler arasında ayrım yapmayı kolaylaştırır.">
+                                    Sözlük açıklaması
+                                </HelpLabel>
+                            </label>
                             <input
                                 className="form-control"
                                 placeholder="Opsiyonel açıklama..."

@@ -1,5 +1,5 @@
 import React, { useId, useMemo, useState } from "react";
-import { Button, UncontrolledTooltip } from "reactstrap";
+import { Button, Collapse, UncontrolledTooltip } from "reactstrap";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { useProductPricingRuleMutations, useProductPricingRules } from "@/modules/products/hooks/useProductPricingRules";
@@ -34,8 +34,6 @@ interface RuleFormState {
   isActive: boolean;
   validFrom: string;
   validTo: string;
-  salesChannel: string;
-  customerGroupCode: string;
   productLicenseOfferingId: string;
   licenseOfferingTempId: string;
   productUnitId: string;
@@ -127,8 +125,6 @@ const CONDITION_OPERATORS = [
 ];
 
 const COMMON_CONDITION_FIELDS = [
-  { value: "customerGroupCode", label: "Müşteri grubu" },
-  { value: "salesChannel", label: "Satış kanalı" },
   { value: "quantity", label: "Miktar" },
   { value: "seats", label: "Kullanıcı / koltuk sayısı" },
   { value: "feature.seats", label: "Özellik: kullanıcı sayısı" },
@@ -329,8 +325,6 @@ const emptyForm = (): RuleFormState => ({
   isActive: true,
   validFrom: "",
   validTo: "",
-  salesChannel: "",
-  customerGroupCode: "",
   productLicenseOfferingId: "",
   licenseOfferingTempId: "",
   productUnitId: "",
@@ -361,13 +355,12 @@ const slugifyRuleCode = (value: string) => {
 
 const QUICK_RULE_TEMPLATES = [
   {
-    title: "Bayi indirimi",
-    description: "Bayi grubuna yüzde indirim uygula.",
-    icon: "users",
+    title: "Genel indirim",
+    description: "Seçili kapsam için yüzde indirim uygula.",
+    icon: "percent",
     color: "primary",
     form: {
-      name: "Bayi indirimi",
-      customerGroupCode: "dealer",
+      name: "Genel indirim",
       adjustment: {
         type: "percentage",
         value: "10",
@@ -403,22 +396,6 @@ const QUICK_RULE_TEMPLATES = [
         unitField: "seats",
         rounding: "ceil",
         tiers: [{ from: "1", to: "", type: "fixed", value: "0" }],
-      },
-    },
-  },
-  {
-    title: "Kanal özel fiyatı",
-    description: "Sadece web, mobil veya POS kanalında çalıştır.",
-    icon: "globe",
-    color: "warning",
-    form: {
-      name: "Kanal özel fiyatı",
-      salesChannel: "web",
-      adjustment: {
-        type: "fixed",
-        value: "0",
-        operation: "",
-        applyOn: "currentPrice",
       },
     },
   },
@@ -475,8 +452,6 @@ const ruleToForm = (rule: ProductPricingRuleDto): RuleFormState => ({
   isActive: Boolean(rule.isActive),
   validFrom: toDateTimeInput(rule.validFrom),
   validTo: toDateTimeInput(rule.validTo),
-  salesChannel: rule.salesChannel ?? "",
-  customerGroupCode: rule.customerGroupCode ?? "",
   productLicenseOfferingId: rule.productLicenseOfferingId ?? rule.licenseOfferingId ?? "",
   licenseOfferingTempId: rule.licenseOfferingTempId ?? "",
   productUnitId: rule.productUnitId ?? rule.productUnitIds?.[0] ?? "",
@@ -516,6 +491,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   const [form, setForm] = useState<RuleFormState>(() => emptyForm());
   const [deleteTarget, setDeleteTarget] = useState<ProductPricingRuleDto | null>(null);
   const [engineOpen, setEngineOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   const rules = useMemo(
     () => [...(productId ? data ?? [] : draftRules ?? [])].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)),
@@ -556,6 +532,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   const resetForm = () => {
     setForm(emptyForm());
     setEngineOpen(false);
+    setFormOpen(false);
   };
 
   const updateForm = <K extends keyof RuleFormState>(key: K, value: RuleFormState[K]) => {
@@ -575,8 +552,6 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       ...current,
       name: template.form.name,
       code: slugifyRuleCode(template.form.name),
-      salesChannel: template.form.salesChannel ?? "",
-      customerGroupCode: template.form.customerGroupCode ?? "",
       priority: current.priority || String((rules.length + 1) * 10),
       adjustment: {
         ...current.adjustment,
@@ -647,8 +622,8 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       isActive: Boolean(form.isActive),
       validFrom: fromDateTimeInput(form.validFrom),
       validTo: fromDateTimeInput(form.validTo),
-      salesChannel: form.salesChannel.trim() || null,
-      customerGroupCode: form.customerGroupCode.trim() || null,
+      salesChannel: null,
+      customerGroupCode: null,
       productVariantId: form.productVariantId || null,
       productUnitId: productUnitIds[0] || null,
       productUnitTempId: productUnitIds.length === 0 ? productUnitTempIds[0] || null : null,
@@ -843,7 +818,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
         <div className="col-12">
           <div className="card card-bordered">
             <div className="card-inner">
-              <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3 h-100">
+              <div className={`d-flex flex-wrap justify-content-between align-items-start gap-3 h-100 ${formOpen ? "mb-3" : ""}`}>
                 <div>
                   <span className="overline-title text-primary">Kural oluşturucu</span>
                   <h6 className="title mb-1">{form.id ? "Kuralı Düzenle" : "Yeni Dinamik Kural"}</h6>
@@ -851,17 +826,30 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                     Şablon seçin veya cümleyi doldurun: Eğer bir durum oluşursa fiyatı değiştir.
                   </p>
                 </div>
-                {form.id && (
-                  <Button color="light" size="sm" type="button" onClick={resetForm}>
-                    Vazgeç
-                  </Button>
-                )}
+                <Button
+                  color={formOpen ? "light" : "primary"}
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    if (formOpen) {
+                      resetForm();
+                    } else {
+                      setForm(emptyForm());
+                      setEngineOpen(false);
+                      setFormOpen(true);
+                    }
+                  }}
+                >
+                  <em className={`icon ni ni-chevron-${formOpen ? "up" : "down"} me-1`} />
+                  {formOpen ? "Kapat" : "Yeni Kural"}
+                </Button>
               </div>
 
+              <Collapse isOpen={formOpen}>
               {!form.id && (
                 <div className="row g-3 mb-4">
                   {QUICK_RULE_TEMPLATES.map((template) => (
-                    <div className="col-sm-6 col-xl-3" key={template.title}>
+                    <div className="col-sm-6 col-xl-4" key={template.title}>
                       <button
                         type="button"
                         className="card card-bordered h-100 w-100 bg-white text-start"
@@ -913,7 +901,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           })}
                         </select>
                       </div>
-                      <div className="col-md-4">
+                      <div className="col-md-8">
                         <label className="form-label">
                           <HelpLabel help="Birim seçimi, kuralın hangi fiyatlandırma parametrelerine uygulanacağını belirler. Plan seçtiyseniz yalnızca o plana bağlı birimler görünür; tüm planlar seçiliyse tüm birimler seçilebilir.">
                             Ürün birimi
@@ -978,7 +966,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           )}
                         </div>
                       </div>
-                      <div className="col-md-4">
+                      {/* <div className="col-md-4">
                         <label className="form-label">Hangi varyant?</label>
                         <select
                           className="form-select"
@@ -992,38 +980,23 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             </option>
                           ))}
                         </select>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
 
-                <div className="col-lg-6">
+                <div className="col-lg-12">
                   <label className="form-label">
-                    Kural adı <span className="text-danger">*</span>
+                    <HelpLabel help="Bu kuralı listede tanıyacağınız isimdir. Örneğin kampanya indirimi, yıllık plan indirimi veya kullanıcı sayısı kademesi gibi iş anlamı taşıyan bir ad yazın.">
+                      Kural adı
+                    </HelpLabel>{" "}
+                    <span className="text-danger">*</span>
                   </label>
                   <input
                     className="form-control form-control-lg"
-                    placeholder="Örn. Bayi indirimi"
+                    placeholder="Örn. Kampanya indirimi"
                     value={form.name}
                     onChange={(event) => updateRuleName(event.target.value)}
-                  />
-                </div>
-                <div className="col-lg-3 col-md-6">
-                  <label className="form-label">Nerede çalışsın?</label>
-                  <input
-                    className="form-control form-control-lg"
-                    placeholder="Tüm kanallar"
-                    value={form.salesChannel}
-                    onChange={(event) => updateForm("salesChannel", event.target.value)}
-                  />
-                </div>
-                <div className="col-lg-3 col-md-6">
-                  <label className="form-label">Kimlere çalışsın?</label>
-                  <input
-                    className="form-control form-control-lg"
-                    placeholder="Tüm müşteriler"
-                    value={form.customerGroupCode}
-                    onChange={(event) => updateForm("customerGroupCode", event.target.value)}
                   />
                 </div>
 
@@ -1032,10 +1005,18 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                     <div className="card-inner">
                       <div className="row g-3 align-items-end">
                         <div className="col-12">
-                          <span className="overline-title text-primary">O halde</span>
+                          <span className="overline-title text-primary">
+                            <HelpLabel help="Bu bölüm, kural çalıştığında ürün fiyatında ne yapılacağını tanımlar. Önce fiyat artırılsın mı düşürülsün mü seçilir, sonra bu değişimin yüzde, sabit tutar veya çarpan olarak nasıl hesaplanacağı belirlenir.">
+                              Fiyat aksiyonu
+                            </HelpLabel>
+                          </span>
                         </div>
                         <div className="col-md-3">
-                          <label className="form-label">Fiyatı</label>
+                          <label className="form-label">
+                            <HelpLabel help="Kural tetiklendiğinde fiyatın hangi yöne değişeceğini seçer. Düşür seçeneği indirim uygular; artır seçeneği fiyatın üzerine ekleme yapar.">
+                              Fiyat yönü
+                            </HelpLabel>
+                          </label>
                           <select
                             className="form-select"
                             value={form.adjustment.operation === "subtract" ? "subtract" : "add"}
@@ -1048,7 +1029,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           </select>
                         </div>
                         <div className="col-md-3">
-                          <label className="form-label">Nasıl?</label>
+                          <label className="form-label">
+                            <HelpLabel help="Fiyat değişiminin hangi yöntemle hesaplanacağını belirtir. Yüzdeyle seçerseniz değer alanı yüzde oranıdır; sabit tutarda doğrudan para tutarıdır; çarpanda fiyat belirlenen katsayıyla çarpılır.">
+                              Değişim türü
+                            </HelpLabel>
+                          </label>
                           <select
                             className="form-select"
                             value={form.adjustment.type || "percentage"}
@@ -1061,7 +1046,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           </select>
                         </div>
                         <div className="col-md-3">
-                          <label className="form-label">Değer</label>
+                          <label className="form-label">
+                            <HelpLabel help="Seçilen değişim türünün sayısal karşılığıdır. Yüzde indirimi için 10 yazmak yüzde 10 anlamına gelir; sabit tutar için para tutarı, çarpan için katsayı olarak yorumlanır.">
+                              Değişim değeri
+                            </HelpLabel>
+                          </label>
                           <input
                             className="form-control"
                             type="number"
@@ -1073,7 +1062,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           />
                         </div>
                         <div className="col-md-3">
-                          <label className="form-label">Hesapla</label>
+                          <label className="form-label">
+                            <HelpLabel help="Bu değişimin hangi fiyat üzerinden hesaplanacağını seçer. Güncel fiyat mevcut fiyatı baz alır; taban fiyat ürünün temel fiyatından başlar; önceki sonuç ise daha önce çalışan bir kuralın sonucunu kullanır.">
+                              Hesaplama bazı
+                            </HelpLabel>
+                          </label>
                           <select
                             className="form-select"
                             value={form.adjustment.applyOn || "currentPrice"}
@@ -1092,7 +1085,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                 </div>
 
                 <div className="col-md-3">
-                  <label className="form-label">Başlangıç</label>
+                  <label className="form-label">
+                    <HelpLabel help="Kuralın çalışmaya başlayacağı tarih ve saattir. Boş bırakılırsa kural, aktif olduğu sürece başlangıç kısıtı olmadan değerlendirilebilir.">
+                      Geçerlilik başlangıcı
+                    </HelpLabel>
+                  </label>
                   <input
                     className="form-control"
                     type="datetime-local"
@@ -1101,7 +1098,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                   />
                 </div>
                 <div className="col-md-3">
-                  <label className="form-label">Bitiş</label>
+                  <label className="form-label">
+                    <HelpLabel help="Kuralın çalışmayı bırakacağı tarih ve saattir. Kampanya veya dönemsel fiyat kuralı oluştururken son geçerlilik zamanını buradan belirleyin.">
+                      Geçerlilik bitişi
+                    </HelpLabel>
+                  </label>
                   <input
                     className="form-control"
                     type="datetime-local"
@@ -1119,7 +1120,9 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                       onChange={(event) => updateForm("isActive", event.target.checked)}
                     />
                     <label className="custom-control-label" htmlFor="pricing-rule-active">
-                      Aktif
+                      <HelpLabel help="Aktif değilse kural kayıtlı kalır ancak fiyat hesaplamasında kullanılmaz. Taslak olarak saklamak istediğiniz kuralları pasif bırakabilirsiniz.">
+                        Kural aktif
+                      </HelpLabel>
                     </label>
                   </div>
                 </div>
@@ -1140,11 +1143,19 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                   <div className="col-12">
                     <div className="card card-bordered mb-0">
                       <div className="card-inner">
-                        <h6 className="overline-title text-primary mb-3">Gelişmiş motor ayarları</h6>
+                        <h6 className="overline-title text-primary mb-3">
+                          <HelpLabel help="Bu alanlar kuralın teknik çalışma biçimini belirler. Çoğu standart indirim veya artırım için kapalı kalabilir; öncelik, ek koşul, birim bazlı kademe veya fiyat limitleri gerektiğinde kullanılır.">
+                            Gelişmiş motor ayarları
+                          </HelpLabel>
+                        </h6>
 
                         <div className="row g-3">
                           <div className="col-md-4">
-                            <label className="form-label">Kural kodu</label>
+                            <label className="form-label">
+                              <HelpLabel help="Backend ve entegrasyon tarafında kuralı teknik olarak tanımlayan kısa koddur. Ad değişse bile bu kod sabit kalabilir; boş bırakılırsa kural adından otomatik üretilebilir.">
+                                Kural kodu
+                              </HelpLabel>
+                            </label>
                             <input
                               className="form-control"
                               value={form.code}
@@ -1152,7 +1163,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             />
                           </div>
                           <div className="col-md-2">
-                            <label className="form-label">Öncelik</label>
+                            <label className="form-label">
+                              <HelpLabel help="Birden fazla kural aynı fiyat üzerinde çalışıyorsa hangi sırayla uygulanacağını belirler. Küçük sayı daha önce çalışır; örneğin 10, 20'den önce değerlendirilir.">
+                                Çalışma önceliği
+                              </HelpLabel>
+                            </label>
                             <input
                               className="form-control"
                               type="number"
@@ -1161,7 +1176,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             />
                           </div>
                           <div className="col-md-3">
-                            <label className="form-label">Hesaplama</label>
+                            <label className="form-label">
+                              <HelpLabel help="Kuralın tek bir değerle mi yoksa kullanıcı, lisans, adet gibi bir birim miktarına göre kademeli mi hesaplanacağını seçer. Birim bazlı modda fiyat etkisi kademelerden gelir.">
+                                Hesaplama modu
+                              </HelpLabel>
+                            </label>
                             <select
                               className="form-select"
                               value={form.adjustment.mode}
@@ -1172,7 +1191,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             </select>
                           </div>
                           <div className="col-md-3">
-                            <label className="form-label">Koşul mantığı</label>
+                            <label className="form-label">
+                              <HelpLabel help="Ek koşullardan kaç tanesinin sağlanması gerektiğini belirler. Tüm koşullar seçilirse her koşul doğru olmalıdır; herhangi biri seçilirse koşullardan birinin doğru olması yeterlidir.">
+                                Koşul mantığı
+                              </HelpLabel>
+                            </label>
                             <select
                               className="form-select"
                               value={form.adjustment.conditionsOperator}
@@ -1188,7 +1211,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           {isUnitMode && (
                             <>
                               <div className="col-md-4">
-                                <label className="form-label">Birim alanı</label>
+                                <label className="form-label">
+                                  <HelpLabel help="Kademeli hesaplamada hangi miktar bilgisinin kullanılacağını belirtir. Örneğin kullanıcı sayısı için seats, API çağrısı için calls gibi fiyatı etkileyen ölçüm alanı yazılır.">
+                                    Birim alanı
+                                  </HelpLabel>
+                                </label>
                                 <input
                                   className="form-control"
                                   value={form.adjustment.unitField}
@@ -1196,7 +1223,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                 />
                               </div>
                               <div className="col-md-4">
-                                <label className="form-label">Ücretsiz birim</label>
+                                <label className="form-label">
+                                  <HelpLabel help="Fiyat hesaplamasına dahil edilmeyecek başlangıç miktarıdır. Örneğin 5 ücretsiz kullanıcı varsa ilk 5 kullanıcı ücretlendirilmez, hesaplama kalan miktardan başlar.">
+                                    Ücretsiz miktar
+                                  </HelpLabel>
+                                </label>
                                 <input
                                   className="form-control"
                                   type="number"
@@ -1205,7 +1236,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                 />
                               </div>
                               <div className="col-md-4">
-                                <label className="form-label">Yuvarlama</label>
+                                <label className="form-label">
+                                  <HelpLabel help="Birim miktarı tam sayı değilse nasıl yuvarlanacağını belirler. Yukarı seçeneği eksik kalan parçayı bir üst birime tamamlar; aşağı, alt tam sayıya indirir; en yakın, matematiksel yuvarlama yapar.">
+                                    Miktar yuvarlama
+                                  </HelpLabel>
+                                </label>
                                 <select
                                   className="form-select"
                                   value={form.adjustment.rounding}
@@ -1223,7 +1258,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
                           <div className="col-12">
                             <div className="d-flex justify-content-between align-items-center mb-2">
-                              <h6 className="title mb-0">Ek koşullar</h6>
+                              <h6 className="title mb-0">
+                                <HelpLabel help="Kuralın sadece belirli veriler sağlandığında çalışmasını istiyorsanız ek koşul ekleyin. Örneğin miktar belirli bir sayının üzerindeyse veya belirli bir özellik değeri varsa kural çalışabilir.">
+                                  Ek koşullar
+                                </HelpLabel>
+                              </h6>
                               <Button color="light" size="sm" type="button" onClick={addCondition}>
                                 <em className="icon ni ni-plus me-1" />
                                 Koşul ekle
@@ -1233,7 +1272,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                               {form.adjustment.conditions.map((condition, index) => (
                                 <div className="row g-2 align-items-end" key={index}>
                                   <div className="col-md-5">
-                                    <label className="form-label">Alan</label>
+                                    <label className="form-label">
+                                      <HelpLabel help="Koşulun hangi veri alanına bakacağını seçer. Miktar, kullanıcı sayısı veya fiyat hesaplamasında kullanılan özel bir alan olabilir.">
+                                        Koşul alanı
+                                      </HelpLabel>
+                                    </label>
                                     <select
                                       className="form-select"
                                       value={condition.field}
@@ -1248,7 +1291,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                     </select>
                                   </div>
                                   <div className="col-md-3">
-                                    <label className="form-label">Karşılaştırma</label>
+                                    <label className="form-label">
+                                      <HelpLabel help="Seçilen alanın beklenen değerle nasıl karşılaştırılacağını belirtir. Eşittir, büyüktür, küçüktür veya içerir gibi operatörler kuralın ne zaman geçerli olacağını belirler.">
+                                        Koşul işleci
+                                      </HelpLabel>
+                                    </label>
                                     <select
                                       className="form-select"
                                       value={condition.operator}
@@ -1263,7 +1310,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                     </select>
                                   </div>
                                   <div className="col-md-3">
-                                    <label className="form-label">Değer</label>
+                                    <label className="form-label">
+                                      <HelpLabel help="Koşul alanının karşılaştırılacağı beklenen değerdir. Örneğin miktar alanı için 10 yazarsanız seçilen karşılaştırma işlemine göre 10 eşiği kullanılır.">
+                                        Koşul değeri
+                                      </HelpLabel>
+                                    </label>
                                     <input
                                       className="form-control"
                                       value={condition.value}
@@ -1279,7 +1330,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                 </div>
                               ))}
                               {!form.adjustment.conditions.length && (
-                                <p className="text-soft fs-13px mb-0">Ek koşul yok. Üstte seçilen kanal, müşteri grubu, plan ve varyant filtreleri kullanılacak.</p>
+                                <p className="text-soft fs-13px mb-0">Ek koşul yok. Üstte seçilen satış planı ve ürün birimi kapsamı kullanılacak.</p>
                               )}
                             </div>
                           </div>
@@ -1287,7 +1338,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           {isUnitMode && (
                             <div className="col-12">
                               <div className="d-flex justify-content-between align-items-center mb-2">
-                                <h6 className="title mb-0">Kademeler</h6>
+                                <h6 className="title mb-0">
+                                  <HelpLabel help="Birim bazlı fiyatlandırmada farklı miktar aralıklarına farklı fiyat etkisi tanımlamak için kullanılır. Örneğin 1-10 kullanıcı için bir tutar, 11-50 kullanıcı için farklı bir tutar belirleyebilirsiniz.">
+                                    Fiyat kademeleri
+                                  </HelpLabel>
+                                </h6>
                                 <Button color="light" size="sm" type="button" onClick={addTier}>
                                   <em className="icon ni ni-plus me-1" />
                                   Kademe ekle
@@ -1297,10 +1352,26 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                 <table className="table table-middle mb-0">
                                   <thead className="table-light">
                                     <tr>
-                                      <th>Başlangıç</th>
-                                      <th>Bitiş</th>
-                                      <th>Tip</th>
-                                      <th>Değer</th>
+                                      <th>
+                                        <HelpLabel help="Bu kademenin hangi miktardan itibaren geçerli olacağını belirtir. Örneğin 1 yazarsanız kademe 1 birimden başlar.">
+                                          Aralık başlangıcı
+                                        </HelpLabel>
+                                      </th>
+                                      <th>
+                                        <HelpLabel help="Bu kademenin hangi miktara kadar geçerli olacağını belirtir. Boş bırakılırsa üst sınır olmadan devam eden son kademe olarak yorumlanabilir.">
+                                          Aralık bitişi
+                                        </HelpLabel>
+                                      </th>
+                                      <th>
+                                        <HelpLabel help="Bu kademede fiyat etkisinin yüzde, sabit tutar veya çarpan olarak mı uygulanacağını seçer.">
+                                          Kademe türü
+                                        </HelpLabel>
+                                      </th>
+                                      <th>
+                                        <HelpLabel help="Kademe türünün sayısal değeridir. Yüzde türünde oran, sabit tutarda para tutarı, çarpanda katsayı olarak kullanılır.">
+                                          Kademe değeri
+                                        </HelpLabel>
+                                      </th>
                                       <th className="text-end">İşlem</th>
                                     </tr>
                                   </thead>
@@ -1360,10 +1431,18 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           )}
 
                           <div className="col-12">
-                            <h6 className="title mb-2">Limitler</h6>
+                            <h6 className="title mb-2">
+                              <HelpLabel help="Limitler, hesaplanan fiyat değişiminin veya son satış fiyatının belirli sınırları aşmasını engeller. Bu alanlar opsiyoneldir; boş bırakılırsa ilgili yönde sınır uygulanmaz.">
+                                Fiyat limitleri
+                              </HelpLabel>
+                            </h6>
                           </div>
                           <div className="col-md-3">
-                            <label className="form-label">Min. etki</label>
+                            <label className="form-label">
+                              <HelpLabel help="Kuralın fiyat üzerinde oluşturabileceği en düşük değişim tutarıdır. Hesaplanan indirim veya artırım bu değerin altına düşerse sistem bu minimum etki sınırını dikkate alır.">
+                                Minimum değişim
+                              </HelpLabel>
+                            </label>
                             <input
                               className="form-control"
                               type="number"
@@ -1372,7 +1451,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             />
                           </div>
                           <div className="col-md-3">
-                            <label className="form-label">Maks. etki</label>
+                            <label className="form-label">
+                              <HelpLabel help="Kuralın fiyat üzerinde oluşturabileceği en yüksek değişim tutarıdır. Örneğin yüzde indirim çok büyük bir tutara ulaşıyorsa bu alan indirimin veya artırımın üst sınırını belirler.">
+                                Maksimum değişim
+                              </HelpLabel>
+                            </label>
                             <input
                               className="form-control"
                               type="number"
@@ -1381,7 +1464,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             />
                           </div>
                           <div className="col-md-3">
-                            <label className="form-label">Min. final</label>
+                            <label className="form-label">
+                              <HelpLabel help="Kural uygulandıktan sonra oluşacak son satış fiyatının inebileceği en düşük değerdir. Özellikle indirimlerde fiyatın belirli bir tabanın altına düşmesini engellemek için kullanılır.">
+                                Minimum son fiyat
+                              </HelpLabel>
+                            </label>
                             <input
                               className="form-control"
                               type="number"
@@ -1390,7 +1477,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             />
                           </div>
                           <div className="col-md-3">
-                            <label className="form-label">Maks. final</label>
+                            <label className="form-label">
+                              <HelpLabel help="Kural uygulandıktan sonra oluşacak son satış fiyatının çıkabileceği en yüksek değerdir. Artırım veya çarpan kullanılan kurallarda son fiyatı tavan değerle sınırlamak için kullanılır.">
+                                Maksimum son fiyat
+                              </HelpLabel>
+                            </label>
                             <input
                               className="form-control"
                               type="number"
@@ -1427,6 +1518,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                   </Button>
                 </div>
               </div>
+              </Collapse>
             </div>
           </div>
         </div>
@@ -1463,12 +1555,12 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
               <table className="table table-middle mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th>Kural</th>
-                    <th>Öncelik</th>
-                    <th>Adjustment</th>
-                    <th>Filtreler</th>
-                    <th>Geçerlilik</th>
-                    <th>Durum</th>
+                    <th>Kural adı</th>
+                    <th>Çalışma sırası</th>
+                    <th>Fiyat etkisi</th>
+                    <th>Kapsam filtreleri</th>
+                    <th>Geçerlilik dönemi</th>
+                    <th>Kural durumu</th>
                     {editable && <th className="text-end">İşlem</th>}
                   </tr>
                 </thead>
@@ -1508,9 +1600,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                       ?? variant?.name
                       ?? variant?.sku
                       ?? (rule.productVariantId ? rule.productVariantId.slice(0, 8) : "");
-                    const hasFilters = Boolean(
-                      offeringLabel || productUnitLabel || variantLabel || rule.salesChannel || rule.customerGroupCode
-                    );
+                    const hasFilters = Boolean(offeringLabel || productUnitLabel || variantLabel);
 
                     return (
                       <tr key={rule.id}>
@@ -1524,8 +1614,6 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           {offeringLabel && <span className="badge bg-outline-primary me-1">{offeringLabel}</span>}
                           {productUnitLabel && <span className="badge bg-outline-success me-1">{productUnitLabel}</span>}
                           {variantLabel && <span className="badge bg-outline-info me-1">{variantLabel}</span>}
-                          {rule.salesChannel && <span className="badge bg-outline-secondary me-1">{rule.salesChannel}</span>}
-                          {rule.customerGroupCode && <span className="badge bg-outline-warning me-1">{rule.customerGroupCode}</span>}
                           {!hasFilters && "Tümü"}
                         </td>
                         <td className="fs-12">
@@ -1547,6 +1635,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                               className="me-1"
                               onClick={() => {
                                 setForm(ruleToForm(rule));
+                                setFormOpen(true);
                               }}
                             >
                               Düzenle

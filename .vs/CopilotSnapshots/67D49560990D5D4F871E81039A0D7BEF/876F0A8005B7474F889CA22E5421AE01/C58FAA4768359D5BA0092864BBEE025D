@@ -1,4 +1,0 @@
-﻿const menu = [
-  { heading: "Product Management" },
-];
-export default menu;

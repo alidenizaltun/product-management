@@ -1,6 +1,18 @@
 import React from "react";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+    SortableContext,
+    arrayMove,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
+
+const CURRENCY_OPTIONS = ["TRY", "USD", "EUR", "GBP"];
 
 const EMPTY_MODULE = {
     moduleCode: "",
@@ -21,7 +33,31 @@ const EMPTY_OFFERING_PRICE = {
     isActive: true,
 };
 
-// Her modülün fiyat satırları için ayrı bileşen
+type SortableHandleProps = {
+    attributes: ReturnType<typeof useSortable>["attributes"];
+    listeners: ReturnType<typeof useSortable>["listeners"];
+};
+
+const SortableModuleCard: React.FC<{
+    id: string;
+    children: (dragHandleProps: SortableHandleProps) => React.ReactNode;
+}> = ({ id, children }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`pricing-sortable-item ${isDragging ? "is-dragging" : ""}`}
+            style={{
+                transform: CSS.Transform.toString(transform),
+                transition,
+            }}
+        >
+            {children({ attributes, listeners })}
+        </div>
+    );
+};
+
 const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ moduleIndex }) => {
     const { register, control, setValue } = useFormContext<ProductFormValues>();
     const { fields, append, remove } = useFieldArray({
@@ -31,8 +67,6 @@ const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ module
 
     const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
     const watchedPrices = useWatch({ control, name: `modules.${moduleIndex}.offeringPrices` }) ?? [];
-
-    // Kaydedilmiş (id) veya yeni eklenmiş (_tempId) tüm teklifleri göster
     const allOfferings = licenseOfferings.filter((lo) => Boolean(lo.id) || Boolean(lo._tempId));
 
     if (allOfferings.length === 0) {
@@ -96,33 +130,38 @@ const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ module
                                                 }
                                             }}
                                         >
-                                            <option value="">— Seçiniz —</option>
+                                            <option value="">-- Seçiniz --</option>
                                             {allOfferings.map((lo) => (
                                                 <option key={lo.id ?? lo._tempId} value={lo.id ?? lo._tempId ?? ""}>
                                                     {lo.name || "(İsimsiz Teklif)"}
-                                                    {!lo.id && " 🆕"}
+                                                    {!lo.id && " yeni"}
                                                 </option>
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="col-md-3">
+                                    <div className="col-md-4">
                                         <label className="form-label fs-12 mb-1">Fiyat</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            className="form-control form-control-sm"
-                                            placeholder="0.00"
-                                            {...register(`modules.${moduleIndex}.offeringPrices.${priceIndex}.price`, { valueAsNumber: true })}
-                                        />
-                                    </div>
-                                    <div className="col-md-2">
-                                        <label className="form-label fs-12 mb-1">Para Birimi</label>
-                                        <input
-                                            className="form-control form-control-sm"
-                                            placeholder="TRY"
-                                            {...register(`modules.${moduleIndex}.offeringPrices.${priceIndex}.currencyCode`)}
-                                        />
+                                        <div className="input-group input-group-sm">
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                className="form-control"
+                                                placeholder="0.00"
+                                                {...register(`modules.${moduleIndex}.offeringPrices.${priceIndex}.price`, { valueAsNumber: true })}
+                                            />
+                                            <select
+                                                className="form-select"
+                                                style={{ maxWidth: 96 }}
+                                                {...register(`modules.${moduleIndex}.offeringPrices.${priceIndex}.currencyCode`)}
+                                            >
+                                                {CURRENCY_OPTIONS.map((currency) => (
+                                                    <option key={currency} value={currency}>
+                                                        {currency}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div className="col-md-2 d-flex align-items-end pb-1">
                                         <div className="form-check form-switch">
@@ -137,7 +176,7 @@ const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ module
                                             </label>
                                         </div>
                                     </div>
-                                    <div className="col-md-1 d-flex align-items-end justify-content-end">
+                                    <div className="col-md-2 d-flex align-items-end justify-content-end">
                                         <button
                                             type="button"
                                             className="btn btn-xs btn-icon btn-outline-danger"
@@ -161,9 +200,33 @@ const ProductModulesTab: React.FC = () => {
     const {
         register,
         control,
+        setValue,
         formState: { errors },
     } = useFormContext<ProductFormValues>();
-    const { fields, append, remove } = useFieldArray({ control, name: "modules" });
+    const { fields, append, remove, move } = useFieldArray({ control, name: "modules" });
+    const modules = useWatch({ control, name: "modules" }) ?? [];
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    const reorderModules = (oldIndex: number, newIndex: number) => {
+        if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
+
+        move(oldIndex, newIndex);
+        arrayMove(modules, oldIndex, newIndex).forEach((_, moduleIndex) => {
+            setValue(`modules.${moduleIndex}.sortOrder`, moduleIndex + 1, { shouldDirty: true });
+        });
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = fields.findIndex((field) => field.id === active.id);
+        const newIndex = fields.findIndex((field) => field.id === over.id);
+        reorderModules(oldIndex, newIndex);
+    };
 
     return (
         <div>
@@ -192,110 +255,146 @@ const ProductModulesTab: React.FC = () => {
                     </p>
                 </div>
             ) : (
-                <div className="d-flex flex-column gap-3 h-100">
-                    {fields.map((field, index) => (
-                        <div key={field.id} className="card card-bordered">
-                            <div className="card-inner">
-                                <div className="d-flex align-items-center justify-content-between mb-3">
-                                    <span className="badge bg-primary-soft text-primary">Modül #{index + 1}</span>
-                                    <button
-                                        type="button"
-                                        className="btn btn-sm btn-icon btn-outline-danger"
-                                        onClick={() => remove(index)}
-                                        title="Modülü Kaldır"
-                                    >
-                                        <em className="icon ni ni-trash" />
-                                    </button>
-                                </div>
-                                <div className="row g-3">
-                                    <div className="col-md-3">
-                                        <label className="form-label">
-                                            Modül Kodu <span className="text-danger">*</span>
-                                        </label>
-                                        <input
-                                            className="form-control"
-                                            placeholder="MOD-CRM"
-                                            {...register(`modules.${index}.moduleCode`)}
-                                        />
-                                        {errors.modules?.[index]?.moduleCode && (
-                                            <span className="text-danger fs-12">
-                                                {errors.modules[index]?.moduleCode?.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="col-md-5">
-                                        <label className="form-label">
-                                            Modül Adı <span className="text-danger">*</span>
-                                        </label>
-                                        <input
-                                            className="form-control"
-                                            placeholder="CRM Entegrasyonu"
-                                            {...register(`modules.${index}.name`)}
-                                        />
-                                        {errors.modules?.[index]?.name && (
-                                            <span className="text-danger fs-12">
-                                                {errors.modules[index]?.name?.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="col-md-4">
-                                        <label className="form-label">Para Birimi</label>
-                                        <input
-                                            className="form-control"
-                                            placeholder="TRY"
-                                            {...register(`modules.${index}.currencyCode`)}
-                                        />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="form-label">Açıklama</label>
-                                        <input
-                                            className="form-control"
-                                            placeholder="Modül hakkında kısa açıklama..."
-                                            {...register(`modules.${index}.description`)}
-                                        />
-                                    </div>
-                                    <div className="col-md-2">
-                                        <label className="form-label">Sıra</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            className="form-control"
-                                            placeholder="1"
-                                            {...register(`modules.${index}.sortOrder`, { valueAsNumber: true })}
-                                        />
-                                    </div>
-                                    <div className="col-md-10 d-flex align-items-end pb-1 gap-4">
-                                        <div className="form-check form-switch">
-                                            <input
-                                                type="checkbox"
-                                                className="form-check-input"
-                                                id={`mod-optional-${index}`}
-                                                {...register(`modules.${index}.isOptional`)}
-                                            />
-                                            <label className="form-check-label" htmlFor={`mod-optional-${index}`}>
-                                                Opsiyonel
-                                            </label>
-                                        </div>
-                                        <div className="form-check form-switch">
-                                            <input
-                                                type="checkbox"
-                                                className="form-check-input"
-                                                id={`mod-active-${index}`}
-                                                {...register(`modules.${index}.isActive`)}
-                                            />
-                                            <label className="form-check-label" htmlFor={`mod-active-${index}`}>
-                                                Aktif
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
+                        <div className="d-flex flex-column gap-3 h-100">
+                            {fields.map((field, index) => (
+                                <SortableModuleCard id={field.id} key={field.id}>
+                                    {({ attributes, listeners }) => (
+                                        <div className="card card-bordered">
+                                            <div className="card-inner">
+                                                <div className="d-flex align-items-center justify-content-between mb-3">
+                                                    <span className="badge bg-primary-soft text-primary">Modül #{index + 1}</span>
+                                                    <div className="d-flex flex-wrap justify-content-end align-items-center gap-1">
+                                                        <span className="pricing-order-chip" title="Sıra sürükleyerek değiştirilir">
+                                                            Sıra {index + 1}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm btn-icon btn-outline-light pricing-drag-handle"
+                                                            title="Sürükleyerek sırala"
+                                                            {...attributes}
+                                                            {...listeners}
+                                                        >
+                                                            <em className="icon ni ni-drag" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm btn-icon btn-outline-light"
+                                                            disabled={index === 0}
+                                                            onClick={() => reorderModules(index, index - 1)}
+                                                            title="Yukarı taşı"
+                                                        >
+                                                            <em className="icon ni ni-chevron-up" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm btn-icon btn-outline-light"
+                                                            disabled={index === fields.length - 1}
+                                                            onClick={() => reorderModules(index, index + 1)}
+                                                            title="Aşağı taşı"
+                                                        >
+                                                            <em className="icon ni ni-chevron-down" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm btn-icon btn-outline-danger"
+                                                            onClick={() => remove(index)}
+                                                            title="Modülü Kaldır"
+                                                        >
+                                                            <em className="icon ni ni-trash" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <input type="hidden" {...register(`modules.${index}.sortOrder`, { valueAsNumber: true })} />
 
-                                {/* Lisans paketi bazlı fiyatlar */}
-                                <ModuleOfferingPricesSection moduleIndex={index} />
-                            </div>
+                                                <div className="row g-3">
+                                                    <div className="col-md-3">
+                                                        <label className="form-label">
+                                                            Modül Kodu <span className="text-danger">*</span>
+                                                        </label>
+                                                        <input
+                                                            className="form-control"
+                                                            placeholder="MOD-CRM"
+                                                            {...register(`modules.${index}.moduleCode`)}
+                                                        />
+                                                        {errors.modules?.[index]?.moduleCode && (
+                                                            <span className="text-danger fs-12">
+                                                                {errors.modules[index]?.moduleCode?.message}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="col-md-5">
+                                                        <label className="form-label">
+                                                            Modül Adı <span className="text-danger">*</span>
+                                                        </label>
+                                                        <input
+                                                            className="form-control"
+                                                            placeholder="CRM Entegrasyonu"
+                                                            {...register(`modules.${index}.name`)}
+                                                        />
+                                                        {errors.modules?.[index]?.name && (
+                                                            <span className="text-danger fs-12">
+                                                                {errors.modules[index]?.name?.message}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="col-md-4">
+                                                        <label className="form-label">Varsayılan para birimi</label>
+                                                        <select
+                                                            className="form-control form-select"
+                                                            {...register(`modules.${index}.currencyCode`)}
+                                                        >
+                                                            {CURRENCY_OPTIONS.map((currency) => (
+                                                                <option key={currency} value={currency}>
+                                                                    {currency}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="col-12">
+                                                        <label className="form-label">Açıklama</label>
+                                                        <input
+                                                            className="form-control"
+                                                            placeholder="Modül hakkında kısa açıklama..."
+                                                            {...register(`modules.${index}.description`)}
+                                                        />
+                                                    </div>
+                                                    <div className="col-12 d-flex align-items-end pb-1 gap-4">
+                                                        <div className="form-check form-switch">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="form-check-input"
+                                                                id={`mod-optional-${index}`}
+                                                                {...register(`modules.${index}.isOptional`)}
+                                                            />
+                                                            <label className="form-check-label" htmlFor={`mod-optional-${index}`}>
+                                                                Opsiyonel
+                                                            </label>
+                                                        </div>
+                                                        <div className="form-check form-switch">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="form-check-input"
+                                                                id={`mod-active-${index}`}
+                                                                {...register(`modules.${index}.isActive`)}
+                                                            />
+                                                            <label className="form-check-label" htmlFor={`mod-active-${index}`}>
+                                                                Aktif
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <ModuleOfferingPricesSection moduleIndex={index} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </SortableModuleCard>
+                            ))}
                         </div>
-                    ))}
-                </div>
+                    </SortableContext>
+                </DndContext>
             )}
         </div>
     );

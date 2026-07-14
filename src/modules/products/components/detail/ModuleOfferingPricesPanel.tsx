@@ -20,6 +20,8 @@ const EMPTY_FORM: FormState = {
     isActive: true,
 };
 
+const CURRENCY_OPTIONS = ["TRY", "USD", "EUR", "GBP"];
+
 interface Props {
     productId: string;
     moduleId: string;
@@ -139,28 +141,33 @@ const ModuleOfferingPricesPanel: React.FC<Props> = ({ productId, moduleId, licen
                                     ))}
                                 </select>
                             </div>
-                            <div className="col-md-3">
+                            <div className="col-md-4">
                                 <label className="form-label fs-12 mb-1">Fiyat</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    className="form-control form-control-sm"
-                                    placeholder="0.00"
-                                    value={form.price}
-                                    onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                                    required
-                                />
-                            </div>
-                            <div className="col-md-2">
-                                <label className="form-label fs-12 mb-1">Para Birimi</label>
-                                <input
-                                    className="form-control form-control-sm"
-                                    placeholder="TRY"
-                                    value={form.currencyCode}
-                                    onChange={(e) => setForm((f) => ({ ...f, currencyCode: e.target.value }))}
-                                    required
-                                />
+                                <div className="input-group input-group-sm">
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className="form-control"
+                                        placeholder="0.00"
+                                        value={form.price}
+                                        onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                                        required
+                                    />
+                                    <select
+                                        className="form-select"
+                                        style={{ maxWidth: 96 }}
+                                        value={form.currencyCode}
+                                        onChange={(e) => setForm((f) => ({ ...f, currencyCode: e.target.value }))}
+                                        required
+                                    >
+                                        {CURRENCY_OPTIONS.map((currency) => (
+                                            <option key={currency} value={currency}>
+                                                {currency}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                             <div className="col-md-1 d-flex align-items-end pb-1">
                                 <div className="form-check form-switch">

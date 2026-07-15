@@ -2,6 +2,7 @@ import React from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import JsonFieldEditor from "@/modules/shared/components/JsonFieldEditor";
+import { BILLING_UNITS, getBillingPeriodValueForUnit } from "@/modules/products/utils/billingPeriod";
 
 const SUPPORTED_PLATFORMS = [
   "Windows",
@@ -17,8 +18,8 @@ const PhysicalProfileForm: React.FC = () => {
   return (
     <div>
       <h6 className="overline-title text-primary mb-3">Fiziksel Özellikler</h6>
-      <div className="row g-3">
-        <div className="col-md-3">
+      <div className="pricing-form-grid">
+        <div className="pricing-form-field">
           <label className="form-label">Ağırlık (kg)</label>
           <input
             type="number"
@@ -29,7 +30,7 @@ const PhysicalProfileForm: React.FC = () => {
             {...register("physicalProfile.weight", { valueAsNumber: true })}
           />
         </div>
-        <div className="col-md-3">
+        <div className="pricing-form-field">
           <label className="form-label">Genişlik (cm)</label>
           <input
             type="number"
@@ -40,7 +41,7 @@ const PhysicalProfileForm: React.FC = () => {
             {...register("physicalProfile.width", { valueAsNumber: true })}
           />
         </div>
-        <div className="col-md-3">
+        <div className="pricing-form-field">
           <label className="form-label">Yükseklik (cm)</label>
           <input
             type="number"
@@ -51,7 +52,7 @@ const PhysicalProfileForm: React.FC = () => {
             {...register("physicalProfile.height", { valueAsNumber: true })}
           />
         </div>
-        <div className="col-md-3">
+        <div className="pricing-form-field">
           <label className="form-label">Uzunluk (cm)</label>
           <input
             type="number"
@@ -62,7 +63,7 @@ const PhysicalProfileForm: React.FC = () => {
             {...register("physicalProfile.length", { valueAsNumber: true })}
           />
         </div>
-        <div className="col-md-3">
+        <div className="pricing-form-field">
           <label className="form-label">Garanti Süresi (ay)</label>
           <input
             type="number"
@@ -72,7 +73,7 @@ const PhysicalProfileForm: React.FC = () => {
             {...register("physicalProfile.warrantyInMonths", { valueAsNumber: true })}
           />
         </div>
-        <div className="col-md-9">
+        <div className="pricing-form-field pricing-form-field--wide">
           <label className="form-label">Özellikler</label>
           <div className="d-flex flex-wrap gap-4 mt-1">
             <div className="form-check form-switch">
@@ -103,16 +104,16 @@ const SoftwareProfileForm: React.FC = () => {
   return (
     <div>
       <h6 className="overline-title text-primary mb-3">Yazılım Profili</h6>
-      <div className="row g-3">
-        <div className="col-md-6">
+      <div className="pricing-form-grid">
+        <div className="pricing-form-field pricing-form-field--wide">
           <label className="form-label">Sürüm</label>
           <input className="form-control" placeholder="1.0.0" {...register("softwareProfile.version")} />
         </div>
-        <div className="col-12">
+        <div className="pricing-form-field pricing-form-field--wide">
           <label className="form-label">İndirme URL</label>
           <input className="form-control" placeholder="https://example.com/download" {...register("softwareProfile.downloadUrl")} />
         </div>
-        <div className="col-md-6">
+        <div className="pricing-form-field">
           <JsonFieldEditor
             name="softwareProfile.supportedPlatformsJson"
             label="Desteklenen Platformlar"
@@ -120,14 +121,14 @@ const SoftwareProfileForm: React.FC = () => {
             suggestions={SUPPORTED_PLATFORMS}
           />
         </div>
-        <div className="col-md-6">
+        <div className="pricing-form-field">
           <JsonFieldEditor
             name="softwareProfile.systemRequirementsJson"
             label="Sistem Gereksinimleri"
             type="object"
           />
         </div>
-        <div className="col-12">
+        <div className="pricing-form-field pricing-form-field--full">
           <label className="form-label">Sürüm Notları</label>
           <textarea className="form-control" rows={3} placeholder="Yeni özellikler ve değişiklikler..." {...register("softwareProfile.releaseNotes")} />
         </div>
@@ -146,8 +147,8 @@ const ServiceProfileForm: React.FC = () => {
   return (
     <div>
       <h6 className="overline-title text-primary mb-3">Hizmet Profili</h6>
-      <div className="row g-3">
-        <div className="col-md-4">
+      <div className="pricing-form-grid">
+        <div className="pricing-form-field">
           <label className="form-label">Teslimat Modu</label>
           <select className="form-control form-select" {...register("serviceProfile.deliveryMode", { valueAsNumber: true })}>
             <option value="">Seçiniz</option>
@@ -156,15 +157,15 @@ const ServiceProfileForm: React.FC = () => {
             ))}
           </select>
         </div>
-        <div className="col-md-4">
+        <div className="pricing-form-field">
           <label className="form-label">Süre (dakika)</label>
           <input type="number" min="0" className="form-control" placeholder="60" {...register("serviceProfile.durationInMinutes", { valueAsNumber: true })} />
         </div>
-        <div className="col-md-4">
+        <div className="pricing-form-field">
           <label className="form-label">Maks. Eşzamanlı Rezervasyon</label>
           <input type="number" min="1" className="form-control" placeholder="1" {...register("serviceProfile.maxConcurrentBooking", { valueAsNumber: true })} />
         </div>
-        <div className="col-12">
+        <div className="pricing-form-field pricing-form-field--full">
           <JsonFieldEditor
             name="serviceProfile.serviceAreaJson"
             label="Hizmet Alanı"
@@ -177,43 +178,46 @@ const ServiceProfileForm: React.FC = () => {
 };
 
 const SubscriptionProfileForm: React.FC = () => {
-  const { register } = useFormContext<ProductFormValues>();
-  const BILLING_UNITS = [
-    { value: 1, label: "Gün" },
-    { value: 2, label: "Hafta" },
-    { value: 3, label: "Ay" },
-    { value: 4, label: "Yıl" },
-  ];
+  const { register, setValue } = useFormContext<ProductFormValues>();
   return (
     <div>
       <h6 className="overline-title text-primary mb-3">Abonelik Profili</h6>
-      <div className="row g-3">
-        <div className="col-md-3">
+      <div className="pricing-form-grid">
+        <div className="pricing-form-field">
           <label className="form-label">Faturalama Periyodu</label>
-          <select className="form-control form-select" {...register("subscriptionProfile.billingPeriodUnit", { valueAsNumber: true })}>
+          <select
+            className="form-control form-select"
+            {...register("subscriptionProfile.billingPeriodUnit", {
+              valueAsNumber: true,
+              onChange: (event) => {
+                const nextValue = getBillingPeriodValueForUnit(event.target.value);
+                setValue("subscriptionProfile.billingPeriodValue", nextValue, { shouldDirty: true });
+              },
+            })}
+          >
             <option value="">Seçiniz</option>
             {BILLING_UNITS.map((bu) => (
               <option key={bu.value} value={bu.value}>{bu.label}</option>
             ))}
           </select>
         </div>
-        <div className="col-md-3">
+        <div className="pricing-form-field">
           <label className="form-label">Periyot Değeri</label>
           <input type="number" min="1" className="form-control" placeholder="1" {...register("subscriptionProfile.billingPeriodValue", { valueAsNumber: true })} />
         </div>
-        <div className="col-md-3">
+        <div className="pricing-form-field">
           <label className="form-label">Deneme Süresi (gün)</label>
           <input type="number" min="0" className="form-control" placeholder="14" {...register("subscriptionProfile.trialDays", { valueAsNumber: true })} />
         </div>
-        <div className="col-md-3">
+        <div className="pricing-form-field">
           <label className="form-label">İzin Süresi (gün)</label>
           <input type="number" min="0" className="form-control" placeholder="7" {...register("subscriptionProfile.gracePeriodDays", { valueAsNumber: true })} />
         </div>
-        <div className="col-md-6">
+        <div className="pricing-form-field pricing-form-field--wide">
           <label className="form-label">İptal Politikası</label>
           <input className="form-control" placeholder="Esnek, Katı..." {...register("subscriptionProfile.cancellationPolicy")} />
         </div>
-        <div className="col-md-6 d-flex align-items-end pb-1">
+        <div className="pricing-form-field pricing-form-field--wide d-flex align-items-end pb-1">
           <div className="form-check form-switch">
             <input type="checkbox" className="form-check-input" id="auto-renew" {...register("subscriptionProfile.autoRenew")} />
             <label className="form-check-label" htmlFor="auto-renew">Otomatik Yenileme</label>

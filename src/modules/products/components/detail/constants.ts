@@ -22,8 +22,6 @@ export const PRICE_TYPE_LABELS: Record<number, { label: string; color: string }>
 export const LICENSE_MODEL_LABELS: Record<number, { label: string; color: string }> = {
   1: { label: "Tek Seferlik", color: "primary" },
   2: { label: "Abonelik", color: "info" },
-  3: { label: "Kullanım Bazlı", color: "warning" },
-  4: { label: "Koltuk Bazlı", color: "success" },
   5: { label: "Deneme", color: "secondary" },
 };
 

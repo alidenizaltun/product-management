@@ -200,7 +200,6 @@ export interface LicenseOfferingForm {
   gracePeriodDays?: number;
   trialDays?: number;
   convertToOfferingId?: string;
-  maxSeats?: number;
   validFrom?: string;
   validTo?: string;
   isActive: boolean;

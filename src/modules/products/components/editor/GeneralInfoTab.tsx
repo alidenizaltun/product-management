@@ -89,10 +89,10 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
             <div className="col-lg-3 col-md-6">
                 <label className="form-label">Ürün Tipi</label>
                 <select className="form-control form-select form-control-lg" {...register("kind", { valueAsNumber: true })}>
-                    <option value={1}>Fiziksel</option>
+                    {/* <option value={1}>Fiziksel</option> */}
                     <option value={2}>Yazılım</option>
-                    <option value={3}>Hizmet</option>
-                    <option value={4}>Abonelik</option>
+                    {/* <option value={3}>Hizmet</option> */}
+                    {/* <option value={4}>Abonelik</option> */}
                 </select>
             </div>
 
@@ -173,7 +173,7 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
 
             {advancedOpen && (
                 <>
-                    <div className="col-md-4">
+                    <div className={`col-md-${isSoftwareProduct ? "6" : "4"}`}>
                         <label className="form-label">
                             Para Birimi <span className="text-danger">*</span>
                         </label>
@@ -191,31 +191,19 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
                         )}
                     </div>
 
-                    <div className="col-md-4">
+                    <div className={`col-md-${isSoftwareProduct ? "6" : "4"}`}>
                         <label className="form-label">Üretici</label>
                         <input className="form-control" placeholder="Üretici firma" {...register("manufacturer")} />
                     </div>
 
-                    <div className="col-md-4">
-                        <label className="form-label">Barkod</label>
-                        <input className="form-control" placeholder="EAN / UPC barkod" {...register("barcode")} />
-                    </div>
-
-                    {isPhysicalProduct && (
+                    {!isSoftwareProduct && (
                         <div className="col-md-4">
-                            <label className="form-label">Ölçü Birimi</label>
-                            <select className="form-control form-select" {...register("unitDefinitionId")}>
-                                <option value="">— Seçiniz —</option>
-                                {unitLookup.map((unit) => (
-                                    <option key={unit.id} value={unit.id}>
-                                        {unit.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <label className="form-label">Barkod</label>
+                            <input className="form-control" placeholder="EAN / UPC barkod" {...register("barcode")} />
                         </div>
                     )}
 
-                    <div className="col-md-4">
+                    <div className="col-md-6">
                         <label className="form-label">Vergi Oranı (%)</label>
                         {isEdit ? (
                             <>
@@ -248,7 +236,7 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
                         )}
                     </div>
 
-                    <div className="col-md-4">
+                    <div className="col-md-6">
                         <label className="form-label">Vergi Kodu</label>
                         <input className="form-control" placeholder="KDV18" {...register("taxCode")} />
                     </div>

@@ -387,7 +387,10 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                 {unit?.isDefault ? " · Varsayılan" : ""}
                                             </p>
                                         </div>
-                                        <div className="d-flex gap-1 h-100">
+                                        <div className="d-flex flex-wrap align-items-start gap-1 h-100">
+                                            <span className="pricing-order-chip" title="Sıra sürükleyerek veya oklarla değiştirilir">
+                                                Sıra {index + 1}
+                                            </span>
                                             <button
                                                 type="button"
                                                 className="btn btn-sm btn-outline-primary"
@@ -434,9 +437,11 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                         </div>
                                     </div>
 
+                                    <input type="hidden" {...register(`productUnits.${index}.sortOrder`, { valueAsNumber: true })} />
+
                                     <Collapse isOpen={isCardOpen}>
-                                    <div className="row g-3 align-items-end">
-                                        <div className="col-md-4">
+                                    <div className="pricing-form-grid">
+                                        <div className="pricing-form-field">
                                             <label className="form-label">
                                                 <HelpLabel help="Üründe kullanacağınız temel ölçü veya kullanım birimini sözlükten seçer. Seçilen sözlük değeri ürün içi kod ve ad alanlarını otomatik doldurur.">
                                                     Birim sözlüğü
@@ -465,7 +470,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="col-md-4">
+                                        <div className="pricing-form-field">
                                             <label className="form-label">
                                                 <HelpLabel help="Bu ürün içinde birimi kısa ve teknik olarak tanımlayan koddur. Örneğin USER, DEVICE veya API_CALL gibi kural ve planlarda kolay tanınacak bir değer kullanın.">
                                                     Ürün birim kodu
@@ -473,7 +478,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                             </label>
                                             <input className="form-control" {...register(`productUnits.${index}.code`)} />
                                         </div>
-                                        <div className="col-md-4">
+                                        <div className="pricing-form-field">
                                             <label className="form-label">
                                                 <HelpLabel help="Bu birimin ekranda kullanıcıya görünecek adıdır. Satış planı ve fiyatlandırma kuralı seçicilerinde bu ad üzerinden anlaşılır.">
                                                     Ürün birim adı
@@ -481,7 +486,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                             </label>
                                             <input className="form-control" {...register(`productUnits.${index}.name`)} />
                                         </div>
-                                        <div className="col-md-5">
+                                        <div className="pricing-form-field pricing-form-field--wide">
                                             <label className="form-label">
                                                 <HelpLabel help="Bu birimin hangi fiyatlandırma senaryosu için kullanılacağını açıklayan opsiyonel nottur. Örneğin kullanıcı başına, şube başına veya işlem adedi gibi bağlam yazılabilir.">
                                                     Birim açıklaması
@@ -489,20 +494,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                             </label>
                                             <input className="form-control" {...register(`productUnits.${index}.description`)} />
                                         </div>
-                                        <div className="col-md-2">
-                                            <label className="form-label">
-                                                <HelpLabel help="Birimlerin listelerde hangi sırayla gösterileceğini belirler. Küçük sayı daha önce görünür.">
-                                                    Gösterim sırası
-                                                </HelpLabel>
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                className="form-control"
-                                                {...register(`productUnits.${index}.sortOrder`, { valueAsNumber: true })}
-                                            />
-                                        </div>
-                                        <div className="col-md-4 d-flex flex-wrap gap-4">
+                                        <div className="pricing-form-field pricing-form-field--wide d-flex flex-wrap gap-4">
                                             <div className="form-check form-switch">
                                                 <input
                                                     type="checkbox"
@@ -531,7 +523,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                 </label>
                                             </div>
                                         </div>
-                                        <div className="col-12 d-flex flex-wrap justify-content-end align-items-center gap-2 border-top pt-3 h-100">
+                                        <div className="pricing-form-field pricing-form-field--full d-flex flex-wrap justify-content-end align-items-center gap-2 border-top pt-3 h-100">
                                             <button
                                                 type="button"
                                                 className="btn btn-primary"

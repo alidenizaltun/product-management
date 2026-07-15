@@ -1,4 +1,4 @@
-import React, { useId, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
@@ -16,6 +16,7 @@ import { ProductFormValues } from "@/modules/products/types/productEditor.types"
 import { productsApi } from "@/modules/products/api/products.api";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { queryKeys } from "@/services/query/queryKeys";
+import { BILLING_UNITS, getBillingPeriodValueForUnit } from "@/modules/products/utils/billingPeriod";
 import type { LicenseOfferingForm } from "@/modules/products/types/productEditor.types";
 
 const UNIT_DRAG_MIME = "application/x-product-unit-ref";
@@ -34,16 +35,7 @@ const generateTempId = () =>
 const LICENSE_MODELS = [
     { value: 1, label: "Tek Seferlik", icon: "package", color: "primary" },
     { value: 2, label: "Abonelik", icon: "repeat", color: "success" },
-    { value: 3, label: "Kullanım Bazlı", icon: "activity", color: "info" },
-    { value: 4, label: "Koltuk Bazlı", icon: "users", color: "warning" },
     { value: 5, label: "Deneme", icon: "clock", color: "secondary" },
-];
-
-const BILLING_UNITS = [
-    { value: 1, label: "Gün" },
-    { value: 2, label: "Hafta" },
-    { value: 3, label: "Ay" },
-    { value: 4, label: "Yıl" },
 ];
 
 const EMPTY_OFFERING = {
@@ -60,7 +52,6 @@ const EMPTY_OFFERING = {
     gracePeriodDays: undefined as number | undefined,
     trialDays: undefined as number | undefined,
     convertToOfferingId: undefined as string | undefined,
-    maxSeats: undefined as number | undefined,
     validFrom: undefined as string | undefined,
     validTo: undefined as string | undefined,
     isActive: true,
@@ -72,25 +63,19 @@ const PLAN_TEMPLATES = [
         title: "Aylık plan",
         description: "Aylık dönemli standart abonelik.",
         icon: "repeat",
-        offering: { licenseModel: 2, name: "Aylık Plan", billingPeriodUnit: 3, billingPeriodValue: 1 },
+        offering: { licenseModel: 2, name: "Aylık Plan", billingPeriodUnit: 3, billingPeriodValue: 30 },
     },
     {
         title: "Yıllık plan",
         description: "Yıllık ödeme dönemine uygun plan.",
         icon: "calendar",
-        offering: { licenseModel: 2, name: "Yıllık Plan", billingPeriodUnit: 4, billingPeriodValue: 1 },
+        offering: { licenseModel: 2, name: "Yıllık Plan", billingPeriodUnit: 4, billingPeriodValue: 365 },
     },
     {
         title: "Tek seferlik",
         description: "Kalıcı lisans veya tek ödeme.",
         icon: "package",
         offering: { licenseModel: 1, name: "Tek Seferlik Lisans", autoRenew: false },
-    },
-    {
-        title: "Koltuk bazlı",
-        description: "Kullanıcı/koltuk sayısına bağlı satış.",
-        icon: "users",
-        offering: { licenseModel: 4, name: "Koltuk Bazlı Plan", maxSeats: 10 },
     },
     {
         title: "Deneme",
@@ -102,6 +87,11 @@ const PLAN_TEMPLATES = [
 
 const getModelMeta = (value?: number) =>
     LICENSE_MODELS.find((model) => model.value === Number(value)) ?? LICENSE_MODELS[1];
+
+const normalizeLicenseModel = (value?: number) => {
+    const model = Number(value ?? 2);
+    return LICENSE_MODELS.some((item) => item.value === model) ? model : 2;
+};
 
 const formatMoney = (amount?: number, currency = "TRY") =>
     typeof amount === "number" && Number.isFinite(amount)
@@ -231,11 +221,11 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
     const productUnits = availableProductUnits.length ? availableProductUnits : watchedProductUnits;
     const assignableProductUnits = productUnits.filter((unit) => unit.isActive !== false && (unit.id || unit._tempId));
     const model = Number(offering?.licenseModel ?? 2);
-    const meta = getModelMeta(model);
+    const normalizedModel = normalizeLicenseModel(model);
+    const meta = getModelMeta(normalizedModel);
 
-    const showBilling = model === 2;
-    const showTrial = model === 5;
-    const showSeats = model === 4;
+    const showBilling = normalizedModel === 2;
+    const showTrial = normalizedModel === 5;
     const saved = Boolean(offering?.id);
     const selectedUnitValues = toUnitScopeValues(
         offering?.productUnitIds?.length ? offering.productUnitIds : offering?.productUnitId ? [offering.productUnitId] : [],
@@ -246,6 +236,16 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                 : []
     );
     const hasUnsavedProductUnit = selectedUnitValues.some((value) => value.startsWith("temp:"));
+
+    useEffect(() => {
+        if (model !== normalizedModel) {
+            setValue(`licenseOfferings.${index}.licenseModel`, normalizedModel, { shouldDirty: true });
+        }
+        if (normalizedModel !== 2) {
+            setValue(`licenseOfferings.${index}.billingPeriodUnit`, undefined, { shouldDirty: true });
+            setValue(`licenseOfferings.${index}.billingPeriodValue`, undefined, { shouldDirty: true });
+        }
+    }, [index, model, normalizedModel, setValue]);
 
     const changeProductUnit = (value: string, checked: boolean) => {
         const values = checked
@@ -282,7 +282,10 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                         </div>
                     </div>
 
-                    <div className="d-flex gap-1 h-100">
+                    <div className="d-flex flex-wrap align-items-start gap-1 h-100">
+                        <span className="pricing-order-chip" title="Sıra sürükleyerek veya oklarla değiştirilir">
+                            Sıra {index + 1}
+                        </span>
                         <button
                             type="button"
                             className="btn btn-sm btn-outline-primary"
@@ -329,360 +332,335 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                     </div>
                 </div>
 
+                <input type="hidden" {...register(`licenseOfferings.${index}.sortOrder`, { valueAsNumber: true })} />
+
                 <Collapse isOpen={isOpen}>
-                <div className="row g-3 align-items-end">
-                    <div className="col-lg-4">
-                        <label className="form-label">
-                            <HelpLabel help="Müşterinin satın alacağı paketin görünen adıdır. Aylık Plan, Yıllık Plan veya Kurumsal Paket gibi satışta anlaşılır bir ad kullanın.">
-                                Plan adı
-                            </HelpLabel>{" "}
-                            <span className="text-danger">*</span>
-                        </label>
-                        <input
-                            className="form-control form-control-lg"
-                            placeholder="Yıllık Abonelik"
-                            {...register(`licenseOfferings.${index}.name`)}
-                        />
-                        {errors.licenseOfferings?.[index]?.name && (
-                            <span className="text-danger fs-12">
-                                {errors.licenseOfferings[index]?.name?.message}
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="col-lg-5">
-                        <label className="form-label">
-                            <HelpLabel help="Bu satış planının dinamik kurallar çalışmadan önceki başlangıç fiyatıdır. İndirim, artırım veya kademeli hesaplamalar bu fiyat üzerinden uygulanabilir.">
-                                Taban fiyat
-                            </HelpLabel>{" "}
-                            <span className="text-danger">*</span>
-                        </label>
-                        <div className="input-group input-group-lg">
+                    <div className="row g-3 align-items-end">
+                        <div className="col-lg-4">
+                            <label className="form-label">
+                                <HelpLabel help="Müşterinin satın alacağı paketin görünen adıdır. Aylık Plan, Yıllık Plan veya Kurumsal Paket gibi satışta anlaşılır bir ad kullanın.">
+                                    Plan adı
+                                </HelpLabel>{" "}
+                                <span className="text-danger">*</span>
+                            </label>
                             <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                className="form-control"
-                                placeholder="0.00"
-                                {...register(`licenseOfferings.${index}.basePrice`, { valueAsNumber: true })}
+                                className="form-control form-control-lg"
+                                placeholder="Yıllık Abonelik"
+                                {...register(`licenseOfferings.${index}.name`)}
                             />
-                            <select
-                                className="form-select"
-                                style={{ maxWidth: 120 }}
-                                {...register(`licenseOfferings.${index}.currencyCode`)}
-                            >
-                                <option value="TRY">TRY</option>
-                                <option value="USD">USD</option>
-                                <option value="EUR">EUR</option>
-                                <option value="GBP">GBP</option>
-                            </select>
-                        </div>
-                        {errors.licenseOfferings?.[index]?.basePrice && (
-                            <span className="text-danger fs-12">
-                                {errors.licenseOfferings[index]?.basePrice?.message}
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="col-lg-3">
-                        <button
-                            type="button"
-                            className="btn btn-outline-light w-100 py-2"
-                            onClick={() => setAdvancedOpen((current) => !current)}
-                        >
-                            <em className={`icon ni ni-chevron-${advancedOpen ? "up" : "down"} me-1`} />
-                            Detaylar
-                        </button>
-                    </div>
-
-                    <div className="col-md-4">
-                        <label className="form-label">
-                            <HelpLabel help="Planın hangi satış mantığıyla sunulacağını belirler. Abonelik dönemsel yenileme, tek seferlik kalıcı lisans, kullanım bazlı tüketim, koltuk bazlı kullanıcı sayısı ve deneme geçici erişim senaryoları içindir.">
-                                Satış modeli
-                            </HelpLabel>
-                        </label>
-                        <select
-                            className="form-control form-select"
-                            {...register(`licenseOfferings.${index}.licenseModel`, { valueAsNumber: true })}
-                        >
-                            {LICENSE_MODELS.map((lm) => (
-                                <option key={lm.value} value={lm.value}>
-                                    {lm.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="col-md-4">
-                        <label className="form-label">
-                            <HelpLabel help="Abonelik planlarında ücretin hangi zaman birimine göre yenileneceğini belirtir. Örneğin ay seçilirse plan aylık, yıl seçilirse yıllık dönemle fiyatlanır.">
-                                Faturalama birimi
-                            </HelpLabel>
-                        </label>
-                        <select
-                            className="form-control form-select"
-                            {...register(`licenseOfferings.${index}.billingPeriodUnit`, { valueAsNumber: true })}
-                        >
-                            <option value="">Seçiniz</option>
-                            {BILLING_UNITS.map((bu) => (
-                                <option key={bu.value} value={bu.value}>
-                                    {bu.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="col-md-4">
-                        <label className="form-label">
-                            <HelpLabel help="Bu planın hangi ürün birimleriyle çalışacağını seçer. Örneğin kullanıcı bazlı ücret varsa kullanıcı birimini, cihaz bazlı ücret varsa cihaz birimini plana bağlayın. Üstteki birim paletinden buraya sürükleyerek de ekleyebilirsiniz.">
-                                Paket birimleri
-                            </HelpLabel>
-                        </label>
-                        <div
-                            className="pricing-unit-dropzone"
-                            onDragOver={(event) => {
-                                if (event.dataTransfer.types.includes(UNIT_DRAG_MIME)) {
-                                    event.preventDefault();
-                                    event.dataTransfer.dropEffect = "copy";
-                                }
-                            }}
-                            onDrop={handleUnitDrop}
-                        >
-                            <div className="pricing-unit-dropzone-hint">
-                                <em className="icon ni ni-drag" />
-                                Birimi buraya bırak
-                            </div>
-                            <div className="form-check">
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id={`offering-unit-default-${fieldId}`}
-                                    checked={selectedUnitValues.length === 0}
-                                    onChange={() => {
-                                        const scope = splitUnitScopeValues([]);
-                                        setValue(`licenseOfferings.${index}.productUnitIds`, scope.productUnitIds, { shouldDirty: true });
-                                        setValue(`licenseOfferings.${index}.productUnitTempIds`, scope.productUnitTempIds, { shouldDirty: true });
-                                        setValue(`licenseOfferings.${index}.productUnitId`, scope.productUnitId, { shouldDirty: true });
-                                        setValue(`licenseOfferings.${index}.productUnitTempId`, scope.productUnitTempId, { shouldDirty: true });
-                                    }}
-                                />
-                                <label className="form-check-label" htmlFor={`offering-unit-default-${fieldId}`}>
-                                    <HelpLabel help="Plan sabit paket fiyatıyla satılacaksa ve kullanıcı, cihaz, işlem adedi gibi bir fiyatlandırma birimine bağlı olmayacaksa bu seçeneği kullanın.">
-                                        Birimsiz paket
-                                    </HelpLabel>
-                                </label>
-                            </div>
-                            {assignableProductUnits.map((unit) => {
-                                const optionValue = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
-                                return (
-                                    <div className="form-check" key={optionValue}>
-                                        <input
-                                            type="checkbox"
-                                            className="form-check-input"
-                                            id={`offering-unit-${fieldId}-${optionValue}`}
-                                            checked={selectedUnitValues.includes(optionValue)}
-                                            onChange={(event) => changeProductUnit(optionValue, event.target.checked)}
-                                        />
-                                        <label className="form-check-label" htmlFor={`offering-unit-${fieldId}-${optionValue}`}>
-                                            {unit.name || unit.code}
-                                            {!unit.id ? " (kaydedilecek)" : ""}
-                                        </label>
-                                    </div>
-                                );
-                            })}
-                            {assignableProductUnits.length === 0 && (
-                                <span className="text-soft fs-12px">Önce Ürün Birimleri adımında birim ekleyin.</span>
+                            {errors.licenseOfferings?.[index]?.name && (
+                                <span className="text-danger fs-12">
+                                    {errors.licenseOfferings[index]?.name?.message}
+                                </span>
                             )}
                         </div>
-                    </div>
 
-                    {showBilling && (
-                        <>
-                            <div className="col-md-4">
-                                <label className="form-label">
-                                    <HelpLabel help="Seçilen faturalama biriminden kaç adet kullanılacağını belirtir. Ay birimi ve 1 periyot aylık, ay birimi ve 3 periyot üç aylık plan anlamına gelir.">
-                                        Fatura periyodu
-                                    </HelpLabel>
-                                </label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    className="form-control"
-                                    placeholder="1"
-                                    {...register(`licenseOfferings.${index}.billingPeriodValue`, { valueAsNumber: true })}
-                                />
-                            </div>
-                        </>
-                    )}
-
-                    {showSeats && (
-                        <div className="col-md-4">
+                        <div className="col-lg-5">
                             <label className="form-label">
-                                <HelpLabel help="Bu planla kullanılabilecek en yüksek kullanıcı veya koltuk sayısını belirtir. Boş bırakılırsa plan tarafında özel bir üst sınır uygulanmayabilir.">
-                                    Koltuk üst sınırı
-                                </HelpLabel>
+                                <HelpLabel help="Bu satış planının dinamik kurallar çalışmadan önceki başlangıç fiyatıdır. İndirim, artırım veya kademeli hesaplamalar bu fiyat üzerinden uygulanabilir.">
+                                    Taban fiyat
+                                </HelpLabel>{" "}
+                                <span className="text-danger">*</span>
                             </label>
-                            <input
-                                type="number"
-                                min="1"
-                                className="form-control"
-                                placeholder="Sınırsız"
-                                {...register(`licenseOfferings.${index}.maxSeats`, { valueAsNumber: true })}
-                            />
-                        </div>
-                    )}
-
-                    {showTrial && (
-                        <div className="col-md-4">
-                            <label className="form-label">
-                                <HelpLabel help="Deneme planının kaç gün geçerli olacağını belirtir. Süre dolduğunda müşteri ücretli plana geçmek veya erişimi sonlandırmak zorunda kalabilir.">
-                                    Deneme süresi
-                                </HelpLabel>
-                            </label>
-                            <div className="input-group">
+                            <div className="input-group input-group-lg">
                                 <input
                                     type="number"
-                                    min="1"
-                                    className="form-control"
-                                    placeholder="14"
-                                    {...register(`licenseOfferings.${index}.trialDays`, { valueAsNumber: true })}
-                                />
-                                <span className="input-group-text">gün</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {advancedOpen && (
-                        <>
-                            <div className="col-12">
-                                <label className="form-label">
-                                    <HelpLabel help="Planın müşteriye veya operasyon ekibine ne sunduğunu açıklayan opsiyonel metindir. Kapsam, hedef müşteri tipi veya özel notlar burada tutulabilir.">
-                                        Plan açıklaması
-                                    </HelpLabel>
-                                </label>
-                                <input
-                                    className="form-control"
-                                    placeholder="Plan hakkında kısa açıklama..."
-                                    {...register(`licenseOfferings.${index}.description`)}
-                                />
-                            </div>
-
-                            <div className="col-md-3">
-                                <label className="form-label">
-                                    <HelpLabel help="Satış planlarının ekranda hangi sırayla gösterileceğini belirler. Küçük sayı daha önce görünür.">
-                                        Gösterim sırası
-                                    </HelpLabel>
-                                </label>
-                                <input
-                                    type="number"
+                                    step="0.01"
                                     min="0"
                                     className="form-control"
-                                    placeholder="1"
-                                    {...register(`licenseOfferings.${index}.sortOrder`, { valueAsNumber: true })}
+                                    placeholder="0.00"
+                                    {...register(`licenseOfferings.${index}.basePrice`, { valueAsNumber: true })}
                                 />
+                                <select
+                                    className="form-select"
+                                    style={{ maxWidth: 120 }}
+                                    {...register(`licenseOfferings.${index}.currencyCode`)}
+                                >
+                                    <option value="TRY">TRY</option>
+                                    <option value="USD">USD</option>
+                                    <option value="EUR">EUR</option>
+                                    <option value="GBP">GBP</option>
+                                </select>
                             </div>
+                            {errors.licenseOfferings?.[index]?.basePrice && (
+                                <span className="text-danger fs-12">
+                                    {errors.licenseOfferings[index]?.basePrice?.message}
+                                </span>
+                            )}
+                        </div>
 
-                            <div className="col-md-3">
+                        <div className="col-lg-3">
+                            <button
+                                type="button"
+                                className="btn btn-outline-light w-100 py-2"
+                                onClick={() => setAdvancedOpen((current) => !current)}
+                            >
+                                <em className={`icon ni ni-chevron-${advancedOpen ? "up" : "down"} me-1`} />
+                                Detaylar
+                            </button>
+                        </div>
+
+                        <div className="col-md-4">
+                            <label className="form-label">
+                                <HelpLabel help="Planın hangi satış mantığıyla sunulacağını belirler. Abonelik dönemsel yenileme, tek seferlik kalıcı lisans, deneme ise geçici erişim senaryosu içindir. Kullanım ve koltuk kararları ürün birimleri ve dinamik kurallar üzerinden yönetilir.">
+                                    Satış modeli
+                                </HelpLabel>
+                            </label>
+                            <select
+                                className="form-control form-select"
+                                {...register(`licenseOfferings.${index}.licenseModel`, { valueAsNumber: true })}
+                            >
+                                {LICENSE_MODELS.map((lm) => (
+                                    <option key={lm.value} value={lm.value}>
+                                        {lm.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {showBilling && (
+                            <>
+                                <div className="col-md-4">
+                                    <label className="form-label">
+                                        <HelpLabel help="Abonelik planlarında ücretin hangi zaman birimine göre yenileneceğini belirtir. Örneğin ay seçilirse plan aylık, yıl seçilirse yıllık dönemle fiyatlanır.">
+                                            Faturalama birimi
+                                        </HelpLabel>
+                                    </label>
+                                    <select
+                                        className="form-control form-select"
+                                        {...register(`licenseOfferings.${index}.billingPeriodUnit`, {
+                                            valueAsNumber: true,
+                                            onChange: (event) => {
+                                                const nextValue = getBillingPeriodValueForUnit(event.target.value);
+                                                setValue(`licenseOfferings.${index}.billingPeriodValue`, nextValue, { shouldDirty: true });
+                                            },
+                                        })}
+                                    >
+                                        <option value="">Seçiniz</option>
+                                        {BILLING_UNITS.map((bu) => (
+                                            <option key={bu.value} value={bu.value}>
+                                                {bu.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-md-4">
+                                    <label className="form-label">
+                                        <HelpLabel help="Seçilen faturalama biriminden kaç adet kullanılacağını belirtir. Ay birimi ve 1 periyot aylık, ay birimi ve 3 periyot üç aylık plan anlamına gelir.">
+                                            Fatura periyodu
+                                        </HelpLabel>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        className="form-control"
+                                        placeholder="1"
+                                        {...register(`licenseOfferings.${index}.billingPeriodValue`, { valueAsNumber: true })}
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {showTrial && (
+                            <div className="col-md-5">
                                 <label className="form-label">
-                                    <HelpLabel help="Abonelik yenileme veya ödeme gecikmesi durumunda erişimin kaç gün daha tolere edileceğini belirtir. Bu süre operasyonel esneklik sağlar.">
-                                        Ödeme toleransı
+                                    <HelpLabel help="Deneme planının kaç gün geçerli olacağını belirtir. Süre dolduğunda müşteri ücretli plana geçmek veya erişimi sonlandırmak zorunda kalabilir.">
+                                        Deneme süresi
                                     </HelpLabel>
                                 </label>
                                 <div className="input-group">
                                     <input
                                         type="number"
-                                        min="0"
+                                        min="1"
                                         className="form-control"
-                                        placeholder="7"
-                                        {...register(`licenseOfferings.${index}.gracePeriodDays`, { valueAsNumber: true })}
+                                        placeholder="14"
+                                        {...register(`licenseOfferings.${index}.trialDays`, { valueAsNumber: true })}
                                     />
                                     <span className="input-group-text">gün</span>
                                 </div>
                             </div>
+                        )}
 
-                            <div className="col-md-3">
-                                <label className="form-label">
-                                    <HelpLabel help="Planın satışa veya kullanıma açılacağı başlangıç tarihidir. Boş bırakılırsa plan için başlangıç tarihi kısıtı uygulanmayabilir.">
-                                        Geçerlilik başlangıcı
-                                    </HelpLabel>
-                                </label>
-                                <input
-                                    type="date"
-                                    className="form-control"
-                                    {...register(`licenseOfferings.${index}.validFrom`)}
-                                />
-                            </div>
-                            <div className="col-md-3">
-                                <label className="form-label">
-                                    <HelpLabel help="Planın satış veya kullanım için geçerli olacağı son tarihtir. Kampanya veya dönemsel planlarda bu alanla bitiş sınırı verilir.">
-                                        Geçerlilik bitişi
-                                    </HelpLabel>
-                                </label>
-                                <input
-                                    type="date"
-                                    className={`form-control ${errors.licenseOfferings?.[index]?.validTo ? "is-invalid" : ""}`}
-                                    {...register(`licenseOfferings.${index}.validTo`, {
-                                        validate: (value) => {
-                                            const from = getValues(`licenseOfferings.${index}.validFrom`);
-                                            if (from && value && value < from) {
-                                                return "Bitiş tarihi başlangıç tarihinden önce olamaz";
-                                            }
-                                            return true;
-                                        },
-                                    })}
-                                />
-                                {errors.licenseOfferings?.[index]?.validTo && (
-                                    <div className="invalid-feedback">
-                                        {errors.licenseOfferings[index]?.validTo?.message}
-                                    </div>
-                                )}
-                            </div>
-                        </>
-                    )}
-
-                    <div className="col-12 d-flex flex-wrap gap-4">
-                        <div className="form-check form-switch">
-                            <input
-                                type="checkbox"
-                                className="form-check-input"
-                                id={`offering-active-${fieldId}`}
-                                {...register(`licenseOfferings.${index}.isActive`)}
-                            />
-                            <label className="form-check-label" htmlFor={`offering-active-${fieldId}`}>
-                                <HelpLabel help="Pasif planlar ürün üzerinde saklanır ancak satışa hazır aktif paket gibi değerlendirilmez. Taslak veya geçici olarak kapatılmış planlar için kullanılabilir.">
-                                    Plan aktif
+                        <div className="col-md-12">
+                            <label className="form-label">
+                                <HelpLabel help="Bu planın hangi ürün birimleriyle çalışacağını seçer. Örneğin kullanıcı bazlı ücret varsa kullanıcı birimini, cihaz bazlı ücret varsa cihaz birimini plana bağlayın. Üstteki birim paletinden buraya sürükleyerek de ekleyebilirsiniz.">
+                                    Paket birimleri
                                 </HelpLabel>
                             </label>
+                            <div
+                                className="pricing-unit-dropzone"
+                                onDragOver={(event) => {
+                                    if (event.dataTransfer.types.includes(UNIT_DRAG_MIME)) {
+                                        event.preventDefault();
+                                        event.dataTransfer.dropEffect = "copy";
+                                    }
+                                }}
+                                onDrop={handleUnitDrop}
+                            >
+                                <div className="pricing-unit-dropzone-hint">
+                                    <em className="icon ni ni-drag" />
+                                    Birimi buraya bırak
+                                </div>
+                                <div className="form-check">
+                                    <input
+                                        type="checkbox"
+                                        className="form-check-input"
+                                        id={`offering-unit-default-${fieldId}`}
+                                        checked={selectedUnitValues.length === 0}
+                                        onChange={() => {
+                                            const scope = splitUnitScopeValues([]);
+                                            setValue(`licenseOfferings.${index}.productUnitIds`, scope.productUnitIds, { shouldDirty: true });
+                                            setValue(`licenseOfferings.${index}.productUnitTempIds`, scope.productUnitTempIds, { shouldDirty: true });
+                                            setValue(`licenseOfferings.${index}.productUnitId`, scope.productUnitId, { shouldDirty: true });
+                                            setValue(`licenseOfferings.${index}.productUnitTempId`, scope.productUnitTempId, { shouldDirty: true });
+                                        }}
+                                    />
+                                    <label className="form-check-label" htmlFor={`offering-unit-default-${fieldId}`}>
+                                        <HelpLabel help="Plan sabit paket fiyatıyla satılacaksa ve kullanıcı, cihaz, işlem adedi gibi bir fiyatlandırma birimine bağlı olmayacaksa bu seçeneği kullanın.">
+                                            Birimsiz paket
+                                        </HelpLabel>
+                                    </label>
+                                </div>
+                                {assignableProductUnits.map((unit) => {
+                                    const optionValue = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
+                                    return (
+                                        <div className="form-check" key={optionValue}>
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                id={`offering-unit-${fieldId}-${optionValue}`}
+                                                checked={selectedUnitValues.includes(optionValue)}
+                                                onChange={(event) => changeProductUnit(optionValue, event.target.checked)}
+                                            />
+                                            <label className="form-check-label" htmlFor={`offering-unit-${fieldId}-${optionValue}`}>
+                                                {unit.name || unit.code}
+                                                {!unit.id ? " (kaydedilecek)" : ""}
+                                            </label>
+                                        </div>
+                                    );
+                                })}
+                                {assignableProductUnits.length === 0 && (
+                                    <span className="text-soft fs-12px">Önce Ürün Birimleri adımında birim ekleyin.</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {advancedOpen && (
+                            <>
+                                <div className="col-12">
+                                    <label className="form-label">
+                                        <HelpLabel help="Planın müşteriye veya operasyon ekibine ne sunduğunu açıklayan opsiyonel metindir. Kapsam, hedef müşteri tipi veya özel notlar burada tutulabilir.">
+                                            Plan açıklaması
+                                        </HelpLabel>
+                                    </label>
+                                    <input
+                                        className="form-control"
+                                        placeholder="Plan hakkında kısa açıklama..."
+                                        {...register(`licenseOfferings.${index}.description`)}
+                                    />
+                                </div>
+
+                                <div className="col-md-3">
+                                    <label className="form-label">
+                                        <HelpLabel help="Abonelik yenileme veya ödeme gecikmesi durumunda erişimin kaç gün daha tolere edileceğini belirtir. Bu süre operasyonel esneklik sağlar.">
+                                            Ödeme toleransı
+                                        </HelpLabel>
+                                    </label>
+                                    <div className="input-group">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            className="form-control"
+                                            placeholder="7"
+                                            {...register(`licenseOfferings.${index}.gracePeriodDays`, { valueAsNumber: true })}
+                                        />
+                                        <span className="input-group-text">gün</span>
+                                    </div>
+                                </div>
+
+                                <div className="col-md-3">
+                                    <label className="form-label">
+                                        <HelpLabel help="Planın satışa veya kullanıma açılacağı başlangıç tarihidir. Boş bırakılırsa plan için başlangıç tarihi kısıtı uygulanmayabilir.">
+                                            Geçerlilik başlangıcı
+                                        </HelpLabel>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        className="form-control"
+                                        {...register(`licenseOfferings.${index}.validFrom`)}
+                                    />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label">
+                                        <HelpLabel help="Planın satış veya kullanım için geçerli olacağı son tarihtir. Kampanya veya dönemsel planlarda bu alanla bitiş sınırı verilir.">
+                                            Geçerlilik bitişi
+                                        </HelpLabel>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        className={`form-control ${errors.licenseOfferings?.[index]?.validTo ? "is-invalid" : ""}`}
+                                        {...register(`licenseOfferings.${index}.validTo`, {
+                                            validate: (value) => {
+                                                const from = getValues(`licenseOfferings.${index}.validFrom`);
+                                                if (from && value && value < from) {
+                                                    return "Bitiş tarihi başlangıç tarihinden önce olamaz";
+                                                }
+                                                return true;
+                                            },
+                                        })}
+                                    />
+                                    {errors.licenseOfferings?.[index]?.validTo && (
+                                        <div className="invalid-feedback">
+                                            {errors.licenseOfferings[index]?.validTo?.message}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        <div className="col-12 d-flex flex-wrap gap-4">
+                            <div className="form-check form-switch">
+                                <input
+                                    type="checkbox"
+                                    className="form-check-input"
+                                    id={`offering-active-${fieldId}`}
+                                    {...register(`licenseOfferings.${index}.isActive`)}
+                                />
+                                <label className="form-check-label" htmlFor={`offering-active-${fieldId}`}>
+                                    <HelpLabel help="Pasif planlar ürün üzerinde saklanır ancak satışa hazır aktif paket gibi değerlendirilmez. Taslak veya geçici olarak kapatılmış planlar için kullanılabilir.">
+                                        Plan aktif
+                                    </HelpLabel>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="col-12 d-flex flex-wrap justify-content-end align-items-center gap-2 border-top pt-3 h-100">
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                disabled={!productId || saving || hasUnsavedProductUnit}
+                                onClick={onSave}
+                                title={
+                                    !productId
+                                        ? "Plan kaydetmek için önce ürünü kaydedin"
+                                        : hasUnsavedProductUnit
+                                            ? "Yeni ürün birimiyle birlikte kaydetmek için ana formu kaydedin"
+                                            : undefined
+                                }
+                            >
+                                {saving ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2" />
+                                        Kaydediliyor...
+                                    </>
+                                ) : (
+                                    <>
+                                        <em className={`icon ni ni-${saved ? "save" : "plus"} me-1`} />
+                                        {saved ? "Planı Güncelle" : "Plan Ekle"}
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
-
-                    <div className="col-12 d-flex flex-wrap justify-content-end align-items-center gap-2 border-top pt-3 h-100">
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            disabled={!productId || saving || hasUnsavedProductUnit}
-                            onClick={onSave}
-                            title={
-                                !productId
-                                    ? "Plan kaydetmek için önce ürünü kaydedin"
-                                    : hasUnsavedProductUnit
-                                        ? "Yeni ürün birimiyle birlikte kaydetmek için ana formu kaydedin"
-                                        : undefined
-                            }
-                        >
-                            {saving ? (
-                                <>
-                                    <span className="spinner-border spinner-border-sm me-2" />
-                                    Kaydediliyor...
-                                </>
-                            ) : (
-                                <>
-                                    <em className={`icon ni ni-${saved ? "save" : "plus"} me-1`} />
-                                    {saved ? "Planı Güncelle" : "Plan Ekle"}
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
                 </Collapse>
             </div>
         </div>
@@ -709,7 +687,7 @@ const buildOfferingPayload = (offering: LicenseOfferingForm) => {
     return {
         productUnitId: productUnitIds[0] || undefined,
         productUnitIds: productUnitIds.length ? productUnitIds : undefined,
-        licenseModel: Number(offering.licenseModel ?? 2),
+        licenseModel: normalizeLicenseModel(offering.licenseModel),
         name: offering.name?.trim() || "Yeni Plan",
         description: toOptionalString(offering.description),
         basePrice: toOptionalNumber(offering.basePrice) ?? 0,
@@ -720,7 +698,6 @@ const buildOfferingPayload = (offering: LicenseOfferingForm) => {
         gracePeriodDays: toOptionalNumber(offering.gracePeriodDays),
         trialDays: toOptionalNumber(offering.trialDays),
         convertToOfferingId: toOptionalString(offering.convertToOfferingId),
-        maxSeats: toOptionalNumber(offering.maxSeats),
         validFrom: toOptionalString(offering.validFrom),
         validTo: toOptionalString(offering.validTo),
         isActive: Boolean(offering.isActive),

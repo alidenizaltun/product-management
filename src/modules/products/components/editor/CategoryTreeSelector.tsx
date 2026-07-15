@@ -91,7 +91,7 @@ const CategoryTreeSelector: React.FC = () => {
       </div>
 
       {fields.length === 0 && (
-        <div className="text-center py-5 text-soft">
+        <div className="text-center py-5 text-soft">  
           <em className="icon ni ni-layers fs-2 d-block mb-2" />
           <p className="mb-0">Henüz kategori eklenmedi.</p>
         </div>
@@ -99,7 +99,7 @@ const CategoryTreeSelector: React.FC = () => {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
-          <div className="d-flex flex-column gap-3">
+          <div className="d-flex flex-column gap-3 h-100">
             {fields.map((field, index) => (
               <SortableCategoryCard id={field.id} key={field.id}>
                 {({ attributes, listeners }) => (

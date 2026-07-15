@@ -1,4 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, {
+    forwardRef,
+    useCallback,
+    useEffect,
+    useImperativeHandle,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from "react";
 import { Collapse } from "reactstrap";
 import { useFormContext, useWatch } from "react-hook-form";
 import ProductUnitsTab from "@/modules/products/components/editor/ProductUnitsTab";
@@ -16,6 +24,11 @@ type ProductUnitOption = ProductUnitDto & { _tempId?: string };
 type LicenseOfferingOption = ProductLicenseOfferingDto & { _tempId?: string };
 const UNIT_DRAG_MIME = "application/x-product-unit-ref";
 type StudioStepKey = "units" | "offerings" | "rules";
+type TourTargetKey = StudioStepKey | "offeringUnits";
+
+export interface SoftwarePricingStudioHandle {
+    startHelpTour: () => void;
+}
 
 interface SoftwarePricingStudioProps {
     productId?: string;
@@ -48,14 +61,60 @@ const HelpInfo: React.FC<{ text: string }> = ({ text }) => (
     </span>
 );
 
-const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
+const HELP_TOUR_STEPS: Array<{
+    step: StudioStepKey;
+    target: TourTargetKey;
+    title: string;
+    body: string;
+    action: string;
+}> = [
+    {
+        step: "units",
+        target: "units",
+        title: "Ürün birimini netleştirin",
+        body: "Fiyat veya kullanım miktarı kullanıcı, cihaz, API çağrısı gibi bir değere göre değişiyorsa önce bu birimi ekleyin. Sabit paket satılacaksa parametre yok seçeneğini kullanın.",
+        action: "Birim ekleyin veya parametre olmadığını işaretleyin.",
+    },
+    {
+        step: "offerings",
+        target: "offerings",
+        title: "Satış planını oluşturun",
+        body: "Müşterinin satın alacağı paketi burada tanımlayın. Bu ekranda koltuk ve kullanım bazlı model seçilmez; o karar ürün birimi ve dinamik kural tarafında kurulur.",
+        action: "Tek seferlik, abonelik veya deneme planlarından biriyle başlayın.",
+    },
+    {
+        step: "offerings",
+        target: "offeringUnits",
+        title: "Planı birimle ilişkilendirin",
+        body: "Plan bir fiyatlandırma birimine bağlıysa Birim Paleti'ndeki kaydı planın Paket birimleri alanına sürükleyin veya listeden seçin.",
+        action: "Birim gerekmiyorsa Birimsiz paket seçili kalabilir.",
+    },
+    {
+        step: "rules",
+        target: "rules",
+        title: "Gerekirse dinamik kural ekleyin",
+        body: "Miktara, pakete veya seçilen ürün birimine göre fiyat değişecekse kural adımında hesaplama mantığını tanımlayın. Sabit fiyatlı paketlerde bu adım opsiyoneldir.",
+        action: "Kural yoksa planı kaydetmeniz yeterli.",
+    },
+];
+
+interface SpotlightState {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+    popoverTop: number;
+    popoverLeft: number;
+}
+
+const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePricingStudioProps>(({
     productId,
     licenseOfferings,
     productUnits,
     variants = [],
     draftRules,
     onDraftRulesChange,
-}) => {
+}, ref) => {
     const { control } = useFormContext<ProductFormValues>();
     const formUnits = useWatch({ control, name: "productUnits" }) ?? [];
     const formOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
@@ -73,14 +132,97 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
         offerings: false,
         rules: false,
     });
+    const [tourOpen, setTourOpen] = useState(false);
+    const [tourStepIndex, setTourStepIndex] = useState(0);
+    const [spotlight, setSpotlight] = useState<SpotlightState | null>(null);
+    const unitsStepRef = useRef<HTMLElement | null>(null);
+    const offeringsStepRef = useRef<HTMLElement | null>(null);
+    const offeringUnitsTargetRef = useRef<HTMLDivElement | null>(null);
+    const rulesStepRef = useRef<HTMLElement | null>(null);
     const canConfigureOfferings = activeUnits.length > 0 || skipUnitPricing;
     const canConfigureRules = canConfigureOfferings && activeOfferings.length > 0;
+    const currentTourStep = HELP_TOUR_STEPS[tourStepIndex];
+
+    const getTourTarget = useCallback(() => {
+        if (!currentTourStep) return null;
+        if (currentTourStep.target === "units") return unitsStepRef.current;
+        if (currentTourStep.target === "offerings") return offeringsStepRef.current;
+        if (currentTourStep.target === "offeringUnits") return offeringUnitsTargetRef.current ?? offeringsStepRef.current;
+        if (currentTourStep.target === "rules") return rulesStepRef.current;
+        return null;
+    }, [currentTourStep]);
+
+    const updateSpotlight = useCallback(() => {
+        if (!tourOpen || !currentTourStep) {
+            setSpotlight(null);
+            return;
+        }
+
+        const target = getTourTarget();
+        if (!target) return;
+
+        const rect = target.getBoundingClientRect();
+        const padding = 10;
+        const top = Math.max(8, rect.top - padding);
+        const left = Math.max(8, rect.left - padding);
+        const width = Math.min(window.innerWidth - left - 8, rect.width + padding * 2);
+        const height = Math.min(window.innerHeight - top - 8, rect.height + padding * 2);
+        const popoverWidth = Math.min(380, window.innerWidth - 32);
+        const popoverHeight = 210;
+        const popoverLeft = Math.min(Math.max(16, left), window.innerWidth - popoverWidth - 16);
+        const preferredTop = top + height + 14;
+        const popoverTop =
+            preferredTop + popoverHeight > window.innerHeight
+                ? Math.max(16, top - popoverHeight - 14)
+                : preferredTop;
+
+        setSpotlight({ top, left, width, height, popoverTop, popoverLeft });
+    }, [currentTourStep, getTourTarget, tourOpen]);
+
+    useImperativeHandle(ref, () => ({
+        startHelpTour: () => {
+            setTourStepIndex(0);
+            setTourOpen(true);
+            setOpenSteps((current) => ({ ...current, units: true }));
+        },
+    }));
 
     useEffect(() => {
         if (activeUnits.length === 0 && activeOfferings.length > 0) {
             setSkipUnitPricing(true);
         }
     }, [activeOfferings.length, activeUnits.length]);
+
+    useEffect(() => {
+        if (!tourOpen || !currentTourStep) return;
+        setOpenSteps((current) => ({ ...current, [currentTourStep.step]: true }));
+    }, [currentTourStep, tourOpen]);
+
+    useEffect(() => {
+        if (!tourOpen || !currentTourStep) return;
+
+        const target = getTourTarget();
+        target?.scrollIntoView({ block: "center", behavior: "smooth" });
+        const timer = window.setTimeout(updateSpotlight, 320);
+
+        return () => window.clearTimeout(timer);
+    }, [currentTourStep, getTourTarget, tourOpen, updateSpotlight]);
+
+    useLayoutEffect(() => {
+        updateSpotlight();
+    }, [openSteps, updateSpotlight]);
+
+    useEffect(() => {
+        if (!tourOpen) return;
+
+        window.addEventListener("resize", updateSpotlight);
+        window.addEventListener("scroll", updateSpotlight, true);
+
+        return () => {
+            window.removeEventListener("resize", updateSpotlight);
+            window.removeEventListener("scroll", updateSpotlight, true);
+        };
+    }, [tourOpen, updateSpotlight]);
 
     const readiness = [
         {
@@ -106,6 +248,80 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
 
     return (
         <div className="software-pricing-studio">
+            {tourOpen && currentTourStep && spotlight && (
+                <div className="software-pricing-studio-tour" role="dialog" aria-modal="true" aria-live="polite">
+                    <div className="software-pricing-studio-tour-scrim top" style={{ height: spotlight.top }} />
+                    <div
+                        className="software-pricing-studio-tour-scrim left"
+                        style={{ top: spotlight.top, width: spotlight.left, height: spotlight.height }}
+                    />
+                    <div
+                        className="software-pricing-studio-tour-scrim right"
+                        style={{
+                            top: spotlight.top,
+                            left: spotlight.left + spotlight.width,
+                            height: spotlight.height,
+                        }}
+                    />
+                    <div
+                        className="software-pricing-studio-tour-scrim bottom"
+                        style={{ top: spotlight.top + spotlight.height }}
+                    />
+                    <div
+                        className="software-pricing-studio-tour-focus"
+                        style={{
+                            top: spotlight.top,
+                            left: spotlight.left,
+                            width: spotlight.width,
+                            height: spotlight.height,
+                        }}
+                    />
+                    <div
+                        className="software-pricing-studio-tour-popover"
+                        style={{ top: spotlight.popoverTop, left: spotlight.popoverLeft }}
+                    >
+                        <div className="software-pricing-studio-tour-head">
+                            <span className="badge badge-dim bg-primary">
+                                Adım {tourStepIndex + 1} / {HELP_TOUR_STEPS.length}
+                            </span>
+                            <button
+                                type="button"
+                                className="btn btn-xs btn-icon btn-trigger"
+                                onClick={() => setTourOpen(false)}
+                                aria-label="Yardımı kapat"
+                            >
+                                <em className="icon ni ni-cross" />
+                            </button>
+                        </div>
+                        <h6 className="title mb-1">{currentTourStep.title}</h6>
+                        <p className="mb-2">{currentTourStep.body}</p>
+                        <p className="text-soft fs-12px mb-3">{currentTourStep.action}</p>
+                        <div className="software-pricing-studio-tour-actions">
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-outline-light"
+                                disabled={tourStepIndex === 0}
+                                onClick={() => setTourStepIndex((current) => Math.max(current - 1, 0))}
+                            >
+                                Önceki
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-primary"
+                                onClick={() => {
+                                    if (tourStepIndex >= HELP_TOUR_STEPS.length - 1) {
+                                        setTourOpen(false);
+                                        return;
+                                    }
+                                    setTourStepIndex((current) => Math.min(current + 1, HELP_TOUR_STEPS.length - 1));
+                                }}
+                            >
+                                {tourStepIndex >= HELP_TOUR_STEPS.length - 1 ? "Bitir" : "Devam"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* <div className="software-pricing-studio-summary mb-4">
                 <div>
                     <div className="d-flex align-items-center gap-2 mb-1">
@@ -170,7 +386,7 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
                     </div>
                 )}
 
-                <section className="software-pricing-studio-step">
+                <section className="software-pricing-studio-step" ref={unitsStepRef}>
                     <button
                         type="button"
                         className="software-pricing-studio-step-head"
@@ -188,12 +404,6 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
                         <em className={`icon ni ni-chevron-${openSteps.units ? "up" : "down"}`} />
                     </button>
                     <Collapse isOpen={openSteps.units}>
-                        <div className="alert alert-info d-flex align-items-start gap-2 py-2 mb-3 h-100">
-                            <em className="icon ni ni-info mt-1" />
-                            <span>
-                                Yazılım fiyatı kullanıcı, lisans, modül, API çağrısı gibi bir parametreye göre değişiyorsa önce burada o birimleri tanımlayın. Ürün sabit paket fiyatıyla satılacaksa aşağıdaki seçeneği işaretleyip paket adımına geçebilirsiniz.
-                            </span>
-                        </div>
                         <ProductUnitsTab productId={productId} />
                         <div className="software-pricing-studio-decision mt-3">
                             <div className="form-check form-switch">
@@ -216,7 +426,7 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
                     </Collapse>
                 </section>
 
-                <section className="software-pricing-studio-step">
+                <section className="software-pricing-studio-step" ref={offeringsStepRef}>
                     <button
                         type="button"
                         className="software-pricing-studio-step-head"
@@ -237,9 +447,11 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
                     </button>
                     <Collapse isOpen={openSteps.offerings}>
                         {canConfigureOfferings ? (
-                            <LicenseOfferingsTab productId={productId} productUnits={visibleUnits} />
+                            <div ref={offeringUnitsTargetRef}>
+                                <LicenseOfferingsTab productId={productId} productUnits={visibleUnits} />
+                            </div>
                         ) : (
-                            <div className="software-pricing-studio-lock">
+                            <div className="software-pricing-studio-lock" ref={offeringUnitsTargetRef}>
                                 <em className="icon ni ni-lock" />
                                 <div>
                                     <strong>Önce birim kararını tamamlayın.</strong>
@@ -250,7 +462,7 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
                     </Collapse>
                 </section>
 
-                <section className="software-pricing-studio-step">
+                <section className="software-pricing-studio-step" ref={rulesStepRef}>
                     <button
                         type="button"
                         className="software-pricing-studio-step-head"
@@ -293,6 +505,8 @@ const SoftwarePricingStudio: React.FC<SoftwarePricingStudioProps> = ({
             </div>
         </div>
     );
-};
+});
+
+SoftwarePricingStudio.displayName = "SoftwarePricingStudio";
 
 export default SoftwarePricingStudio;

@@ -677,7 +677,6 @@ export const LicenseOfferingsTab: React.FC<{ items: ProductLicenseOfferingDto[] 
                     </span>
                   )}
                 </div>
-                <InfoRow label="Maks. Koltuk" value={lo.maxSeats} />
                 <InfoRow label="Ürün Birimi" value={getUnitNames(lo)} />
                 <InfoRow label="Deneme" value={lo.trialDays != null ? `${lo.trialDays} gün` : undefined} />
                 {lo.convertToOfferingName && (

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button } from "reactstrap";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
@@ -21,7 +21,7 @@ import {
 import ProductModulesTab from "@/modules/products/components/editor/ProductModulesTab";
 import SoftwarePricingTiersTab from "@/modules/products/components/editor/SoftwarePricingTiersTab";
 import ProductUnitsTab from "@/modules/products/components/editor/ProductUnitsTab";
-import SoftwarePricingStudio from "@/modules/products/components/editor/SoftwarePricingStudio";
+import SoftwarePricingStudio, { type SoftwarePricingStudioHandle } from "@/modules/products/components/editor/SoftwarePricingStudio";
 import GeneralInfoTab from "@/modules/products/components/editor/GeneralInfoTab";
 import VariantBuilder from "@/modules/products/components/editor/VariantBuilder";
 import PriceMatrix from "@/modules/products/components/editor/PriceMatrix";
@@ -67,6 +67,11 @@ const mapProductUnitTempIds = (item: {
     productUnitTempIds?: string[];
     productUnitTempId?: string | null;
 }) => item.productUnitTempIds?.length ? item.productUnitTempIds : item.productUnitTempId ? [item.productUnitTempId] : [];
+
+const normalizeLicenseModel = (value?: number | null) => {
+    const model = Number(value ?? 2);
+    return model === 1 || model === 2 || model === 5 ? model : 2;
+};
 
 interface ProductPreviewPanelProps {
     values: Partial<ProductFormValues>;
@@ -208,20 +213,24 @@ interface WorkflowSectionProps {
     icon: string;
     title: string;
     description: string;
+    headerAction?: React.ReactNode;
     children: React.ReactNode;
 }
 
-const WorkflowSection: React.FC<WorkflowSectionProps> = ({ icon, title, description, children }) => (
+const WorkflowSection: React.FC<WorkflowSectionProps> = ({ icon, title, description, headerAction, children }) => (
     <section className="card card-bordered product-editor-section mb-4">
         <div className="card-inner border-bottom">
-            <div className="product-editor-section-head d-flex align-items-start gap-3 h-100">
-                <span className="btn btn-icon btn-light rounded-circle flex-shrink-0">
-                    <em className={`icon ni ni-${icon}`} />
-                </span>
-                <div>
-                    <h5 className="title mb-1">{title}</h5>
-                    <p className="text-soft mb-0">{description}</p>
+            <div className="d-flex justify-content-between align-items-start gap-3 h-100">
+                <div className="product-editor-section-head d-flex align-items-start gap-3 h-100">
+                    <span className="btn btn-icon btn-light rounded-circle flex-shrink-0">
+                        <em className={`icon ni ni-${icon}`} />
+                    </span>
+                    <div>
+                        <h5 className="title mb-1">{title}</h5>
+                        <p className="text-soft mb-0">{description}</p>
+                    </div>
                 </div>
+                {headerAction}
             </div>
         </div>
         <div className="card-inner">{children}</div>
@@ -526,7 +535,7 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
             productUnitTempId: lo.productUnitTempId ?? "",
             productUnitIds: mapProductUnitIds(lo),
             productUnitTempIds: mapProductUnitTempIds(lo),
-            licenseModel: lo.licenseModel,
+            licenseModel: normalizeLicenseModel(lo.licenseModel),
             name: lo.name,
             description: lo.description,
             basePrice: lo.basePrice,
@@ -537,7 +546,6 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
             gracePeriodDays: lo.gracePeriodDays,
             trialDays: lo.trialDays,
             convertToOfferingId: lo.convertToOfferingId,
-            maxSeats: lo.maxSeats,
             validFrom: lo.validFrom ? lo.validFrom.slice(0, 10) : undefined,
             validTo: lo.validTo ? lo.validTo.slice(0, 10) : undefined,
             isActive: lo.isActive,
@@ -601,6 +609,7 @@ const ProductFormPage: React.FC = () => {
     const location = useLocation();
     const { id } = useParams();
     const isEdit = Boolean(id);
+    const softwarePricingStudioRef = useRef<SoftwarePricingStudioHandle>(null);
     const routeState = location.state as ProductFormRouteState | null;
 
     const { data: product, isLoading } = useProductDetail(id);
@@ -933,7 +942,7 @@ const ProductFormPage: React.FC = () => {
                 productUnitTempIds,
                 productUnits,
                 productUnitName: productUnits.map((unit) => unit?.name).filter(Boolean).join(", "),
-                licenseModel: Number(offering.licenseModel ?? 2),
+                licenseModel: normalizeLicenseModel(offering.licenseModel),
                 name: offering.name || "Yeni Plan",
                 description: offering.description,
                 basePrice: Number(offering.basePrice ?? 0),
@@ -944,7 +953,6 @@ const ProductFormPage: React.FC = () => {
                 gracePeriodDays: offering.gracePeriodDays,
                 trialDays: offering.trialDays,
                 convertToOfferingId: offering.convertToOfferingId,
-                maxSeats: offering.maxSeats,
                 validFrom: offering.validFrom,
                 validTo: offering.validTo,
                 isActive: Boolean(offering.isActive),
@@ -1044,8 +1052,21 @@ const ProductFormPage: React.FC = () => {
                             icon="layers"
                             title="Yazılım Fiyatlandırma Stüdyosu"
                             description="Birim, satış planı ve dinamik kuralları aynı bağlamda kurarak fiyatlandırmayı tamamlayın."
+                            headerAction={
+                                <Button
+                                    color="light"
+                                    size="sm"
+                                    type="button"
+                                    className="d-inline-flex align-items-center gap-1 flex-shrink-0"
+                                    onClick={() => softwarePricingStudioRef.current?.startHelpTour()}
+                                >
+                                    <em className="icon ni ni-help" />
+                                    Yardım
+                                </Button>
+                            }
                         >
                             <SoftwarePricingStudio
+                                ref={softwarePricingStudioRef}
                                 productId={id}
                                 licenseOfferings={pricingRuleLicenseOfferings}
                                 variants={product?.variants ?? []}
@@ -1272,7 +1293,7 @@ const ProductFormPage: React.FC = () => {
                                         <div className="col-xl-8 col-xxl-9">
                                             <div className="card card-bordered product-editor-workflow-card mb-4">
                                                 <div className="card-inner py-3">
-                                                    <div className="product-editor-workflow-nav d-flex flex-wrap gap-2 h-100">
+                                                    <div className="product-editor-workflow-nav d-flex justify-content-center flex-wrap gap-2 h-100">
                                                         {workflows.map((workflow) => {
                                                             const active = workflow.id === activeWorkflow;
                                                             const errorCount = workflowErrorCounts[workflow.id];

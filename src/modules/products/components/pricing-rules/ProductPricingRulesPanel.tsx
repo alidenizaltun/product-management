@@ -112,6 +112,12 @@ const APPLY_ON_OPTIONS = [
   { value: "previousResult", label: "Önceki sonuç" },
 ];
 
+const ADJUSTMENT_FORMULA_HINTS = [
+  { label: "Sabit tutar", formula: "Baz +/- değer" },
+  { label: "Yüzde", formula: "Baz +/- (baz x değer / 100)" },
+  { label: "Çarpan", formula: "Baz +/- (baz x (değer - 1))" },
+];
+
 const CONDITION_OPERATORS = [
   { value: "eq", label: "Eşittir" },
   { value: "neq", label: "Eşit değildir" },
@@ -1090,6 +1096,19 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                 Fiyat aksiyonu
                               </HelpLabel>
                             </span>
+                          </div>
+                          <div className="col-12">
+                            <div className="alert alert-info py-2 px-3 mb-0 d-flex flex-wrap align-items-center gap-3 h-100 fs-12px">
+                              <span className="d-inline-flex align-items-center gap-1 text-info fw-medium">
+                                <em className="icon ni ni-info" />
+                                Formül
+                              </span>
+                              {ADJUSTMENT_FORMULA_HINTS.map((item) => (
+                                <span key={item.label} className="text-soft text-nowrap">
+                                  <strong>{item.label}:</strong> {item.formula}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                           <div className="col-md-3">
                             <label className="form-label">

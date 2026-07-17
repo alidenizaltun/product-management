@@ -19,7 +19,7 @@ import {
 } from "@/components/Component";
 import { useAuthStore } from "@/modules/auth/stores/authStore";
 import { config } from "@/shared/config/appConfig";
-import { ForgotPasswordFormData, forgotPasswordSchema } from "@/shared/validations";
+import { ForgotPasswordFormData, forgotPasswordSchema } from "@/modules/auth/schemas";
 
 const ForgotPassword = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);

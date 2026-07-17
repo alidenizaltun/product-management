@@ -180,12 +180,13 @@ const InboxBody = ({
       (currentTab === "Trash" && item.message.meta.draft === true) ||
       (currentTab === "Archive" && item.message.meta.draft === true)
     ) {
-    } else {
-      ev.preventDefault();
-      toggleMessageView();
-      setMailId(item.id);
-      toggleUnread(item.id);
+      return;
     }
+
+    ev.preventDefault();
+    toggleMessageView();
+    setMailId(item.id);
+    toggleUnread(item.id);
   };
 
   return (

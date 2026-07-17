@@ -19,7 +19,7 @@ import {
 } from "@/components/Component";
 import { useAuthStore } from "@/modules/auth/stores/authStore";
 import { config } from "@/shared/config/appConfig";
-import { RegisterFormData, registerSchema } from "@/shared/validations";
+import { RegisterFormData, registerSchema } from "@/modules/auth/schemas";
 
 const Register = () => {
   const [passState, setPassState] = useState(false);

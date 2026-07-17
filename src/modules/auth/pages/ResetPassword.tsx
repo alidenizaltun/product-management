@@ -19,7 +19,7 @@ import {
 } from "@/components/Component";
 import { useAuthStore } from "@/modules/auth/stores/authStore";
 import { config } from "@/shared/config/appConfig";
-import { ResetPasswordFormData, resetPasswordSchema } from "@/shared/validations";
+import { ResetPasswordFormData, resetPasswordSchema } from "@/modules/auth/schemas";
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();

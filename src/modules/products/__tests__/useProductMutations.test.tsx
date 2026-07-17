@@ -4,8 +4,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/mocks/server";
+import { config } from "@/shared/config/appConfig";
 import { useProductMutations } from "../hooks/useProductMutations";
-import { mockProductDto } from "@/tests/mocks/fixtures";
+
+const API_BASE = config.api.baseUrl.replace(/\/$/, "");
 
 function makeWrapper() {
     const queryClient = new QueryClient({
@@ -47,12 +49,14 @@ describe("useProductMutations", () => {
                 });
             });
 
-            expect(result.current.createFullMutation.isSuccess).toBe(true);
+            await waitFor(() => {
+                expect(result.current.createFullMutation.isSuccess).toBe(true);
+            });
         });
 
         it("API hatası durumunda isError olur", async () => {
             server.use(
-                http.post("https://pmapi.godeva.com.tr/api/products/full", () =>
+                http.post(`${API_BASE}/api/products/full`, () =>
                     HttpResponse.json(
                         { errors: ["Ürün kodu zaten mevcut."] },
                         { status: 400 }
@@ -82,7 +86,9 @@ describe("useProductMutations", () => {
                 }
             });
 
-            expect(result.current.createFullMutation.isError).toBe(true);
+            await waitFor(() => {
+                expect(result.current.createFullMutation.isError).toBe(true);
+            });
         });
     });
 
@@ -126,12 +132,14 @@ describe("useProductMutations", () => {
                 });
             });
 
-            expect(result.current.updateFullMutation.isSuccess).toBe(true);
+            await waitFor(() => {
+                expect(result.current.updateFullMutation.isSuccess).toBe(true);
+            });
         });
 
         it("güncelleme hatasında isError olur ve query'leri bozmaz", async () => {
             server.use(
-                http.put("https://pmapi.godeva.com.tr/api/products/:id/full", () =>
+                http.put(`${API_BASE}/api/products/:id/full`, () =>
                     HttpResponse.json({ message: "Yetersiz yetki." }, { status: 403 })
                 )
             );
@@ -161,7 +169,9 @@ describe("useProductMutations", () => {
                 }
             });
 
-            expect(result.current.updateFullMutation.isError).toBe(true);
+            await waitFor(() => {
+                expect(result.current.updateFullMutation.isError).toBe(true);
+            });
         });
     });
 
@@ -175,7 +185,9 @@ describe("useProductMutations", () => {
                 await result.current.deleteMutation.mutateAsync("prod-001");
             });
 
-            expect(result.current.deleteMutation.isSuccess).toBe(true);
+            await waitFor(() => {
+                expect(result.current.deleteMutation.isSuccess).toBe(true);
+            });
         });
     });
 });

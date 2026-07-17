@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/mocks/server";
+import { config } from "@/shared/config/appConfig";
 import { productsApi } from "../api/products.api";
 import { mockProductDto, mockProductDetailDto } from "@/tests/mocks/fixtures";
+
+const API_BASE = config.api.baseUrl.replace(/\/$/, "");
 
 describe("productsApi", () => {
  // ─── getProducts ──────────────────────────────────────────────────────────
@@ -16,7 +19,7 @@ describe("productsApi", () => {
 
  it("dizi döndürülürse items olarak sarmalar", async () => {
  server.use(
- http.get("https://pmapi.godeva.com.tr/api/products", () =>
+ http.get(`${API_BASE}/api/products`, () =>
  HttpResponse.json([mockProductDto])
  )
  );
@@ -28,7 +31,7 @@ describe("productsApi", () => {
  it("filtre parametrelerini query string'e ekler", async () => {
  let capturedUrl = "";
  server.use(
- http.get("https://pmapi.godeva.com.tr/api/products", ({ request }) => {
+ http.get(`${API_BASE}/api/products`, ({ request }) => {
  capturedUrl = request.url;
  return HttpResponse.json({ items: [], totalCount: 0 });
  })
@@ -104,7 +107,7 @@ describe("productsApi", () => {
  it("request body'de çoklu varyant gönderir", async () => {
  let capturedBody: unknown = null;
  server.use(
- http.post("https://pmapi.godeva.com.tr/api/products/full", async ({ request }) => {
+ http.post(`${API_BASE}/api/products/full`, async ({ request }) => {
  capturedBody = await request.json();
  return HttpResponse.json({ ...mockProductDto, id: "x" }, { status: 201 });
  })
@@ -138,7 +141,7 @@ describe("productsApi", () => {
  it("request body'de çoklu fiyat gönderir", async () => {
  let capturedBody: unknown = null;
  server.use(
- http.put("https://pmapi.godeva.com.tr/api/products/:id/full", async ({ request }) => {
+ http.put(`${API_BASE}/api/products/:id/full`, async ({ request }) => {
  capturedBody = await request.json();
  return new HttpResponse(null, { status: 204 });
  })

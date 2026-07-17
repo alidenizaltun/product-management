@@ -18,7 +18,7 @@ import {
 } from "@/components/Component";
 import { useAuthStore } from "@/modules/auth/stores/authStore";
 import { config } from "@/shared/config/appConfig";
-import { LoginFormData, loginSchema } from "@/shared/validations";
+import { LoginFormData, loginSchema } from "@/modules/auth/schemas";
 
 const Login = () => {
   const [passState, setPassState] = useState(false);

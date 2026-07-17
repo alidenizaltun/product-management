@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
@@ -244,6 +244,7 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
         if (normalizedModel !== 2) {
             setValue(`licenseOfferings.${index}.billingPeriodUnit`, undefined, { shouldDirty: true });
             setValue(`licenseOfferings.${index}.billingPeriodValue`, undefined, { shouldDirty: true });
+            setValue(`licenseOfferings.${index}.gracePeriodDays`, undefined, { shouldDirty: true });
         }
     }, [index, model, normalizedModel, setValue]);
 
@@ -559,25 +560,27 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                                     />
                                 </div>
 
-                                <div className="col-md-3">
-                                    <label className="form-label">
-                                        <HelpLabel help="Abonelik yenileme veya ödeme gecikmesi durumunda erişimin kaç gün daha tolere edileceğini belirtir. Bu süre operasyonel esneklik sağlar.">
-                                            Ödeme toleransı
-                                        </HelpLabel>
-                                    </label>
-                                    <div className="input-group">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            className="form-control"
-                                            placeholder="7"
-                                            {...register(`licenseOfferings.${index}.gracePeriodDays`, { valueAsNumber: true })}
-                                        />
-                                        <span className="input-group-text">gün</span>
+                                {showBilling && (
+                                    <div className="col-md-4">
+                                        <label className="form-label">
+                                            <HelpLabel help="Abonelik yenileme veya ödeme gecikmesi durumunda erişimin kaç gün daha tolere edileceğini belirtir. Bu süre operasyonel esneklik sağlar.">
+                                                Ödeme toleransı
+                                            </HelpLabel>
+                                        </label>
+                                        <div className="input-group">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                className="form-control"
+                                                placeholder="7"
+                                                {...register(`licenseOfferings.${index}.gracePeriodDays`, { valueAsNumber: true })}
+                                            />
+                                            <span className="input-group-text">gün</span>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <div className="col-md-3">
+                                <div className={`col-md-${showBilling ? "4" : "6"}`}>
                                     <label className="form-label">
                                         <HelpLabel help="Planın satışa veya kullanıma açılacağı başlangıç tarihidir. Boş bırakılırsa plan için başlangıç tarihi kısıtı uygulanmayabilir.">
                                             Geçerlilik başlangıcı
@@ -589,7 +592,7 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                                         {...register(`licenseOfferings.${index}.validFrom`)}
                                     />
                                 </div>
-                                <div className="col-md-3">
+                                <div className={`col-md-${showBilling ? "4" : "6"}`}>
                                     <label className="form-label">
                                         <HelpLabel help="Planın satış veya kullanım için geçerli olacağı son tarihtir. Kampanya veya dönemsel planlarda bu alanla bitiş sınırı verilir.">
                                             Geçerlilik bitişi
@@ -712,26 +715,36 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
     const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [openOfferingCards, setOpenOfferingCards] = useState<Set<string>>(new Set());
+    const [pendingScrollCardKey, setPendingScrollCardKey] = useState<string | null>(null);
+    const offeringCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
+    const scrollToOfferingCard = (cardKey: string) => {
+        setPendingScrollCardKey(cardKey);
+    };
+
     const addTemplate = (template: typeof PLAN_TEMPLATES[number]) => {
         const tempId = generateTempId();
+        const cardKey = `temp:${tempId}`;
         append({
             ...EMPTY_OFFERING,
             ...template.offering,
             _tempId: tempId,
             sortOrder: fields.length + 1,
         });
-        setOpenOfferingCards((current) => new Set(current).add(`temp:${tempId}`));
+        setOpenOfferingCards((current) => new Set(current).add(cardKey));
+        scrollToOfferingCard(cardKey);
     };
 
     const addEmptyOffering = () => {
         const tempId = generateTempId();
+        const cardKey = `temp:${tempId}`;
         append({ ...EMPTY_OFFERING, _tempId: tempId, sortOrder: fields.length + 1 });
-        setOpenOfferingCards((current) => new Set(current).add(`temp:${tempId}`));
+        setOpenOfferingCards((current) => new Set(current).add(cardKey));
+        scrollToOfferingCard(cardKey);
     };
 
     const getOfferingCardKey = (offering: LicenseOfferingForm | undefined, fallbackId: string) =>
@@ -756,6 +769,18 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
             return next;
         });
     };
+
+    useEffect(() => {
+        if (!pendingScrollCardKey) return;
+
+        const timer = window.setTimeout(() => {
+            const target = offeringCardRefs.current[pendingScrollCardKey];
+            target?.scrollIntoView({ behavior: "smooth", block: "center" });
+            setPendingScrollCardKey(null);
+        }, 80);
+
+        return () => window.clearTimeout(timer);
+    }, [fields.length, licenseOfferings, pendingScrollCardKey]);
 
     const reorderOfferings = (oldIndex: number, newIndex: number) => {
         if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
@@ -869,26 +894,33 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                                 const offering = licenseOfferings[index];
                                 const cardKey = getOfferingCardKey(offering, field.id);
                                 return (
-                                    <SortableOfferingCard id={field.id} key={field.id}>
-                                        {(dragHandleProps) => (
-                                            <OfferingFields
-                                                index={index}
-                                                fieldId={field.id}
-                                                productId={productId}
-                                                availableProductUnits={productUnits}
-                                                saving={savingIndex === index}
-                                                onRemove={() => remove(index)}
-                                                onMoveUp={() => reorderOfferings(index, index - 1)}
-                                                onMoveDown={() => reorderOfferings(index, index + 1)}
-                                                onSave={() => void saveOffering(index)}
-                                                isOpen={openOfferingCards.has(cardKey)}
-                                                onToggle={() => toggleOfferingCard(cardKey)}
-                                                canMoveUp={index > 0}
-                                                canMoveDown={index < fields.length - 1}
-                                                dragHandleProps={dragHandleProps}
-                                            />
-                                        )}
-                                    </SortableOfferingCard>
+                                    <div
+                                        key={field.id}
+                                        ref={(node) => {
+                                            offeringCardRefs.current[cardKey] = node;
+                                        }}
+                                    >
+                                        <SortableOfferingCard id={field.id}>
+                                            {(dragHandleProps) => (
+                                                <OfferingFields
+                                                    index={index}
+                                                    fieldId={field.id}
+                                                    productId={productId}
+                                                    availableProductUnits={productUnits}
+                                                    saving={savingIndex === index}
+                                                    onRemove={() => remove(index)}
+                                                    onMoveUp={() => reorderOfferings(index, index - 1)}
+                                                    onMoveDown={() => reorderOfferings(index, index + 1)}
+                                                    onSave={() => void saveOffering(index)}
+                                                    isOpen={openOfferingCards.has(cardKey)}
+                                                    onToggle={() => toggleOfferingCard(cardKey)}
+                                                    canMoveUp={index > 0}
+                                                    canMoveDown={index < fields.length - 1}
+                                                    dragHandleProps={dragHandleProps}
+                                                />
+                                            )}
+                                        </SortableOfferingCard>
+                                    </div>
                                 );
                             })}
                         </div>

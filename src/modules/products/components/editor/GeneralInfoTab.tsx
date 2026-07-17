@@ -89,8 +89,8 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
             <div className="col-lg-3 col-md-6">
                 <label className="form-label">Ürün Tipi</label>
                 <select className="form-control form-select form-control-lg" {...register("kind", { valueAsNumber: true })}>
-                    {/* <option value={1}>Fiziksel</option> */}
                     <option value={2}>Yazılım</option>
+                    {/* <option value={1}>Fiziksel</option> */}
                     {/* <option value={3}>Hizmet</option> */}
                     {/* <option value={4}>Abonelik</option> */}
                 </select>

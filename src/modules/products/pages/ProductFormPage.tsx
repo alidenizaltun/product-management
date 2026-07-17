@@ -278,7 +278,7 @@ const buildDefaultValues = (): ProductFormValues => ({
     name: "",
     shortDescription: "",
     description: "",
-    kind: 1,
+    kind: 2,
     status: 0,
     brand: "",
     manufacturer: "",
@@ -286,7 +286,7 @@ const buildDefaultValues = (): ProductFormValues => ({
     isActive: true,
     isSellable: true,
     isPurchasable: true,
-    trackInventory: true,
+    trackInventory: false,
     defaultCurrencyCode: "TRY",
     unitDefinitionId: "",
     taxRate: 0,
@@ -1057,7 +1057,7 @@ const ProductFormPage: React.FC = () => {
                                     color="light"
                                     size="sm"
                                     type="button"
-                                    className="d-inline-flex align-items-center gap-1 flex-shrink-0"
+                                    className="d-inline-flex align-items-center gap-1 flex-shrink-0 h-100 mt-2"
                                     onClick={() => softwarePricingStudioRef.current?.startHelpTour()}
                                 >
                                     <em className="icon ni ni-help" />

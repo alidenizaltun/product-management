@@ -444,6 +444,67 @@
             margin-top: .125rem;
         }
     }
+    &-tour{
+        position: fixed;
+        inset: 0;
+        z-index: 1900;
+        pointer-events: none;
+    }
+    &-tour-scrim{
+        position: fixed;
+        background: rgba($accent-dark, .68);
+        pointer-events: auto;
+        &.top{
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+        &.left{
+            left: 0;
+        }
+        &.right{
+            right: 0;
+        }
+        &.bottom{
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+    }
+    &-tour-focus{
+        position: fixed;
+        border: 2px solid $accent-color;
+        border-radius: 10px;
+        box-shadow: 0 0 0 3px rgba($white, .85), 0 0 1.75rem rgba($accent-color, .35);
+        pointer-events: none;
+    }
+    &-tour-popover{
+        position: fixed;
+        width: min(23.75rem, calc(100vw - 2rem));
+        padding: 1rem;
+        border: 1px solid rgba($accent-color, .18);
+        border-radius: 8px;
+        background: $white;
+        box-shadow: 0 1rem 2.5rem rgba($accent-dark, .22);
+        pointer-events: auto;
+        p{
+            font-size: 13px;
+            line-height: 1.45;
+        }
+    }
+    &-tour-head,
+    &-tour-actions{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+    &-tour-head{
+        margin-bottom: .75rem;
+    }
+    &-tour-actions{
+        justify-content: flex-end;
+    }
 }
 
 .pricing-sortable-item{
@@ -463,6 +524,23 @@
     touch-action: none;
     &:active{
         cursor: grabbing;
+    }
+}
+
+.pricing-form-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.pricing-form-field{
+    min-width: 0;
+    &--wide{
+        grid-column: span 2;
+    }
+    &--full{
+        grid-column: 1 / -1;
     }
 }
 
@@ -554,6 +632,14 @@
     }
 }
 
+.pricing-rule-section{
+    &--divided{
+        margin-top: .25rem;
+        padding-top: 1rem;
+        border-top: 1px solid $light-200;
+    }
+}
+
 @include media-breakpoint-down(lg) {
     .software-pricing-studio{
         &-summary{
@@ -581,6 +667,11 @@
     .software-pricing-studio{
         &-metrics{
             grid-template-columns: 1fr;
+        }
+    }
+    .pricing-form-field{
+        &--wide{
+            grid-column: 1 / -1;
         }
     }
 }

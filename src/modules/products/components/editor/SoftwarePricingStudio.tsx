@@ -107,6 +107,18 @@ interface SpotlightState {
     popoverLeft: number;
 }
 
+const getFallbackSpotlight = (): SpotlightState => {
+    const popoverWidth = Math.min(380, window.innerWidth - 32);
+    return {
+        top: 96,
+        left: 16,
+        width: Math.max(0, window.innerWidth - 32),
+        height: 0,
+        popoverTop: Math.max(16, Math.min(140, window.innerHeight - 240)),
+        popoverLeft: Math.max(16, (window.innerWidth - popoverWidth) / 2),
+    };
+};
+
 const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePricingStudioProps>(({
     productId,
     licenseOfferings,
@@ -159,7 +171,10 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
         }
 
         const target = getTourTarget();
-        if (!target) return;
+        if (!target) {
+            setSpotlight(getFallbackSpotlight());
+            return;
+        }
 
         const rect = target.getBoundingClientRect();
         const padding = 10;
@@ -182,6 +197,7 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
     useImperativeHandle(ref, () => ({
         startHelpTour: () => {
             setTourStepIndex(0);
+            setSpotlight(null);
             setTourOpen(true);
             setOpenSteps((current) => ({ ...current, units: true }));
         },
@@ -204,8 +220,12 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
         const target = getTourTarget();
         target?.scrollIntoView({ block: "center", behavior: "smooth" });
         const timer = window.setTimeout(updateSpotlight, 320);
+        const retryTimer = window.setTimeout(updateSpotlight, 650);
 
-        return () => window.clearTimeout(timer);
+        return () => {
+            window.clearTimeout(timer);
+            window.clearTimeout(retryTimer);
+        };
     }, [currentTourStep, getTourTarget, tourOpen, updateSpotlight]);
 
     useLayoutEffect(() => {
@@ -341,7 +361,7 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
             </div> */}
 
             <div className="software-pricing-studio-flow">
-                {activeUnits.length > 0 && (
+                {/* {activeUnits.length > 0 && (
                     <div className="software-pricing-studio-unit-tray">
                         <div className="software-pricing-studio-unit-tray-head">
                             <div>
@@ -384,7 +404,7 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
                             })}
                         </div>
                     </div>
-                )}
+                )} */}
 
                 <section className="software-pricing-studio-step" ref={unitsStepRef}>
                     <button

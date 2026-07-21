@@ -354,6 +354,17 @@
         border: 1px solid $light-200;
         border-radius: 8px;
         background: $white;
+        transition: border-color .15s ease, box-shadow .15s ease, opacity .15s ease;
+        &.is-active{
+            border-color: rgba($accent-color, .35);
+            box-shadow: 0 .5rem 1.25rem rgba($accent-dark, .06);
+        }
+        &.is-done:not(.is-active){
+            border-color: rgba($success, .24);
+        }
+        &.is-locked{
+            opacity: .72;
+        }
     }
     &-step-head{
         width: 100%;
@@ -368,6 +379,13 @@
         color: inherit;
         text-align: left;
         cursor: pointer;
+        &:disabled{
+            cursor: not-allowed;
+            .title,
+            p{
+                color: $base-light !important;
+            }
+        }
         .icon{
             flex: 0 0 auto;
             color: $base-light;
@@ -398,6 +416,13 @@
         font-weight: 700;
         line-height: 1;
     }
+    &-step.is-done &-step-no{
+        background: $success;
+    }
+    &-step.is-locked &-step-no{
+        background: $light-300;
+        color: $base-light;
+    }
     &-step-summary{
         display: inline-flex;
         align-items: center;
@@ -412,6 +437,14 @@
         font-size: 12px;
         line-height: 1.2;
         white-space: nowrap;
+    }
+    &-step-actions{
+        display: flex;
+        justify-content: flex-end;
+        gap: .5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid $light-200;
     }
     &-decision{
         display: flex;
@@ -640,6 +673,125 @@
     }
 }
 
+.pricing-manager-head{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.pricing-manager-list{
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.pricing-manager-item,
+.pricing-manager-editor{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 4.75rem;
+    padding: .875rem 1rem;
+    border: 1px solid $light-200;
+    border-radius: 8px;
+    background: $white;
+}
+
+.pricing-manager-item{
+    transition: border-color .15s ease, box-shadow .15s ease;
+    &:hover{
+        border-color: rgba($accent-color, .24);
+        box-shadow: 0 .5rem 1rem rgba($accent-dark, .04);
+    }
+}
+
+.pricing-manager-editor{
+    display: block;
+    border-color: $light-200;
+    box-shadow: none;
+}
+
+.pricing-manager-editor-head,
+.pricing-manager-item-main{
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    min-width: 0;
+}
+
+.pricing-manager-editor-head{
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid $light-200;
+}
+
+.pricing-manager-item-icon{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 2.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    font-size: 1rem;
+}
+
+.pricing-manager-item-copy{
+    min-width: 0;
+    .title{
+        overflow-wrap: anywhere;
+    }
+}
+
+.pricing-manager-item-meta,
+.pricing-manager-badges,
+.pricing-manager-actions{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem;
+}
+
+.pricing-manager-item-meta{
+    color: $base-light;
+    font-size: 12px;
+    line-height: 1.35;
+    code{
+        font-size: 12px;
+    }
+    span:not(:last-child)::after{
+        content: "·";
+        margin-left: .375rem;
+        color: $light-500;
+    }
+}
+
+.pricing-manager-badges{
+    margin-top: .5rem;
+}
+
+.pricing-manager-actions{
+    justify-content: flex-end;
+    flex: 0 0 auto;
+}
+
+.pricing-manager-modal-body{
+    padding: 1.25rem;
+}
+
+.pricing-manager-modal-intro{
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid $light-200;
+    p{
+        max-width: 48rem;
+    }
+}
+
 @include media-breakpoint-down(lg) {
     .software-pricing-studio{
         &-summary{
@@ -660,6 +812,15 @@
         &-decision{
             flex-direction: column;
         }
+    }
+    .pricing-manager-head,
+    .pricing-manager-item,
+    .pricing-manager-editor-head{
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .pricing-manager-actions{
+        justify-content: flex-start;
     }
 }
 

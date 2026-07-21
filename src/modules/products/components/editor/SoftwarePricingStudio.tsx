@@ -139,11 +139,7 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
     const activeOfferings = visibleOfferings.filter((offering) => offering.isActive);
     const activeRules = visibleRules.filter((rule) => rule.isActive);
     const [skipUnitPricing, setSkipUnitPricing] = useState(false);
-    const [openSteps, setOpenSteps] = useState<Record<StudioStepKey, boolean>>({
-        units: true,
-        offerings: false,
-        rules: false,
-    });
+    const [activeStep, setActiveStep] = useState<StudioStepKey>("units");
     const [tourOpen, setTourOpen] = useState(false);
     const [tourStepIndex, setTourStepIndex] = useState(0);
     const [spotlight, setSpotlight] = useState<SpotlightState | null>(null);
@@ -199,7 +195,7 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
             setTourStepIndex(0);
             setSpotlight(null);
             setTourOpen(true);
-            setOpenSteps((current) => ({ ...current, units: true }));
+            setActiveStep("units");
         },
     }));
 
@@ -211,8 +207,19 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
 
     useEffect(() => {
         if (!tourOpen || !currentTourStep) return;
-        setOpenSteps((current) => ({ ...current, [currentTourStep.step]: true }));
+        setActiveStep(currentTourStep.step);
     }, [currentTourStep, tourOpen]);
+
+    useEffect(() => {
+        if (activeStep === "rules" && !canConfigureRules) {
+            setActiveStep(canConfigureOfferings ? "offerings" : "units");
+            return;
+        }
+
+        if (activeStep === "offerings" && !canConfigureOfferings) {
+            setActiveStep("units");
+        }
+    }, [activeStep, canConfigureOfferings, canConfigureRules]);
 
     useEffect(() => {
         if (!tourOpen || !currentTourStep) return;
@@ -230,7 +237,7 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
 
     useLayoutEffect(() => {
         updateSpotlight();
-    }, [openSteps, updateSpotlight]);
+    }, [activeStep, updateSpotlight]);
 
     useEffect(() => {
         if (!tourOpen) return;
@@ -262,8 +269,37 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
         },
     ];
 
-    const toggleStep = (step: StudioStepKey) => {
-        setOpenSteps((current) => ({ ...current, [step]: !current[step] }));
+    const stepState = {
+        units: {
+            isActive: activeStep === "units",
+            isDone: canConfigureOfferings,
+            canOpen: true,
+        },
+        offerings: {
+            isActive: activeStep === "offerings",
+            isDone: canConfigureRules,
+            canOpen: canConfigureOfferings,
+        },
+        rules: {
+            isActive: activeStep === "rules",
+            isDone: true,
+            canOpen: canConfigureRules,
+        },
+    };
+
+    const goToStep = (step: StudioStepKey) => {
+        if (!stepState[step].canOpen) return;
+        setActiveStep(step);
+    };
+
+    const goToOfferings = () => {
+        if (!canConfigureOfferings) return;
+        setActiveStep("offerings");
+    };
+
+    const goToRules = () => {
+        if (!canConfigureRules) return;
+        setActiveStep("rules");
     };
 
     return (
@@ -406,12 +442,15 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
                     </div>
                 )} */}
 
-                <section className="software-pricing-studio-step" ref={unitsStepRef}>
+                <section
+                    className={`software-pricing-studio-step ${stepState.units.isActive ? "is-active" : ""} ${stepState.units.isDone ? "is-done" : ""}`}
+                    ref={unitsStepRef}
+                >
                     <button
                         type="button"
                         className="software-pricing-studio-step-head"
-                        onClick={() => toggleStep("units")}
-                        aria-expanded={openSteps.units}
+                        onClick={() => goToStep("units")}
+                        aria-expanded={stepState.units.isActive}
                     >
                         <span className="software-pricing-studio-step-no">1</span>
                         <div>
@@ -421,9 +460,9 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
                         <span className="software-pricing-studio-step-summary">
                             {activeUnits.length ? `${activeUnits.length} aktif birim` : skipUnitPricing ? "Parametresiz" : "Bekliyor"}
                         </span>
-                        <em className={`icon ni ni-chevron-${openSteps.units ? "up" : "down"}`} />
+                        <em className={`icon ni ni-${stepState.units.isDone ? "check-circle" : stepState.units.isActive ? "chevron-up" : "chevron-down"}`} />
                     </button>
-                    <Collapse isOpen={openSteps.units}>
+                    <Collapse isOpen={stepState.units.isActive}>
                         <ProductUnitsTab productId={productId} />
                         <div className="software-pricing-studio-decision mt-3">
                             <div className="form-check form-switch">
@@ -443,15 +482,30 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
                                 Bu seçim, paketlerin herhangi bir ürün birimine bağlanmadan oluşturulacağını belirtir. Sonradan birim eklerseniz paket ve kural adımlarında o birimleri kullanabilirsiniz.
                             </p>
                         </div>
+                        <div className="software-pricing-studio-step-actions">
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                disabled={!canConfigureOfferings}
+                                onClick={goToOfferings}
+                            >
+                                Devam Et
+                                <em className="icon ni ni-arrow-right ms-1" />
+                            </button>
+                        </div>
                     </Collapse>
                 </section>
 
-                <section className="software-pricing-studio-step" ref={offeringsStepRef}>
+                <section
+                    className={`software-pricing-studio-step ${stepState.offerings.isActive ? "is-active" : ""} ${stepState.offerings.isDone ? "is-done" : ""} ${!stepState.offerings.canOpen ? "is-locked" : ""}`}
+                    ref={offeringsStepRef}
+                >
                     <button
                         type="button"
                         className="software-pricing-studio-step-head"
-                        onClick={() => toggleStep("offerings")}
-                        aria-expanded={openSteps.offerings}
+                        onClick={() => goToStep("offerings")}
+                        aria-expanded={stepState.offerings.isActive}
+                        disabled={!stepState.offerings.canOpen}
                     >
                         <span className="software-pricing-studio-step-no">2</span>
                         <div>
@@ -461,15 +515,36 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
                             </p>
                         </div>
                         <span className="software-pricing-studio-step-summary">
-                            {activeOfferings.length ? `${activeOfferings.length} aktif plan` : "Eksik"}
+                            {!canConfigureOfferings ? "Kilitli" : activeOfferings.length ? `${activeOfferings.length} aktif paket` : "Eksik"}
                         </span>
-                        <em className={`icon ni ni-chevron-${openSteps.offerings ? "up" : "down"}`} />
+                        <em className={`icon ni ni-${!stepState.offerings.canOpen ? "lock" : stepState.offerings.isDone ? "check-circle" : stepState.offerings.isActive ? "chevron-up" : "chevron-down"}`} />
                     </button>
-                    <Collapse isOpen={openSteps.offerings}>
+                    <Collapse isOpen={stepState.offerings.isActive}>
                         {canConfigureOfferings ? (
-                            <div ref={offeringUnitsTargetRef}>
-                                <LicenseOfferingsTab productId={productId} productUnits={visibleUnits} />
-                            </div>
+                            <>
+                                <div ref={offeringUnitsTargetRef}>
+                                    <LicenseOfferingsTab productId={productId} productUnits={visibleUnits} />
+                                </div>
+                                <div className="software-pricing-studio-step-actions">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-light"
+                                        onClick={() => setActiveStep("units")}
+                                    >
+                                        <em className="icon ni ni-arrow-left me-1" />
+                                        Geri
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        disabled={!canConfigureRules}
+                                        onClick={goToRules}
+                                    >
+                                        Devam Et
+                                        <em className="icon ni ni-arrow-right ms-1" />
+                                    </button>
+                                </div>
+                            </>
                         ) : (
                             <div className="software-pricing-studio-lock" ref={offeringUnitsTargetRef}>
                                 <em className="icon ni ni-lock" />
@@ -482,12 +557,16 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
                     </Collapse>
                 </section>
 
-                <section className="software-pricing-studio-step" ref={rulesStepRef}>
+                <section
+                    className={`software-pricing-studio-step ${stepState.rules.isActive ? "is-active" : ""} ${!stepState.rules.canOpen ? "is-locked" : ""}`}
+                    ref={rulesStepRef}
+                >
                     <button
                         type="button"
                         className="software-pricing-studio-step-head"
-                        onClick={() => toggleStep("rules")}
-                        aria-expanded={openSteps.rules}
+                        onClick={() => goToStep("rules")}
+                        aria-expanded={stepState.rules.isActive}
+                        disabled={!stepState.rules.canOpen}
                     >
                         <span className="software-pricing-studio-step-no">3</span>
                         <div>
@@ -497,20 +576,32 @@ const SoftwarePricingStudio = forwardRef<SoftwarePricingStudioHandle, SoftwarePr
                             </p>
                         </div>
                         <span className="software-pricing-studio-step-summary">
-                            {activeRules.length ? `${activeRules.length} aktif kural` : "Opsiyonel"}
+                            {!canConfigureRules ? "Kilitli" : activeRules.length ? `${activeRules.length} aktif kural` : "Opsiyonel"}
                         </span>
-                        <em className={`icon ni ni-chevron-${openSteps.rules ? "up" : "down"}`} />
+                        <em className={`icon ni ni-${!stepState.rules.canOpen ? "lock" : activeRules.length ? "check-circle" : stepState.rules.isActive ? "chevron-up" : "chevron-down"}`} />
                     </button>
-                    <Collapse isOpen={openSteps.rules}>
+                    <Collapse isOpen={stepState.rules.isActive}>
                         {canConfigureRules ? (
-                            <SoftwarePricingTiersTab
-                                productId={productId}
-                                licenseOfferings={licenseOfferings}
-                                productUnits={productUnits}
-                                variants={variants}
-                                draftRules={draftRules}
-                                onDraftRulesChange={onDraftRulesChange}
-                            />
+                            <>
+                                <SoftwarePricingTiersTab
+                                    productId={productId}
+                                    licenseOfferings={visibleOfferings}
+                                    productUnits={visibleUnits}
+                                    variants={variants}
+                                    draftRules={draftRules}
+                                    onDraftRulesChange={onDraftRulesChange}
+                                />
+                                <div className="software-pricing-studio-step-actions">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-light"
+                                        onClick={() => setActiveStep("offerings")}
+                                    >
+                                        <em className="icon ni ni-arrow-left me-1" />
+                                        Geri
+                                    </button>
+                                </div>
+                            </>
                         ) : (
                             <div className="software-pricing-studio-lock">
                                 <em className="icon ni ni-lock" />

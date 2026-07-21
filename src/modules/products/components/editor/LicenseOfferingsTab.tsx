@@ -1,17 +1,8 @@
-import React, { useEffect, useId, useRef, useState } from "react";
-import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
-import type { DragEndEvent } from "@dnd-kit/core";
-import {
-    SortableContext,
-    arrayMove,
-    sortableKeyboardCoordinates,
-    useSortable,
-    verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import React, { useEffect, useId, useState } from "react";
+import { arrayMove } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { Collapse, UncontrolledTooltip } from "reactstrap";
+import { Collapse, Modal, ModalBody, ModalHeader, UncontrolledTooltip } from "reactstrap";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import { productsApi } from "@/modules/products/api/products.api";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
@@ -150,31 +141,6 @@ const splitUnitScopeValues = (values: string[]) => {
     };
 };
 
-type SortableHandleProps = {
-    attributes: ReturnType<typeof useSortable>["attributes"];
-    listeners: ReturnType<typeof useSortable>["listeners"];
-};
-
-const SortableOfferingCard: React.FC<{
-    id: string;
-    children: (dragHandleProps: SortableHandleProps) => React.ReactNode;
-}> = ({ id, children }) => {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-    return (
-        <div
-            ref={setNodeRef}
-            className={`pricing-sortable-item ${isDragging ? "is-dragging" : ""}`}
-            style={{
-                transform: CSS.Transform.toString(transform),
-                transition,
-            }}
-        >
-            {children({ attributes, listeners })}
-        </div>
-    );
-};
-
 interface OfferingFieldsProps {
     index: number;
     fieldId: string;
@@ -189,7 +155,6 @@ interface OfferingFieldsProps {
     onToggle: () => void;
     canMoveUp: boolean;
     canMoveDown: boolean;
-    dragHandleProps: SortableHandleProps;
 }
 
 const OfferingFields: React.FC<OfferingFieldsProps> = ({
@@ -206,7 +171,6 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
     onToggle,
     canMoveUp,
     canMoveDown,
-    dragHandleProps,
 }) => {
     const {
         register,
@@ -269,21 +233,28 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
     };
 
     return (
-        <div className={`card card-bordered border-${meta.color}`}>
-            <div className="card-inner">
-                <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3 h-100">
-                    <div className="d-flex align-items-start gap-3 h-100">
-                        <span className={`btn btn-icon btn-${meta.color} rounded-circle flex-shrink-0`}>
+        <div className={isOpen ? "pricing-manager-editor" : "pricing-manager-item"}>
+                <div className={isOpen ? "pricing-manager-editor-head" : "pricing-manager-item-main"}>
+                    <div className="pricing-manager-item-main">
+                        <span className={`pricing-manager-item-icon bg-${meta.color}-dim text-${meta.color}`}>
                             <em className={`icon ni ni-${meta.icon}`} />
                         </span>
-                        <div>
-                            <span className={`badge badge-dim bg-${meta.color} mb-1`}>{meta.label}</span>
-                            <h6 className="title mb-0">{offering?.name || `Plan #${index + 1}`}</h6>
-                            <p className="text-soft fs-12px mb-0">{formatMoney(offering?.basePrice, offering?.currencyCode)}</p>
+                        <div className="pricing-manager-item-copy">
+                            <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <h6 className="title mb-0">{offering?.name || `Plan #${index + 1}`}</h6>
+                                <span className={`badge badge-dim bg-${meta.color}`}>{meta.label}</span>
+                                <span className={`badge bg-${offering?.isActive ? "success" : "secondary"}`}>
+                                    {offering?.isActive ? "Aktif" : "Pasif"}
+                                </span>
+                            </div>
+                            <div className="pricing-manager-item-meta">
+                                <span>{formatMoney(offering?.basePrice, offering?.currencyCode)}</span>
+                                <span>Sıra {index + 1}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="d-flex flex-wrap align-items-start gap-1 h-100">
+                    <div className="pricing-manager-actions">
                         <span className="pricing-order-chip" title="Sıra sürükleyerek veya oklarla değiştirilir">
                             Sıra {index + 1}
                         </span>
@@ -294,15 +265,6 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                         >
                             <em className={`icon ni ni-chevron-${isOpen ? "up" : "down"} me-1`} />
                             {isOpen ? "Kapat" : "Düzenle"}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn-sm btn-icon btn-outline-light pricing-drag-handle"
-                            title="Sürükleyerek sırala"
-                            {...dragHandleProps.attributes}
-                            {...dragHandleProps.listeners}
-                        >
-                            <em className="icon ni ni-drag" />
                         </button>
                         <button
                             type="button"
@@ -639,13 +601,19 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                         <div className="col-12 d-flex flex-wrap justify-content-end align-items-center gap-2 border-top pt-3 h-100">
                             <button
                                 type="button"
+                                className="btn btn-light"
+                                onClick={onToggle}
+                                disabled={saving}
+                            >
+                                Kapat
+                            </button>
+                            <button
+                                type="button"
                                 className="btn btn-primary"
-                                disabled={!productId || saving || hasUnsavedProductUnit}
+                                disabled={saving || Boolean(productId && hasUnsavedProductUnit)}
                                 onClick={onSave}
                                 title={
-                                    !productId
-                                        ? "Plan kaydetmek için önce ürünü kaydedin"
-                                        : hasUnsavedProductUnit
+                                    productId && hasUnsavedProductUnit
                                             ? "Yeni ürün birimiyle birlikte kaydetmek için ana formu kaydedin"
                                             : undefined
                                 }
@@ -665,7 +633,6 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                         </div>
                     </div>
                 </Collapse>
-            </div>
         </div>
     );
 };
@@ -714,73 +681,31 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
     const { fields, append, remove, move } = useFieldArray({ control, name: "licenseOfferings" });
     const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
-    const [openOfferingCards, setOpenOfferingCards] = useState<Set<string>>(new Set());
-    const [pendingScrollCardKey, setPendingScrollCardKey] = useState<string | null>(null);
-    const offeringCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
-
-    const scrollToOfferingCard = (cardKey: string) => {
-        setPendingScrollCardKey(cardKey);
-    };
+    const [editingOfferingIndex, setEditingOfferingIndex] = useState<number | null>(null);
 
     const addTemplate = (template: typeof PLAN_TEMPLATES[number]) => {
         const tempId = generateTempId();
-        const cardKey = `temp:${tempId}`;
+        const nextIndex = fields.length;
         append({
             ...EMPTY_OFFERING,
             ...template.offering,
             _tempId: tempId,
             sortOrder: fields.length + 1,
         });
-        setOpenOfferingCards((current) => new Set(current).add(cardKey));
-        scrollToOfferingCard(cardKey);
+        setEditingOfferingIndex(nextIndex);
     };
 
     const addEmptyOffering = () => {
         const tempId = generateTempId();
-        const cardKey = `temp:${tempId}`;
+        const nextIndex = fields.length;
         append({ ...EMPTY_OFFERING, _tempId: tempId, sortOrder: fields.length + 1 });
-        setOpenOfferingCards((current) => new Set(current).add(cardKey));
-        scrollToOfferingCard(cardKey);
+        setEditingOfferingIndex(nextIndex);
     };
 
     const getOfferingCardKey = (offering: LicenseOfferingForm | undefined, fallbackId: string) =>
         offering?.id ? `id:${offering.id}` : offering?._tempId ? `temp:${offering._tempId}` : fallbackId;
 
-    const toggleOfferingCard = (key: string) => {
-        setOpenOfferingCards((current) => {
-            const next = new Set(current);
-            if (next.has(key)) {
-                next.delete(key);
-            } else {
-                next.add(key);
-            }
-            return next;
-        });
-    };
-
-    const closeOfferingCard = (key: string) => {
-        setOpenOfferingCards((current) => {
-            const next = new Set(current);
-            next.delete(key);
-            return next;
-        });
-    };
-
-    useEffect(() => {
-        if (!pendingScrollCardKey) return;
-
-        const timer = window.setTimeout(() => {
-            const target = offeringCardRefs.current[pendingScrollCardKey];
-            target?.scrollIntoView({ behavior: "smooth", block: "center" });
-            setPendingScrollCardKey(null);
-        }, 80);
-
-        return () => window.clearTimeout(timer);
-    }, [fields.length, licenseOfferings, pendingScrollCardKey]);
+    const closeOfferingCard = (_key?: string) => setEditingOfferingIndex(null);
 
     const reorderOfferings = (oldIndex: number, newIndex: number) => {
         if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
@@ -791,18 +716,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
         });
     };
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (!over || active.id === over.id) return;
-
-        const oldIndex = fields.findIndex((field) => field.id === active.id);
-        const newIndex = fields.findIndex((field) => field.id === over.id);
-        reorderOfferings(oldIndex, newIndex);
-    };
-
     const saveOffering = async (index: number) => {
-        if (!productId) return;
-
         const valid = await trigger([
             `licenseOfferings.${index}.name`,
             `licenseOfferings.${index}.basePrice`,
@@ -811,6 +725,12 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
         if (!valid) return;
 
         const offering = getValues(`licenseOfferings.${index}`);
+        if (!productId) {
+            showSuccess("Satış planı taslağa eklendi. Ürün kaydedildiğinde backend'e gönderilecek.");
+            closeOfferingCard();
+            return;
+        }
+
         if (offering.productUnitTempIds?.length || offering.productUnitTempId) {
             showWarning("Önce ürün birimini kaydedin, sonra planı kaydedebilirsiniz.");
             return;
@@ -842,7 +762,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
 
     return (
         <div>
-            <div className="d-flex align-items-start justify-content-between gap-3 mb-3 h-100">
+            <div className="pricing-manager-head">
                 <div>
                     <h6 className="overline-title text-primary mb-0">Satış Planları</h6>
                     <p className="text-soft fs-12 mb-0">
@@ -887,45 +807,116 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                     </p>
                 </div>
             ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
-                        <div className="d-flex flex-column gap-3 h-100">
+                <div className="table-responsive">
+                    <table className="table table-middle mb-0">
+                        <thead className="table-light">
+                            <tr>
+                                <th>Paket adı</th>
+                                <th>Model</th>
+                                <th>Taban fiyat</th>
+                                <th>Sıra</th>
+                                <th>Durum</th>
+                                <th className="text-end">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             {fields.map((field, index) => {
                                 const offering = licenseOfferings[index];
-                                const cardKey = getOfferingCardKey(offering, field.id);
+                                const meta = getModelMeta(Number(offering?.licenseModel ?? 2));
                                 return (
-                                    <div
-                                        key={field.id}
-                                        ref={(node) => {
-                                            offeringCardRefs.current[cardKey] = node;
-                                        }}
-                                    >
-                                        <SortableOfferingCard id={field.id}>
-                                            {(dragHandleProps) => (
-                                                <OfferingFields
-                                                    index={index}
-                                                    fieldId={field.id}
-                                                    productId={productId}
-                                                    availableProductUnits={productUnits}
-                                                    saving={savingIndex === index}
-                                                    onRemove={() => remove(index)}
-                                                    onMoveUp={() => reorderOfferings(index, index - 1)}
-                                                    onMoveDown={() => reorderOfferings(index, index + 1)}
-                                                    onSave={() => void saveOffering(index)}
-                                                    isOpen={openOfferingCards.has(cardKey)}
-                                                    onToggle={() => toggleOfferingCard(cardKey)}
-                                                    canMoveUp={index > 0}
-                                                    canMoveDown={index < fields.length - 1}
-                                                    dragHandleProps={dragHandleProps}
-                                                />
-                                            )}
-                                        </SortableOfferingCard>
-                                    </div>
+                                    <tr key={field.id}>
+                                        <td>
+                                            <div className="fw-medium">{offering?.name || `Plan #${index + 1}`}</div>
+                                            <div className="text-soft fs-12px">{offering?.description || "Açıklama yok"}</div>
+                                        </td>
+                                        <td>
+                                            <span className={`badge badge-dim bg-${meta.color}`}>{meta.label}</span>
+                                        </td>
+                                        <td>{formatMoney(offering?.basePrice, offering?.currencyCode)}</td>
+                                        <td>{index + 1}</td>
+                                        <td>
+                                            <span className={`badge bg-${offering?.isActive ? "success" : "secondary"}`}>
+                                                {offering?.isActive ? "Aktif" : "Pasif"}
+                                            </span>
+                                        </td>
+                                        <td className="text-end">
+                                            <div className="d-inline-flex flex-wrap justify-content-end gap-1">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-outline-primary"
+                                                    onClick={() => setEditingOfferingIndex(index)}
+                                                >
+                                                    <em className="icon ni ni-edit me-1" />
+                                                    Düzenle
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-icon btn-outline-light"
+                                                    disabled={index === 0}
+                                                    onClick={() => reorderOfferings(index, index - 1)}
+                                                    title="Yukarı taşı"
+                                                >
+                                                    <em className="icon ni ni-chevron-up" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-icon btn-outline-light"
+                                                    disabled={index === fields.length - 1}
+                                                    onClick={() => reorderOfferings(index, index + 1)}
+                                                    title="Aşağı taşı"
+                                                >
+                                                    <em className="icon ni ni-chevron-down" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-icon btn-outline-danger"
+                                                    onClick={() => remove(index)}
+                                                    title="Paketi kaldır"
+                                                >
+                                                    <em className="icon ni ni-trash" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 );
                             })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {editingOfferingIndex != null && fields[editingOfferingIndex] && (
+                <Modal isOpen toggle={() => setEditingOfferingIndex(null)} size="xl" centered>
+                    <ModalHeader toggle={() => setEditingOfferingIndex(null)}>
+                        {licenseOfferings[editingOfferingIndex]?.id ? "Satış Planını Güncelle" : "Satış Planı Ekle"}
+                    </ModalHeader>
+                    <ModalBody className="pricing-manager-modal-body">
+                        <div className="pricing-manager-modal-intro">
+                            <span className="overline-title text-primary">Paket bilgileri</span>
+                            <p className="text-soft fs-13px mb-0">
+                                Satışa çıkacak paketin fiyatını, modelini ve bağlı birimlerini düzenleyin.
+                            </p>
                         </div>
-                    </SortableContext>
-                </DndContext>
+                        <OfferingFields
+                            index={editingOfferingIndex}
+                            fieldId={fields[editingOfferingIndex].id}
+                            productId={productId}
+                            availableProductUnits={productUnits}
+                            saving={savingIndex === editingOfferingIndex}
+                            onRemove={() => {
+                                remove(editingOfferingIndex);
+                                setEditingOfferingIndex(null);
+                            }}
+                            onMoveUp={() => reorderOfferings(editingOfferingIndex, editingOfferingIndex - 1)}
+                            onMoveDown={() => reorderOfferings(editingOfferingIndex, editingOfferingIndex + 1)}
+                            onSave={() => void saveOffering(editingOfferingIndex)}
+                            isOpen
+                            onToggle={() => setEditingOfferingIndex(null)}
+                            canMoveUp={editingOfferingIndex > 0}
+                            canMoveDown={editingOfferingIndex < fields.length - 1}
+                        />
+                    </ModalBody>
+                </Modal>
             )}
         </div>
     );

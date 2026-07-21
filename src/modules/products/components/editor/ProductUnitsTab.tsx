@@ -1,17 +1,7 @@
-import React, { useEffect, useId, useRef, useState } from "react";
-import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
-import type { DragEndEvent } from "@dnd-kit/core";
-import {
-    SortableContext,
-    arrayMove,
-    sortableKeyboardCoordinates,
-    useSortable,
-    verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import React, { useEffect, useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { Button, Collapse, Modal, ModalBody, ModalFooter, ModalHeader, UncontrolledTooltip } from "reactstrap";
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader, UncontrolledTooltip } from "reactstrap";
 import { unitDefinitionsApi } from "@/services/unitDefinitions/unitDefinitions.api";
 import { productsApi } from "@/modules/products/api/products.api";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
@@ -78,29 +68,6 @@ const HelpLabel: React.FC<HelpLabelProps> = ({ children, help }) => {
     );
 };
 
-const SortableUnitCard: React.FC<{
-    id: string;
-    children: (dragHandleProps: {
-        attributes: ReturnType<typeof useSortable>["attributes"];
-        listeners: ReturnType<typeof useSortable>["listeners"];
-    }) => React.ReactNode;
-}> = ({ id, children }) => {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-    return (
-        <div
-            ref={setNodeRef}
-            className={`pricing-sortable-item ${isDragging ? "is-dragging" : ""}`}
-            style={{
-                transform: CSS.Transform.toString(transform),
-                transition,
-            }}
-        >
-            {children({ attributes, listeners })}
-        </div>
-    );
-};
-
 const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
     const queryClient = useQueryClient();
     const { control, register, setValue, getValues } = useFormContext<ProductFormValues>();
@@ -111,65 +78,23 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
     const [quickAddIndex, setQuickAddIndex] = useState<number | null>(null);
     const [quickDefinition, setQuickDefinition] = useState<QuickUnitDefinitionForm>(EMPTY_QUICK_DEFINITION);
     const [creatingDefinition, setCreatingDefinition] = useState(false);
-    const [openUnitCards, setOpenUnitCards] = useState<Set<string>>(new Set());
-    const [pendingScrollCardKey, setPendingScrollCardKey] = useState<string | null>(null);
-    const unitCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
-
+    const [editingUnitIndex, setEditingUnitIndex] = useState<number | null>(null);
     useEffect(() => {
         unitDefinitionsApi.getAll().then(setUnitDefinitions).catch(() => setUnitDefinitions([]));
     }, []);
 
     const addUnit = () => {
         const tempId = generateTempId();
-        const cardKey = `temp:${tempId}`;
         append({
             ...EMPTY_UNIT,
             _tempId: tempId,
             isDefault: fields.length === 0,
             sortOrder: fields.length,
         });
-        setOpenUnitCards((current) => new Set(current).add(cardKey));
-        setPendingScrollCardKey(cardKey);
+        setEditingUnitIndex(fields.length);
     };
 
-    const getUnitCardKey = (unit: ProductUnitForm | undefined, fallbackId: string) =>
-        unit?.id ? `id:${unit.id}` : unit?._tempId ? `temp:${unit._tempId}` : fallbackId;
-
-    const toggleUnitCard = (key: string) => {
-        setOpenUnitCards((current) => {
-            const next = new Set(current);
-            if (next.has(key)) {
-                next.delete(key);
-            } else {
-                next.add(key);
-            }
-            return next;
-        });
-    };
-
-    const closeUnitCard = (key: string) => {
-        setOpenUnitCards((current) => {
-            const next = new Set(current);
-            next.delete(key);
-            return next;
-        });
-    };
-
-    useEffect(() => {
-        if (!pendingScrollCardKey) return;
-
-        const timer = window.setTimeout(() => {
-            const target = unitCardRefs.current[pendingScrollCardKey];
-            target?.scrollIntoView({ behavior: "smooth", block: "center" });
-            setPendingScrollCardKey(null);
-        }, 80);
-
-        return () => window.clearTimeout(timer);
-    }, [fields.length, pendingScrollCardKey, productUnits]);
+    const closeUnitEditor = () => setEditingUnitIndex(null);
 
     const openQuickAdd = (index: number) => {
         const unit = getValues(`productUnits.${index}`);
@@ -253,15 +178,6 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
         });
     };
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (!over || active.id === over.id) return;
-
-        const oldIndex = fields.findIndex((field) => field.id === active.id);
-        const newIndex = fields.findIndex((field) => field.id === over.id);
-        reorderUnits(oldIndex, newIndex);
-    };
-
     const buildPayload = (unit: ProductUnitForm): CreateProductUnitRequestDto | null => {
         const unitDefinitionId = unit.unitDefinitionId?.trim();
         const code = unit.code?.trim();
@@ -337,11 +253,10 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
         const unit = getValues(`productUnits.${index}`);
         const payload = buildPayload(unit);
         if (!payload) return;
-        const cardKey = getUnitCardKey(unit, fields[index]?.id ?? String(index));
 
         if (!productId) {
             showSuccess("Birim taslağa eklendi. Ürün kaydedildiğinde backend'e gönderilecek.");
-            closeUnitCard(cardKey);
+            closeUnitEditor();
             return;
         }
 
@@ -360,7 +275,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
             }
 
             await invalidateProductUnits();
-            closeUnitCard(cardKey);
+            closeUnitEditor();
         } catch (error) {
             showApiError(error);
         } finally {
@@ -370,7 +285,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
 
     return (
         <div>
-            <div className="d-flex align-items-start justify-content-between gap-3 mb-3 h-100">
+            <div className="pricing-manager-head">
                 <div>
                     <h6 className="overline-title text-primary mb-0">Ürün Birimleri</h6>
                     <p className="text-soft fs-12 mb-0">
@@ -389,87 +304,86 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                     <p className="mb-0">Henüz ürün birimi eklenmedi.</p>
                 </div>
             ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
-                        <div className="d-flex flex-column gap-3 h-100">
+                <div className="table-responsive">
+                    <table className="table table-middle mb-0">
+                        <thead className="table-light">
+                            <tr>
+                                <th>Birim adı</th>
+                                <th>Kod</th>
+                                <th>Sıra</th>
+                                <th>Durum</th>
+                                <th className="text-end">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             {fields.map((field, index) => {
                                 const unit = productUnits[index];
                                 const saved = Boolean(unit?.id);
                                 const saving = savingIndex === index;
-                                const cardKey = getUnitCardKey(unit, field.id);
-                                const isCardOpen = openUnitCards.has(cardKey);
                                 return (
-                                    <div
-                                        key={field.id}
-                                        ref={(node) => {
-                                            unitCardRefs.current[cardKey] = node;
-                                        }}
-                                    >
-                                        <SortableUnitCard id={field.id}>
-                                            {({ attributes, listeners }) => (
-                                                <div className="card card-bordered">
-                                                    <div className="card-inner">
-                                                        <div className="d-flex justify-content-between align-items-start gap-3 mb-3 h-100">
-                                                            <div>
-                                                                <h6 className="title mb-0">{unit?.name || `Birim #${index + 1}`}</h6>
-                                                                <p className="text-soft fs-12px mb-0">
-                                                                    {unit?.code || "Kod bekleniyor"}
-                                                                    {unit?.isDefault ? " · Varsayılan" : ""}
-                                                                </p>
-                                                            </div>
-                                                            <div className="d-flex flex-wrap align-items-start gap-1 h-100">
-                                                                <span className="pricing-order-chip" title="Sıra sürükleyerek veya oklarla değiştirilir">
-                                                                    Sıra {index + 1}
-                                                                </span>
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-sm btn-outline-primary"
-                                                                    onClick={() => toggleUnitCard(cardKey)}
-                                                                >
-                                                                    <em className={`icon ni ni-chevron-${isCardOpen ? "up" : "down"} me-1`} />
-                                                                    {isCardOpen ? "Kapat" : "Düzenle"}
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-sm btn-icon btn-outline-light pricing-drag-handle"
-                                                                    title="Sürükleyerek sırala"
-                                                                    {...attributes}
-                                                                    {...listeners}
-                                                                >
-                                                                    <em className="icon ni ni-drag" />
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-sm btn-icon btn-outline-light"
-                                                                    disabled={index === 0}
-                                                                    onClick={() => reorderUnits(index, index - 1)}
-                                                                    title="Yukarı taşı"
-                                                                >
-                                                                    <em className="icon ni ni-chevron-up" />
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-sm btn-icon btn-outline-light"
-                                                                    disabled={index === fields.length - 1}
-                                                                    onClick={() => reorderUnits(index, index + 1)}
-                                                                    title="Aşağı taşı"
-                                                                >
-                                                                    <em className="icon ni ni-chevron-down" />
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-sm btn-icon btn-outline-danger"
-                                                                    onClick={() => remove(index)}
-                                                                    title="Birimi kaldır"
-                                                                >
-                                                                    <em className="icon ni ni-trash" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
+                                    <tr key={field.id}>
+                                        <td>
+                                            <div className="fw-medium">{unit?.name || `Birim #${index + 1}`}</div>
+                                            {unit?.isDefault && <span className="badge bg-outline-primary mt-1">Varsayılan</span>}
+                                            <input type="hidden" {...register(`productUnits.${index}.sortOrder`, { valueAsNumber: true })} />
+                                        </td>
+                                        <td>{unit?.code || "Kod bekleniyor"}</td>
+                                        <td>{index + 1}</td>
+                                        <td>
+                                            <span className={`badge bg-${unit?.isActive ? "success" : "secondary"}`}>
+                                                {unit?.isActive ? "Aktif" : "Pasif"}
+                                            </span>
+                                        </td>
+                                        <td className="text-end">
+                                            <div className="d-inline-flex flex-wrap justify-content-end gap-1">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-outline-primary"
+                                                    onClick={() => setEditingUnitIndex(index)}
+                                                >
+                                                    <em className="icon ni ni-edit me-1" />
+                                                    Düzenle
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-icon btn-outline-light"
+                                                    disabled={index === 0}
+                                                    onClick={() => reorderUnits(index, index - 1)}
+                                                    title="Yukarı taşı"
+                                                >
+                                                    <em className="icon ni ni-chevron-up" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-icon btn-outline-light"
+                                                    disabled={index === fields.length - 1}
+                                                    onClick={() => reorderUnits(index, index + 1)}
+                                                    title="Aşağı taşı"
+                                                >
+                                                    <em className="icon ni ni-chevron-down" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-icon btn-outline-danger"
+                                                    onClick={() => remove(index)}
+                                                    title="Birimi kaldır"
+                                                >
+                                                    <em className="icon ni ni-trash" />
+                                                </button>
+                                            </div>
+                                        </td>
 
-                                                        <input type="hidden" {...register(`productUnits.${index}.sortOrder`, { valueAsNumber: true })} />
-
-                                                        <Collapse isOpen={isCardOpen}>
+                                                        <Modal isOpen={editingUnitIndex === index} toggle={closeUnitEditor} size="lg" centered>
+                                                            <ModalHeader toggle={closeUnitEditor}>
+                                                                {saved ? "Ürün Birimini Güncelle" : "Ürün Birimi Ekle"}
+                                                            </ModalHeader>
+                                                            <ModalBody className="pricing-manager-modal-body">
+                                                                <div className="pricing-manager-modal-intro">
+                                                                    <span className="overline-title text-primary">Birim bilgileri</span>
+                                                                    <p className="text-soft fs-13px mb-0">
+                                                                        Fiyatlandırmada kullanılacak ürün içi birimi ve durumunu tanımlayın.
+                                                                    </p>
+                                                                </div>
                                                             <div className="pricing-form-grid">
                                                                 <div className="pricing-form-field">
                                                                     <label className="form-label">
@@ -567,6 +481,9 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                                     </div>
                                                                 </div>
                                                                 <div className="pricing-form-field pricing-form-field--full d-flex flex-wrap justify-content-end align-items-center gap-2 border-top pt-3 h-100">
+                                                                    <Button color="light" type="button" onClick={closeUnitEditor} disabled={saving}>
+                                                                        Kapat
+                                                                    </Button>
                                                                     <button
                                                                         type="button"
                                                                         className="btn btn-primary"
@@ -587,17 +504,14 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                        </Collapse>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </SortableUnitCard>
-                                    </div>
+                                                            </ModalBody>
+                                                        </Modal>
+                                    </tr>
                                 );
                             })}
-                        </div>
-                    </SortableContext>
-                </DndContext>
+                        </tbody>
+                    </table>
+                </div>
             )}
 
             <Modal isOpen={quickAddIndex != null} toggle={closeQuickAdd} centered>

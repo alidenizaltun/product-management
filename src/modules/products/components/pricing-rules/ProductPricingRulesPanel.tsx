@@ -1,5 +1,5 @@
 import React, { useId, useMemo, useState } from "react";
-import { Button, Collapse, UncontrolledTooltip } from "reactstrap";
+import { Button, Modal, ModalBody, ModalHeader, UncontrolledTooltip } from "reactstrap";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { useProductPricingRuleMutations, useProductPricingRules } from "@/modules/products/hooks/useProductPricingRules";
@@ -879,37 +879,17 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   return (
     <div className="row g-4">
       {editable && (
-        <div className="col-12">
-          <div className="card card-bordered">
-            <div className="card-inner">
-              <div className={`d-flex flex-wrap justify-content-between align-items-start gap-3 h-100 ${formOpen ? "mb-3" : ""}`}>
-                <div>
-                  <span className="overline-title text-primary">Kural oluşturucu</span>
-                  <h6 className="title mb-1">{form.id ? "Kuralı Düzenle" : "Yeni Dinamik Kural"}</h6>
-                  <p className="text-soft fs-13px mb-0">
-                    Şablon seçin veya cümleyi doldurun: Eğer bir durum oluşursa fiyatı değiştir.
-                  </p>
-                </div>
-                <Button
-                  color={formOpen ? "light" : "primary"}
-                  size="sm"
-                  type="button"
-                  onClick={() => {
-                    if (formOpen) {
-                      resetForm();
-                    } else {
-                      setForm(emptyForm());
-                      setEngineOpen(false);
-                      setFormOpen(true);
-                    }
-                  }}
-                >
-                  <em className={`icon ni ni-chevron-${formOpen ? "up" : "down"} me-1`} />
-                  {formOpen ? "Kapat" : "Yeni Kural"}
-                </Button>
-              </div>
-
-              <Collapse isOpen={formOpen}>
+        <Modal isOpen={formOpen} toggle={resetForm} size="xl" centered scrollable>
+          <ModalHeader toggle={resetForm}>
+            {form.id ? "Kuralı Güncelle" : "Dinamik Kural Ekle"}
+          </ModalHeader>
+          <ModalBody className="pricing-manager-modal-body">
+            <div className="pricing-manager-modal-intro">
+              <span className="overline-title text-primary">Kural oluşturucu</span>
+              <p className="text-soft fs-13px mb-0">
+                Şablon seçin veya cümleyi doldurun: Eğer bir durum oluşursa fiyatı değiştir.
+              </p>
+            </div>
                 {!form.id && (
                   <div className="row g-3 mb-4">
                     {QUICK_RULE_TEMPLATES.map((template) => (
@@ -1587,7 +1567,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
                   <div className="col-12 d-flex justify-content-end gap-2 h-100">
                     <Button color="light" type="button" onClick={resetForm} disabled={pending}>
-                      Temizle
+                      Kapat
                     </Button>
                     <Button
                       color="primary"
@@ -1601,28 +1581,49 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           Kaydediliyor...
                         </>
                       ) : form.id ? (
-                        "Güncelle"
+                        <>
+                          <em className="icon ni ni-save me-1" />
+                          Kuralı Güncelle
+                        </>
                       ) : (
-                        "Kural Ekle"
+                        <>
+                          <em className="icon ni ni-plus me-1" />
+                          Kural Ekle
+                        </>
                       )}
                     </Button>
                   </div>
                 </div>
-              </Collapse>
-            </div>
-          </div>
-        </div>
+          </ModalBody>
+        </Modal>
       )}
 
       <div className="col-12">
         <div className="card card-bordered">
           <div className="card-inner border-bottom py-3 d-flex justify-content-between align-items-center">
             <h6 className="title mb-0">Dinamik Fiyatlandırma Kuralları</h6>
-            {isError && (
-              <Button color="light" size="sm" type="button" onClick={() => refetch()}>
-                Tekrar Dene
-              </Button>
-            )}
+            <div className="d-flex align-items-center gap-2">
+              {editable && (
+                <Button
+                  color="primary"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    setForm(emptyForm());
+                    setEngineOpen(false);
+                    setFormOpen(true);
+                  }}
+                >
+                  <em className="icon ni ni-plus me-1" />
+                  Yeni Kural
+                </Button>
+              )}
+              {isError && (
+                <Button color="light" size="sm" type="button" onClick={() => refetch()}>
+                  Tekrar Dene
+                </Button>
+              )}
+            </div>
           </div>
 
           {isLoading ? (
@@ -1717,28 +1718,30 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           </span>
                         </td>
                         {editable && (
-                          <td className="text-end gap-1 w-25">
-                            <Button
-                              color="light"
-                              size="sm"
-                              type="button"
-                              className="me-1"
-                              onClick={() => {
-                                setForm(ruleToForm(rule));
-                                setFormOpen(true);
-                              }}
-                            >
-                              Düzenle
-                            </Button>
-                            <Button
-                              color="danger"
-                              outline
-                              size="sm"
-                              type="button"
-                              onClick={() => setDeleteTarget(rule)}
-                            >
-                              Sil
-                            </Button>
+                          <td className="text-end">
+                            <div className="d-inline-flex flex-wrap justify-content-end gap-1">
+                              <Button
+                                color="light"
+                                size="sm"
+                                type="button"
+                                onClick={() => {
+                                  setForm(ruleToForm(rule));
+                                  setFormOpen(true);
+                                }}
+                              >
+                                <em className="icon ni ni-edit me-1" />
+                                Düzenle
+                              </Button>
+                              <Button
+                                color="danger"
+                                outline
+                                size="sm"
+                                type="button"
+                                onClick={() => setDeleteTarget(rule)}
+                              >
+                                <em className="icon ni ni-trash" />
+                              </Button>
+                            </div>
                           </td>
                         )}
                       </tr>

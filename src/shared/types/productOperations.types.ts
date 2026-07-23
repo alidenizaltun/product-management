@@ -1109,6 +1109,7 @@ export interface CreateFullProductRequestDto {
     sortOrder?: number;
   }>;
   pricingRules?: Array<{
+    id?: Uuid;
     productLicenseOfferingId?: Uuid;
     licenseOfferingId?: Uuid;
     licenseOfferingTempId?: string;

@@ -311,11 +311,11 @@ const ProductModulesTab: React.FC = () => {
                                                 <div className="row g-3">
                                                     <div className="col-md-3">
                                                         <label className="form-label">
-                                                            Modül Kodu <span className="text-danger">*</span>
+                                                            Modül Kodu
                                                         </label>
                                                         <input
                                                             className="form-control"
-                                                            placeholder="MOD-CRM"
+                                                            placeholder="Boşsa otomatik üretilir"
                                                             {...register(`modules.${index}.moduleCode`)}
                                                         />
                                                         {errors.modules?.[index]?.moduleCode && (

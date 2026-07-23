@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "@/modules/products/api/products.api";
 import { queryKeys } from "@/services/query/queryKeys";
-import type { UpsertProductPricingRuleRequestDto } from "@/shared/types/productOperations.types";
+import type { ProductPricingRuleDto, UpsertProductPricingRuleRequestDto } from "@/shared/types/productOperations.types";
 
 export const useProductPricingRules = (productId?: string) =>
   useQuery({
@@ -12,6 +12,7 @@ export const useProductPricingRules = (productId?: string) =>
 
 export const useProductPricingRuleMutations = (productId?: string) => {
   const queryClient = useQueryClient();
+  const pricingRulesKey = productId ? queryKeys.products.pricingRules(productId) : undefined;
 
   const invalidate = () => {
     if (!productId) return;
@@ -22,13 +23,26 @@ export const useProductPricingRuleMutations = (productId?: string) => {
   const createMutation = useMutation({
     mutationFn: (payload: UpsertProductPricingRuleRequestDto) =>
       productsApi.createPricingRule(productId as string, payload),
-    onSuccess: invalidate,
+    onSuccess: (created) => {
+      if (pricingRulesKey) {
+        queryClient.setQueryData<ProductPricingRuleDto[]>(pricingRulesKey, (current = []) => [
+          ...current.filter((rule) => rule.id !== created.id),
+          created,
+        ]);
+      }
+      invalidate();
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpsertProductPricingRuleRequestDto }) =>
       productsApi.updatePricingRule(id, payload),
     onSuccess: (_data, variables) => {
+      if (pricingRulesKey) {
+        queryClient.setQueryData<ProductPricingRuleDto[]>(pricingRulesKey, (current = []) =>
+          current.map((rule) => (rule.id === variables.id ? { ...rule, ...variables.payload } : rule))
+        );
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.products.pricingRule(variables.id) });
       invalidate();
     },
@@ -37,6 +51,11 @@ export const useProductPricingRuleMutations = (productId?: string) => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => productsApi.deletePricingRule(id),
     onSuccess: (_data, id) => {
+      if (pricingRulesKey) {
+        queryClient.setQueryData<ProductPricingRuleDto[]>(pricingRulesKey, (current = []) =>
+          current.filter((rule) => rule.id !== id)
+        );
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.products.pricingRule(id) });
       invalidate();
     },

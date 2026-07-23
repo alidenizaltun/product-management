@@ -4,6 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { mockProductDetailDto, mockSoftwareProductDetail } from "@/tests/mocks/fixtures";
+import { buildPricingRulePayload, buildPricingRulePayloads } from "@/modules/products/utils/productFormPayload";
 
 // mapProductToForm doğrudan export edilmediği için mantığı burada kopyalıyoruz.
 // Alternatif: fonksiyonu ayrı bir utils dosyasına taşıyıp export etmek.
@@ -227,5 +228,36 @@ describe("mapProductToForm - yazılım ürünü (kind=2)", () => {
 
     it("physicalProfile undefined gelir", () => {
         expect(form.physicalProfile).toBeUndefined();
+    });
+});
+
+describe("product full-save pricing rule payload", () => {
+    it("düzenleme sırasında mevcut kural id ve birim ilişkilerini korur", () => {
+        const payload = buildPricingRulePayload(mockSoftwareProductDetail.pricingRules[0]);
+
+        expect(payload.id).toBe(mockSoftwareProductDetail.pricingRules[0].id);
+        expect(payload.productUnitIds).toEqual(["product-unit-user", "product-unit-branch"]);
+        expect(payload.productUnitId).toBe("product-unit-user");
+        expect(payload.priceAdjustment).toEqual(mockSoftwareProductDetail.pricingRules[0].priceAdjustment);
+    });
+
+    it("taslak kural id'sini yeni ürün payload'ına taşımaz", () => {
+        const payload = buildPricingRulePayload({
+            id: "draft-rule-123",
+            code: "rule-test",
+            name: "Test Kural",
+            priority: 0,
+            isActive: true,
+            productUnitTempIds: ["unit-temp-1"],
+            priceAdjustment: { mode: "unit", type: "fixed", value: 10 },
+        });
+
+        expect(payload.id).toBeUndefined();
+        expect(payload.productUnitTempIds).toEqual(["unit-temp-1"]);
+        expect(payload.productUnitTempId).toBe("unit-temp-1");
+    });
+
+    it("edit full-save için kural yoksa boş dizi üretir", () => {
+        expect(buildPricingRulePayloads([], true)).toEqual([]);
     });
 });

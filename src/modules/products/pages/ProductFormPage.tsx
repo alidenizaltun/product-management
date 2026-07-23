@@ -10,6 +10,7 @@ import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import { useProductDetail } from "@/modules/products/hooks/useProductDetail";
 import { useProductMutations } from "@/modules/products/hooks/useProductMutations";
+import { useProductPricingRules } from "@/modules/products/hooks/useProductPricingRules";
 import { ProductDetailDto } from "@/shared/types/productOperations.types";
 import {
     ProductFormValues,
@@ -34,6 +35,7 @@ import InventoryTransactionTab from "@/modules/products/components/editor/Invent
 import InventoryReservationTab from "@/modules/products/components/editor/InventoryReservationTab";
 import PriceListItemTab from "@/modules/products/components/editor/PriceListItemTab";
 import ProfileEditor from "@/modules/products/components/editor/ProfileEditor";
+import { buildPricingRulePayloads } from "@/modules/products/utils/productFormPayload";
 
 type WorkflowId = "start" | "sales" | "enrich" | "advanced";
 
@@ -67,6 +69,37 @@ const mapProductUnitTempIds = (item: {
     productUnitTempIds?: string[];
     productUnitTempId?: string | null;
 }) => item.productUnitTempIds?.length ? item.productUnitTempIds : item.productUnitTempId ? [item.productUnitTempId] : [];
+
+const createCodeSegment = (value: string) =>
+    value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ı/g, "i")
+        .replace(/ğ/g, "g")
+        .replace(/ü/g, "u")
+        .replace(/ş/g, "s")
+        .replace(/ö/g, "o")
+        .replace(/ç/g, "c")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 24);
+
+const createModuleCode = (name: string, index: number) => `MOD-${createCodeSegment(name) || `MODUL-${index + 1}`}`;
+
+const ensureUniqueModuleCode = (baseCode: string, usedCodes: Set<string>) => {
+    const trimmedBaseCode = baseCode.trim() || "MOD-MODUL";
+    let candidate = trimmedBaseCode;
+    let index = 2;
+
+    while (usedCodes.has(candidate.toLocaleUpperCase("tr-TR"))) {
+        candidate = `${trimmedBaseCode}-${index}`;
+        index += 1;
+    }
+
+    usedCodes.add(candidate.toLocaleUpperCase("tr-TR"));
+    return candidate;
+};
 
 const normalizeLicenseModel = (value?: number | null) => {
     const model = Number(value ?? 2);
@@ -613,6 +646,7 @@ const ProductFormPage: React.FC = () => {
     const routeState = location.state as ProductFormRouteState | null;
 
     const { data: product, isLoading } = useProductDetail(id);
+    const { data: currentPricingRules } = useProductPricingRules(id);
     const { createFullMutation, updateFullMutation } = useProductMutations();
     const [activeWorkflow, setActiveWorkflow] = useState<WorkflowId>("start");
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -674,6 +708,16 @@ const ProductFormPage: React.FC = () => {
 
     const totalErrorCount = Object.values(tabErrorCounts).reduce((a, b) => a + b, 0);
 
+    const handleFormKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+        if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+
+        const target = event.target as HTMLElement | null;
+        const tagName = target?.tagName.toLowerCase();
+        if (!target || tagName === "textarea" || tagName === "button" || target.isContentEditable) return;
+
+        event.preventDefault();
+    };
+
     const onSubmit = async (values: ProductFormValues) => {
         setSubmitError(null);
         const productPayload = {
@@ -697,6 +741,25 @@ const ProductFormPage: React.FC = () => {
             tags: values.tags || undefined,
             metadataJson: values.metadataJson || undefined,
         };
+
+        const pricingRulesForPayload = isEdit
+            ? currentPricingRules ?? product?.pricingRules ?? values.pricingRules
+            : values.pricingRules;
+        const usedModuleCodes = new Set<string>();
+        const normalizedModules = values.kind === 2 && values.modules?.length
+            ? values.modules.map((module, moduleIndex) => {
+                const typedModuleCode = module.moduleCode.trim();
+                const moduleCode = ensureUniqueModuleCode(
+                    typedModuleCode || createModuleCode(module.name, moduleIndex),
+                    usedModuleCodes
+                );
+
+                return {
+                    ...module,
+                    moduleCode,
+                };
+            })
+            : values.modules;
 
         const fullPayload = {
             product: productPayload,
@@ -752,28 +815,30 @@ const ProductFormPage: React.FC = () => {
                     }))
                 : (isEdit ? [] : undefined),
             // Yazılım ürünü (kind=2) için ek lisans alanları
-            modules: values.kind === 2 && values.modules?.length
-                ? values.modules.map((m) => ({
-                    productId: id ?? undefined,
-                    moduleCode: m.moduleCode,
-                    name: m.name,
-                    description: m.description,
-                    currencyCode: m.currencyCode,
-                    isOptional: m.isOptional,
-                    isActive: m.isActive,
-                    sortOrder: m.sortOrder,
-                    offeringPrices: m.offeringPrices?.length
-                        ? m.offeringPrices
-                            .filter((op) => Boolean(op.productLicenseOfferingId) || Boolean(op.licenseOfferingTempId))
-                            .map((op) => ({
-                                productLicenseOfferingId: op.productLicenseOfferingId || undefined,
-                                licenseOfferingTempId: op.licenseOfferingTempId || undefined,
-                                price: op.price,
-                                currencyCode: op.currencyCode,
-                                isActive: op.isActive,
-                            }))
-                        : undefined,
-                }))
+            modules: values.kind === 2 && normalizedModules?.length
+                ? normalizedModules.map((m) => {
+                    return {
+                        productId: id ?? undefined,
+                        moduleCode: m.moduleCode,
+                        name: m.name,
+                        description: m.description,
+                        currencyCode: m.currencyCode,
+                        isOptional: m.isOptional,
+                        isActive: m.isActive,
+                        sortOrder: m.sortOrder,
+                        offeringPrices: m.offeringPrices?.length
+                            ? m.offeringPrices
+                                .filter((op) => Boolean(op.productLicenseOfferingId) || Boolean(op.licenseOfferingTempId))
+                                .map((op) => ({
+                                    productLicenseOfferingId: op.productLicenseOfferingId || undefined,
+                                    licenseOfferingTempId: op.licenseOfferingTempId || undefined,
+                                    price: op.price,
+                                    currencyCode: op.currencyCode,
+                                    isActive: op.isActive,
+                                }))
+                            : undefined,
+                    };
+                })
                 : undefined,
             softwarePricingTiers: undefined,
             licenseOfferings:
@@ -810,48 +875,16 @@ const ProductFormPage: React.FC = () => {
                     })
                     : undefined,
             pricingRules:
-                !isEdit && values.pricingRules?.length
-                    ? values.pricingRules.map((rule) => {
-                        const savedUnitIds = (rule.productUnitIds?.length
-                            ? rule.productUnitIds
-                            : rule.productUnitId
-                                ? [rule.productUnitId]
-                                : [])
-                            .filter(Boolean);
-                        const tempUnitIds = (rule.productUnitTempIds?.length
-                            ? rule.productUnitTempIds
-                            : rule.productUnitTempId
-                                ? [rule.productUnitTempId]
-                                : [])
-                            .filter(Boolean);
-
-                        return {
-                            productLicenseOfferingId: rule.productLicenseOfferingId || undefined,
-                            licenseOfferingTempId: rule.licenseOfferingTempId || undefined,
-                            productUnitId: savedUnitIds[0] || undefined,
-                            productUnitTempId: savedUnitIds.length === 0 ? tempUnitIds[0] || undefined : undefined,
-                            productUnitIds: savedUnitIds.length ? savedUnitIds : undefined,
-                            productUnitTempIds: tempUnitIds.length ? tempUnitIds : undefined,
-                            productVariantId: rule.productVariantId || null,
-                            code: rule.code,
-                            name: rule.name,
-                            priority: Number(rule.priority ?? 0),
-                            isActive: Boolean(rule.isActive),
-                            validFrom: rule.validFrom || null,
-                            validTo: rule.validTo || null,
-                            salesChannel: null,
-                            customerGroupCode: null,
-                            priceAdjustment: rule.priceAdjustment ?? null,
-                            priceAdjustmentJson: rule.priceAdjustmentJson ?? null,
-                        };
-                    })
-                    : undefined,
+                buildPricingRulePayloads(pricingRulesForPayload, isEdit),
         };
 
         try {
             if (isEdit && id) {
                 await updateFullMutation.mutateAsync({ id, payload: fullPayload });
-                navigate(`/products/${id}`);
+                reset({
+                    ...values,
+                    modules: normalizedModules,
+                });
                 return;
             }
 
@@ -1221,7 +1254,7 @@ const ProductFormPage: React.FC = () => {
             <Head title={isEdit ? "Ürün Düzenle" : "Yeni Ürün"} />
             <Content>
                 <FormProvider {...form}>
-                    <form onSubmit={handleSubmit(onSubmit)}>
+                    <form onSubmit={handleSubmit(onSubmit)} onKeyDown={handleFormKeyDown}>
                         <PageHeader
                             title={isEdit ? "Ürün Düzenle" : "Yeni Ürün"}
                             description={

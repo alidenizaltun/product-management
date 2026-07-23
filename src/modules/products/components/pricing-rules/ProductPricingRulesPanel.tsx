@@ -366,6 +366,25 @@ const slugifyRuleCode = (value: string) => {
   return slug ? `rule-${slug}` : "";
 };
 
+const createAutoRuleName = (form: RuleFormState) => {
+  if (form.adjustment.mode === "unit") return "Kademeli fiyat kuralı";
+
+  const isDecrease = form.adjustment.operation === "subtract";
+  const adjustmentType = form.adjustment.type || "percentage";
+
+  if (adjustmentType === "percentage" || adjustmentType === "percent") {
+    return isDecrease ? "Yüzde indirim" : "Yüzde artırım";
+  }
+
+  if (adjustmentType === "fixed") {
+    return isDecrease ? "Sabit indirim" : "Sabit fiyat artışı";
+  }
+
+  if (adjustmentType === "multiplier") return "Çarpan kuralı";
+
+  return "Dinamik fiyat kuralı";
+};
+
 const QUICK_RULE_TEMPLATES = [
   {
     title: "Genel indirim",
@@ -542,6 +561,48 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     return [...merged.values()];
   }, [rules, form.adjustment.unitField, form.adjustment.conditions]);
 
+  const ensureUniqueRuleName = (baseName: string) => {
+    const usedNames = new Set(
+      rules
+        .filter((rule) => rule.id !== form.id)
+        .map((rule) => rule.name?.trim().toLocaleLowerCase("tr-TR"))
+        .filter(Boolean)
+    );
+    const trimmedBaseName = baseName.trim() || "Dinamik fiyat kuralı";
+
+    if (!usedNames.has(trimmedBaseName.toLocaleLowerCase("tr-TR"))) return trimmedBaseName;
+
+    let index = 2;
+    let candidate = `${trimmedBaseName} ${index}`;
+    while (usedNames.has(candidate.toLocaleLowerCase("tr-TR"))) {
+      index += 1;
+      candidate = `${trimmedBaseName} ${index}`;
+    }
+
+    return candidate;
+  };
+
+  const ensureUniqueRuleCode = (baseCode: string) => {
+    const usedCodes = new Set(
+      rules
+        .filter((rule) => rule.id !== form.id)
+        .map((rule) => rule.code?.trim().toLocaleLowerCase("tr-TR"))
+        .filter(Boolean)
+    );
+    const trimmedBaseCode = baseCode.trim() || "rule-dinamik-fiyat-kurali";
+
+    if (!usedCodes.has(trimmedBaseCode.toLocaleLowerCase("tr-TR"))) return trimmedBaseCode;
+
+    let index = 2;
+    let candidate = `${trimmedBaseCode}-${index}`;
+    while (usedCodes.has(candidate.toLocaleLowerCase("tr-TR"))) {
+      index += 1;
+      candidate = `${trimmedBaseCode}-${index}`;
+    }
+
+    return candidate;
+  };
+
   const resetForm = () => {
     setForm(emptyForm());
     setEngineOpen(false);
@@ -619,6 +680,14 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
   const buildPayload = (): UpsertProductPricingRuleRequestDto => {
     const priceAdjustment = formToAdjustment(form.adjustment);
+    const typedName = form.name.trim();
+    const typedCode = form.code.trim();
+    const name = typedName || ensureUniqueRuleName(createAutoRuleName(form));
+    const code = typedCode
+      ? typedCode.startsWith("rule-")
+        ? ensureUniqueRuleCode(typedCode)
+        : typedCode
+      : ensureUniqueRuleCode(slugifyRuleCode(name));
     const productUnitIds = (form.productUnitIds.length ? form.productUnitIds : form.productUnitId ? [form.productUnitId] : [])
       .filter(Boolean);
     const productUnitTempIds = (form.productUnitTempIds.length
@@ -629,8 +698,8 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       .filter(Boolean);
 
     return {
-      code: form.code.trim(),
-      name: form.name.trim(),
+      code,
+      name,
       priority: Number(form.priority || 0),
       isActive: Boolean(form.isActive),
       validFrom: fromDateTimeInput(form.validFrom),
@@ -1053,14 +1122,13 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
                   <div className="col-lg-12">
                     <label className="form-label">
-                      <HelpLabel help="Bu kuralı listede tanıyacağınız isimdir. Örneğin kampanya indirimi, yıllık plan indirimi veya kullanıcı sayısı kademesi gibi iş anlamı taşıyan bir ad yazın.">
+                      <HelpLabel help="Bu kuralı listede tanıyacağınız isimdir. Boş bırakırsanız sistem seçilen fiyat aksiyonuna göre otomatik bir ad üretir.">
                         Kural adı
-                      </HelpLabel>{" "}
-                      <span className="text-danger">*</span>
+                      </HelpLabel>
                     </label>
                     <input
                       className="form-control form-control-lg"
-                      placeholder="Örn. Kampanya indirimi"
+                      placeholder="Boş bırakılırsa otomatik üretilir"
                       value={form.name}
                       onChange={(event) => updateRuleName(event.target.value)}
                     />
@@ -1573,7 +1641,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                       color="primary"
                       type="button"
                       onClick={handleSubmit}
-                      disabled={pending || !form.code.trim() || !form.name.trim()}
+                      disabled={pending}
                     >
                       {pending ? (
                         <>

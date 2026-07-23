@@ -19,6 +19,7 @@ export const useProductMutations = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.pricingRules(variables.id) });
     },
   });
 

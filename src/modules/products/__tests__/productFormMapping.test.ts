@@ -4,7 +4,11 @@
  */
 import { describe, it, expect } from "vitest";
 import { mockProductDetailDto, mockSoftwareProductDetail } from "@/tests/mocks/fixtures";
-import { buildPricingRulePayload, buildPricingRulePayloads } from "@/modules/products/utils/productFormPayload";
+import {
+    buildModuleOfferingPricePayloads,
+    buildPricingRulePayload,
+    buildPricingRulePayloads,
+} from "@/modules/products/utils/productFormPayload";
 
 // mapProductToForm doğrudan export edilmediği için mantığı burada kopyalıyoruz.
 // Alternatif: fonksiyonu ayrı bir utils dosyasına taşıyıp export etmek.
@@ -259,5 +263,80 @@ describe("product full-save pricing rule payload", () => {
 
     it("edit full-save için kural yoksa boş dizi üretir", () => {
         expect(buildPricingRulePayloads([], true)).toEqual([]);
+    });
+});
+
+describe("product full-save module offering price payload", () => {
+    const licenseOfferings = [
+        { id: "offering-standard", name: "Standart", basePrice: 1000, currencyCode: "TRY" },
+        { _tempId: "offering-temp-pro", name: "Pro", basePrice: 2000, currencyCode: "TRY" },
+    ];
+
+    it("Tüm planlar seçimini plan bazlı fiyat satırlarına genişletir", () => {
+        const payload = buildModuleOfferingPricePayloads(
+            [
+                {
+                    appliesToAllLicenseOfferings: true,
+                    price: 99,
+                    currencyCode: "TRY",
+                    isActive: true,
+                },
+            ],
+            licenseOfferings
+        );
+
+        expect(payload).toEqual([
+            {
+                productLicenseOfferingId: "offering-standard",
+                licenseOfferingTempId: undefined,
+                price: 99,
+                currencyCode: "TRY",
+                isActive: true,
+            },
+            {
+                productLicenseOfferingId: undefined,
+                licenseOfferingTempId: "offering-temp-pro",
+                price: 99,
+                currencyCode: "TRY",
+                isActive: true,
+            },
+        ]);
+    });
+
+    it("aynı plan için tekrar fiyat girilirse tek satır üretir", () => {
+        const payload = buildModuleOfferingPricePayloads(
+            [
+                {
+                    appliesToAllLicenseOfferings: true,
+                    price: 99,
+                    currencyCode: "TRY",
+                    isActive: true,
+                },
+                {
+                    productLicenseOfferingId: "offering-standard",
+                    price: 149,
+                    currencyCode: "USD",
+                    isActive: true,
+                },
+            ],
+            licenseOfferings
+        );
+
+        expect(payload).toEqual([
+            {
+                productLicenseOfferingId: "offering-standard",
+                licenseOfferingTempId: undefined,
+                price: 149,
+                currencyCode: "USD",
+                isActive: true,
+            },
+            {
+                productLicenseOfferingId: undefined,
+                licenseOfferingTempId: "offering-temp-pro",
+                price: 99,
+                currencyCode: "TRY",
+                isActive: true,
+            },
+        ]);
     });
 });

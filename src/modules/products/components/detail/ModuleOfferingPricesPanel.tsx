@@ -21,6 +21,7 @@ const EMPTY_FORM: FormState = {
 };
 
 const CURRENCY_OPTIONS = ["TRY", "USD", "EUR", "GBP"];
+const ALL_LICENSE_OFFERINGS_KEY = "__all_license_offerings__";
 
 interface Props {
     productId: string;
@@ -65,17 +66,32 @@ const ModuleOfferingPricesPanel: React.FC<Props> = ({ productId, moduleId, licen
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const payload = {
-            productLicenseOfferingId: form.productLicenseOfferingId,
+        const basePayload = {
             price: parseFloat(form.price) || 0,
             currencyCode: form.currencyCode,
             isActive: form.isActive,
         };
 
         if (editingId) {
+            const payload = {
+                ...basePayload,
+                productLicenseOfferingId: form.productLicenseOfferingId,
+            };
             await update.mutateAsync({ priceId: editingId, payload });
+        } else if (form.productLicenseOfferingId === ALL_LICENSE_OFFERINGS_KEY) {
+            await Promise.all(
+                availableOfferings.map((offering) =>
+                    create.mutateAsync({
+                        ...basePayload,
+                        productLicenseOfferingId: offering.id,
+                    })
+                )
+            );
         } else {
-            await create.mutateAsync(payload as CreateProductModuleOfferingPriceRequest);
+            await create.mutateAsync({
+                ...basePayload,
+                productLicenseOfferingId: form.productLicenseOfferingId,
+            } as CreateProductModuleOfferingPriceRequest);
         }
         closeForm();
     };
@@ -131,6 +147,9 @@ const ModuleOfferingPricesPanel: React.FC<Props> = ({ productId, moduleId, licen
                                     disabled={Boolean(editingId)}
                                 >
                                     <option value="">Seçiniz...</option>
+                                    {!editingId && availableOfferings.length > 1 && (
+                                        <option value={ALL_LICENSE_OFFERINGS_KEY}>Tüm planlar</option>
+                                    )}
                                     {(editingId
                                         ? licenseOfferings
                                         : availableOfferings

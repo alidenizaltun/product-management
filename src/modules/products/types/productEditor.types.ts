@@ -137,6 +137,7 @@ export interface ModuleOfferingPriceForm {
   productLicenseOfferingId?: string;
   /** Henüz kaydedilmemiş offering'e referans; backend ile eşleştirir */
   licenseOfferingTempId?: string;
+  appliesToAllLicenseOfferings?: boolean;
   price: number;
   currencyCode: string;
   isActive: boolean;

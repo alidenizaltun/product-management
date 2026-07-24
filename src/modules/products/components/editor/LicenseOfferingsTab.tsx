@@ -682,6 +682,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
     const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [editingOfferingIndex, setEditingOfferingIndex] = useState<number | null>(null);
+    const [templateModalOpen, setTemplateModalOpen] = useState(false);
 
     const addTemplate = (template: typeof PLAN_TEMPLATES[number]) => {
         const tempId = generateTempId();
@@ -692,6 +693,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
             _tempId: tempId,
             sortOrder: fields.length + 1,
         });
+        setTemplateModalOpen(false);
         setEditingOfferingIndex(nextIndex);
     };
 
@@ -699,6 +701,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
         const tempId = generateTempId();
         const nextIndex = fields.length;
         append({ ...EMPTY_OFFERING, _tempId: tempId, sortOrder: fields.length + 1 });
+        setTemplateModalOpen(false);
         setEditingOfferingIndex(nextIndex);
     };
 
@@ -772,38 +775,18 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                 <button
                     type="button"
                     className="btn btn-sm btn-outline-primary"
-                    onClick={addEmptyOffering}
+                    onClick={() => setTemplateModalOpen(true)}
                 >
                     <em className="icon ni ni-plus me-1" />
-                    Boş plan
+                    Plan ekle
                 </button>
-            </div>
-
-            <div className="row g-3 mb-4">
-                {PLAN_TEMPLATES.map((template) => (
-                    <div className="col-sm-6 col-xl" key={template.title}>
-                        <button
-                            type="button"
-                            className="card card-bordered h-100 w-100 bg-white text-start"
-                            onClick={() => addTemplate(template)}
-                        >
-                            <div className="card-inner">
-                                <span className="btn btn-icon btn-light rounded-circle mb-3">
-                                    <em className={`icon ni ni-${template.icon}`} />
-                                </span>
-                                <h6 className="title mb-1">{template.title}</h6>
-                                <p className="text-soft fs-12px mb-0">{template.description}</p>
-                            </div>
-                        </button>
-                    </div>
-                ))}
             </div>
 
             {fields.length === 0 ? (
                 <div className="text-center py-5 text-soft">
                     <em className="icon ni ni-tag fs-2 d-block mb-2" />
                     <p className="mb-0">
-                        Henüz plan eklenmedi. Yukarıdaki şablonlardan biriyle başlayın.
+                        Henüz plan eklenmedi. Plan ekle ile bir şablon seçin.
                     </p>
                 </div>
             ) : (
@@ -884,6 +867,54 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                     </table>
                 </div>
             )}
+
+            <Modal isOpen={templateModalOpen} toggle={() => setTemplateModalOpen(false)} size="lg" centered>
+                <ModalHeader toggle={() => setTemplateModalOpen(false)}>
+                    Satış Planı Seç
+                </ModalHeader>
+                <ModalBody className="pricing-manager-modal-body">
+                    <div className="pricing-manager-modal-intro">
+                        <span className="overline-title text-primary">Hızlı başlangıç</span>
+                        <p className="text-soft fs-13px mb-0">
+                            Bir plan şablonu seçin veya boş planla kendi paket yapınızı oluşturun.
+                        </p>
+                    </div>
+                    <div className="row g-3">
+                        {PLAN_TEMPLATES.map((template) => (
+                            <div className="col-sm-6" key={template.title}>
+                                <button
+                                    type="button"
+                                    className="card card-bordered h-100 w-100 bg-white text-start pricing-template-card"
+                                    onClick={() => addTemplate(template)}
+                                >
+                                    <div className="card-inner">
+                                        <span className="btn btn-icon btn-light rounded-circle mb-3">
+                                            <em className={`icon ni ni-${template.icon}`} />
+                                        </span>
+                                        <h6 className="title mb-1">{template.title}</h6>
+                                        <p className="text-soft fs-12px mb-0">{template.description}</p>
+                                    </div>
+                                </button>
+                            </div>
+                        ))}
+                        <div className="col-sm-6">
+                            <button
+                                type="button"
+                                className="card card-bordered h-100 w-100 bg-white text-start pricing-template-card"
+                                onClick={addEmptyOffering}
+                            >
+                                <div className="card-inner">
+                                    <span className="btn btn-icon btn-light rounded-circle mb-3">
+                                        <em className="icon ni ni-plus" />
+                                    </span>
+                                    <h6 className="title mb-1">Boş plan</h6>
+                                    <p className="text-soft fs-12px mb-0">Tüm alanları kendiniz doldurun.</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </ModalBody>
+            </Modal>
 
             {editingOfferingIndex != null && fields[editingOfferingIndex] && (
                 <Modal isOpen toggle={() => setEditingOfferingIndex(null)} size="xl" centered>

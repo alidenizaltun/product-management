@@ -35,7 +35,7 @@ import InventoryTransactionTab from "@/modules/products/components/editor/Invent
 import InventoryReservationTab from "@/modules/products/components/editor/InventoryReservationTab";
 import PriceListItemTab from "@/modules/products/components/editor/PriceListItemTab";
 import ProfileEditor from "@/modules/products/components/editor/ProfileEditor";
-import { buildPricingRulePayloads } from "@/modules/products/utils/productFormPayload";
+import { buildModuleOfferingPricePayloads, buildPricingRulePayloads } from "@/modules/products/utils/productFormPayload";
 
 type WorkflowId = "start" | "sales" | "enrich" | "advanced";
 
@@ -532,24 +532,28 @@ const mapProductToForm = (product: ProductDetailDto): ProductFormValues => {
             sortOrder: unit.sortOrder,
         })),
 
-        modules: (product.modules ?? []).map((m) => ({
-            id: m.id,
-            moduleCode: m.moduleCode,
-            name: m.name,
-            description: m.description,
-            currencyCode: m.currencyCode,
-            isOptional: m.isOptional,
-            isActive: m.isActive,
-            sortOrder: m.sortOrder,
-            offeringPrices: (product.moduleOfferingPrices ?? [])
-                .filter((op) => op.productModuleId === m.id)
-                .map((op) => ({
+        modules: (product.modules ?? []).map((m) => {
+            const topLevelOfferingPrices = (product.moduleOfferingPrices ?? []).filter((op) => op.productModuleId === m.id);
+            const offeringPrices = topLevelOfferingPrices.length ? topLevelOfferingPrices : m.offeringPrices ?? [];
+
+            return {
+                id: m.id,
+                moduleCode: m.moduleCode,
+                name: m.name,
+                description: m.description,
+                currencyCode: m.currencyCode,
+                isOptional: m.isOptional,
+                isActive: m.isActive,
+                sortOrder: m.sortOrder,
+                offeringPrices: offeringPrices.map((op) => ({
                     productLicenseOfferingId: op.productLicenseOfferingId,
+                    licenseOfferingTempId: op.licenseOfferingTempId,
                     price: op.price,
                     currencyCode: op.currencyCode,
                     isActive: op.isActive,
                 })),
-        })),
+            };
+        }),
 
         softwarePricingTiers: (product.softwarePricingTiers ?? []).map((t) => ({
             productLicenseOfferingId: t.productLicenseOfferingId,
@@ -817,6 +821,12 @@ const ProductFormPage: React.FC = () => {
             // Yazılım ürünü (kind=2) için ek lisans alanları
             modules: values.kind === 2 && normalizedModules?.length
                 ? normalizedModules.map((m) => {
+                    const offeringPrices = buildModuleOfferingPricePayloads(
+                        m.offeringPrices,
+                        values.licenseOfferings,
+                        values.defaultCurrencyCode
+                    );
+
                     return {
                         productId: id ?? undefined,
                         moduleCode: m.moduleCode,
@@ -826,17 +836,7 @@ const ProductFormPage: React.FC = () => {
                         isOptional: m.isOptional,
                         isActive: m.isActive,
                         sortOrder: m.sortOrder,
-                        offeringPrices: m.offeringPrices?.length
-                            ? m.offeringPrices
-                                .filter((op) => Boolean(op.productLicenseOfferingId) || Boolean(op.licenseOfferingTempId))
-                                .map((op) => ({
-                                    productLicenseOfferingId: op.productLicenseOfferingId || undefined,
-                                    licenseOfferingTempId: op.licenseOfferingTempId || undefined,
-                                    price: op.price,
-                                    currencyCode: op.currencyCode,
-                                    isActive: op.isActive,
-                                }))
-                            : undefined,
+                        offeringPrices,
                     };
                 })
                 : undefined,

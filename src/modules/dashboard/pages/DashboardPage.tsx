@@ -102,7 +102,7 @@ const DashboardPage: React.FC = () => {
       <Head title="Gösterge Paneli" />
       <Content>
         <PageHeader
-          title="Gösterge Paneli"
+          title="Gösterge Paneli 1"
           description="Ürün, stok ve katalog özetinize hızlıca göz atın."
           actions={
             <Link to="/products/new" className="btn btn-primary">

@@ -622,6 +622,8 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   };
 
   const applyQuickTemplate = (template: typeof QUICK_RULE_TEMPLATES[number]) => {
+    const isUnitTemplate = template.form.adjustment.mode === "unit";
+
     setForm((current) => ({
       ...current,
       name: template.form.name,
@@ -633,7 +635,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
         conditions: [],
       },
     }));
-    setEngineOpen(false);
+    setEngineOpen(isUnitTemplate);
   };
 
   const updateAdjustment = <K extends keyof AdjustmentFormState>(key: K, value: AdjustmentFormState[K]) => {
@@ -914,6 +916,10 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
         mode: value,
       },
     }));
+
+    if (value === "unit") {
+      setEngineOpen(true);
+    }
   };
 
   const updateProductUnitScope = (value: string, checked: boolean) => {
@@ -1793,7 +1799,9 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                 size="sm"
                                 type="button"
                                 onClick={() => {
-                                  setForm(ruleToForm(rule));
+                                  const nextForm = ruleToForm(rule);
+                                  setForm(nextForm);
+                                  setEngineOpen(nextForm.adjustment.mode === "unit");
                                   setFormOpen(true);
                                 }}
                               >

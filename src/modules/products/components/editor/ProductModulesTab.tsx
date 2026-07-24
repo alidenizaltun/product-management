@@ -13,6 +13,7 @@ import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 
 const CURRENCY_OPTIONS = ["TRY", "USD", "EUR", "GBP"];
+const ALL_LICENSE_OFFERINGS_KEY = "__all_license_offerings__";
 
 const EMPTY_MODULE = {
     moduleCode: "",
@@ -28,6 +29,7 @@ const EMPTY_MODULE = {
 const EMPTY_OFFERING_PRICE = {
     productLicenseOfferingId: undefined as string | undefined,
     licenseOfferingTempId: undefined as string | undefined,
+    appliesToAllLicenseOfferings: false,
     price: 0,
     currencyCode: "TRY",
     isActive: true,
@@ -101,6 +103,14 @@ const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ module
                     {fields.map((field, priceIndex) => (
                         <div key={field.id} className="card card-bordered bg-lighter">
                             <div className="card-inner py-2">
+                                <input
+                                    type="hidden"
+                                    {...register(`modules.${moduleIndex}.offeringPrices.${priceIndex}.productLicenseOfferingId`)}
+                                />
+                                <input
+                                    type="hidden"
+                                    {...register(`modules.${moduleIndex}.offeringPrices.${priceIndex}.licenseOfferingTempId`)}
+                                />
                                 <div className="row g-2 align-items-end">
                                     <div className="col-md-4">
                                         <label className="form-label fs-12 mb-1">
@@ -109,15 +119,25 @@ const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ module
                                         <select
                                             className="form-control form-select form-select-sm"
                                             value={
-                                                watchedPrices[priceIndex]?.productLicenseOfferingId ||
-                                                watchedPrices[priceIndex]?.licenseOfferingTempId ||
-                                                ""
+                                                watchedPrices[priceIndex]?.appliesToAllLicenseOfferings
+                                                    ? ALL_LICENSE_OFFERINGS_KEY
+                                                    : watchedPrices[priceIndex]?.productLicenseOfferingId ||
+                                                    watchedPrices[priceIndex]?.licenseOfferingTempId ||
+                                                    ""
                                             }
                                             onChange={(e) => {
                                                 const selectedKey = e.target.value;
+                                                if (selectedKey === ALL_LICENSE_OFFERINGS_KEY) {
+                                                    setValue(`modules.${moduleIndex}.offeringPrices.${priceIndex}.appliesToAllLicenseOfferings`, true, { shouldDirty: true });
+                                                    setValue(`modules.${moduleIndex}.offeringPrices.${priceIndex}.productLicenseOfferingId`, undefined, { shouldDirty: true });
+                                                    setValue(`modules.${moduleIndex}.offeringPrices.${priceIndex}.licenseOfferingTempId`, undefined, { shouldDirty: true });
+                                                    return;
+                                                }
+
                                                 const offering = allOfferings.find(
                                                     (lo) => lo.id === selectedKey || lo._tempId === selectedKey
                                                 );
+                                                setValue(`modules.${moduleIndex}.offeringPrices.${priceIndex}.appliesToAllLicenseOfferings`, false, { shouldDirty: true });
                                                 if (!offering) {
                                                     setValue(`modules.${moduleIndex}.offeringPrices.${priceIndex}.productLicenseOfferingId`, undefined, { shouldDirty: true });
                                                     setValue(`modules.${moduleIndex}.offeringPrices.${priceIndex}.licenseOfferingTempId`, undefined, { shouldDirty: true });
@@ -131,6 +151,9 @@ const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ module
                                             }}
                                         >
                                             <option value="">-- Seçiniz --</option>
+                                            {allOfferings.length > 1 && (
+                                                <option value={ALL_LICENSE_OFFERINGS_KEY}>Tüm planlar</option>
+                                            )}
                                             {allOfferings.map((lo) => (
                                                 <option key={lo.id ?? lo._tempId} value={lo.id ?? lo._tempId ?? ""}>
                                                     {lo.name || "(İsimsiz Teklif)"}

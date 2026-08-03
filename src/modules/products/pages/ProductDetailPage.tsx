@@ -12,6 +12,8 @@ import { useProductMutations } from "@/modules/products/hooks/useProductMutation
 import ProductDetailHero from "@/modules/products/components/detail/ProductDetailHero";
 import { buildProductDetailTabs } from "@/modules/products/components/detail/ProductDetailTabs";
 import { KIND_LABELS, STATUS_LABELS } from "@/modules/products/components/detail/constants";
+import ProductSectionShortcuts from "@/modules/products/components/detail/ProductSectionShortcuts";
+import { buildProductSectionLink } from "@/modules/products/config/productSections";
 
 const ProductDetailPage: React.FC = () => {
   const navigate = useNavigate();
@@ -84,9 +86,13 @@ const ProductDetailPage: React.FC = () => {
                     {status.label}
                   </span>
                 )}
-                <Button color="primary" size="sm" onClick={() => navigate(`/products/${id}/edit`)}>
+                <Button
+                  color="primary"
+                  size="sm"
+                  onClick={() => navigate(buildProductSectionLink("general", id))}
+                >
                   <em className="icon ni ni-edit me-1" />
-                  Düzenle
+                  Genel Bilgileri Düzenle
                 </Button>
                 <Button color="danger" outline size="sm" onClick={() => setConfirmOpen(true)}>
                   <em className="icon ni ni-trash me-1" />
@@ -119,6 +125,7 @@ const ProductDetailPage: React.FC = () => {
           ) : (
             <>
               <ProductDetailHero product={product} />
+              <ProductSectionShortcuts product={product} />
               <AppTabs
                 tabs={buildProductDetailTabs(product)}
                 activeTab={activeTab}

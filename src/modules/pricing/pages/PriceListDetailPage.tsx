@@ -38,12 +38,12 @@ const PriceListDetailPage: React.FC = () => {
           description={priceList ? `Kod: ${priceList.code}` : undefined}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light" onClick={() => navigate("/pricing/pricelists")}>
+              <Button color="light" onClick={() => navigate("/pricing/price-lists")}>
                 <Icon name="arrow-left" className="me-1" />
                 Geri
               </Button>
               {id ? (
-                <Link to={`/pricing/pricelists/${id}/edit`} className="btn btn-primary">
+                <Link to={`/pricing/price-lists/${id}/edit`} className="btn btn-primary">
                   <Icon name="edit" className="me-1" />
                   Düzenle
                 </Link>

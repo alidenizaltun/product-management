@@ -20,7 +20,7 @@ export const config = {
     resetPassword: "/reset-password",
     confirmEmail: "/confirm-email",
     success: "/auth-success",
-    dashboard: "/",
+    home: "/products",
   },
 } as const;
 

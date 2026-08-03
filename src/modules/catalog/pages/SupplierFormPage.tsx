@@ -77,7 +77,7 @@ const SupplierFormPage: React.FC = () => {
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Tedarikçi güncellendi." : "Tedarikçi oluşturuldu.");
-      navigate("/catalog/suppliers");
+      navigate("/definitions/suppliers");
     } catch (err) {
       showApiError(err);
     }
@@ -94,7 +94,7 @@ const SupplierFormPage: React.FC = () => {
           title={title}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light py-2" onClick={() => navigate("/catalog/suppliers")} disabled={isPending}>
+              <Button color="light py-2" onClick={() => navigate("/definitions/suppliers")} disabled={isPending}>
                 İptal
               </Button>
               <Button color="primary py-2" type="submit" form="supplier-form" disabled={isPending}>

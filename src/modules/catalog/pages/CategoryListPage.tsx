@@ -47,12 +47,12 @@ const CategoryListPage: React.FC = () => {
         render: (it) => (
           <ul className="nk-tb-actions gx-1 justify-content-end">
             <li>
-              <Link to={`/catalog/categories/${it.id}`} className="btn btn-icon btn-trigger" title="Detay">
+              <Link to={`/definitions/categories/${it.id}`} className="btn btn-icon btn-trigger" title="Detay">
                 <Icon name="eye" />
               </Link>
             </li>
             <li>
-              <Link to={`/catalog/categories/${it.id}/edit`} className="btn btn-icon btn-trigger" title="Düzenle">
+              <Link to={`/definitions/categories/${it.id}/edit`} className="btn btn-icon btn-trigger" title="Düzenle">
                 <Icon name="edit" />
               </Link>
             </li>
@@ -75,13 +75,13 @@ const CategoryListPage: React.FC = () => {
 
   return (
     <>
-      <Head title="Kategoriler" />
+      <Head title="Kategori Tanımları" />
       <Content>
         <PageHeader
-          title="Kategoriler"
+          title="Kategori Tanımları"
           description="Ürün kategori hiyerarşisini yönetin."
           actions={
-            <Button color="primary" onClick={() => navigate("/catalog/categories/new")}>
+            <Button color="primary" onClick={() => navigate("/definitions/categories/new")}>
               <Icon name="plus" className="me-1" />
               Yeni Kategori
             </Button>
@@ -101,7 +101,7 @@ const CategoryListPage: React.FC = () => {
             emptyIcon="layers"
             rowKey={(it) => it.id}
             emptyAction={
-              <Button color="primary" onClick={() => navigate("/catalog/categories/new")}>
+              <Button color="primary" onClick={() => navigate("/definitions/categories/new")}>
                 <Icon name="plus" className="me-1" />
                 Yeni Kategori
               </Button>

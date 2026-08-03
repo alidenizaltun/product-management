@@ -25,7 +25,7 @@ const CampaignRulesPage: React.FC = () => {
               title="Bu modül yakında"
               description="Kampanya kuralları motoru henüz hazırlanma aşamasında."
               action={
-                <Button color="light" onClick={() => navigate("/pricing/pricelists")}>
+                <Button color="light" onClick={() => navigate("/pricing/price-lists")}>
                   <Icon name="arrow-left" className="me-1" />
                   Fiyat Listelerine Dön
                 </Button>

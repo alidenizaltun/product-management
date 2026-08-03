@@ -61,7 +61,7 @@ const CategoryFormPage: React.FC = () => {
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Kategori güncellendi." : "Kategori oluşturuldu.");
-      navigate("/catalog/categories");
+      navigate("/definitions/categories");
     } catch (err) {
       showApiError(err);
     }
@@ -79,7 +79,7 @@ const CategoryFormPage: React.FC = () => {
           description="Kategori bilgilerini girin."
           actions={
             <div className="d-flex gap-2">
-              <Button color="light py-2" onClick={() => navigate("/catalog/categories")} disabled={isPending}>
+              <Button color="light py-2" onClick={() => navigate("/definitions/categories")} disabled={isPending}>
                 İptal
               </Button>
               <Button color="primary py-2" type="submit" form="category-form" disabled={isPending || (!isDirty && !isEdit)}>

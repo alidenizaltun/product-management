@@ -77,7 +77,7 @@ const WarehouseFormPage: React.FC = () => {
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Depo güncellendi." : "Depo oluşturuldu.");
-      navigate("/catalog/warehouses");
+      navigate("/definitions/warehouses");
     } catch (err) {
       showApiError(err);
     }
@@ -94,7 +94,7 @@ const WarehouseFormPage: React.FC = () => {
           title={title}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light py-2" onClick={() => navigate("/catalog/warehouses")} disabled={isPending}>
+              <Button color="light py-2" onClick={() => navigate("/definitions/warehouses")} disabled={isPending}>
                 İptal
               </Button>
               <Button color="primary py-2" type="submit" form="warehouse-form" disabled={isPending}>

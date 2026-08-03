@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import Layout from "@/layout/Index";
 import LayoutNoSidebar from "@/layout/Index-nosidebar";
 import ThemeProvider from "@/layout/provider/Theme";
@@ -12,8 +12,19 @@ import ConfirmEmail from "@/modules/auth/pages/ConfirmEmail";
 import Success from "@/modules/auth/pages/Success";
 import DashboardPage from "@/modules/dashboard/pages/DashboardPage";
 import ProductListPage from "@/modules/products/pages/ProductListPage";
-import ProductFormPage from "@/modules/products/pages/ProductFormPage";
+import ProductCreatePage from "@/modules/products/pages/ProductCreatePage";
 import ProductDetailPage from "@/modules/products/pages/ProductDetailPage";
+import GeneralInfoPage from "@/modules/products/pages/sections/GeneralInfoPage";
+import ClassificationPage from "@/modules/products/pages/sections/ClassificationPage";
+import MediaPage from "@/modules/products/pages/sections/MediaPage";
+import AdvancedSettingsPage from "@/modules/products/pages/sections/AdvancedSettingsPage";
+import VariantsPage from "@/modules/products/pages/sections/VariantsPage";
+import InventorySupplyPage from "@/modules/products/pages/sections/InventorySupplyPage";
+import ProductPricingPage from "@/modules/products/pages/sections/ProductPricingPage";
+import PricingUnitsPage from "@/modules/products/pages/sections/PricingUnitsPage";
+import SalesPlansPage from "@/modules/products/pages/sections/SalesPlansPage";
+import PricingRulesPage from "@/modules/products/pages/sections/PricingRulesPage";
+import ModulesPage from "@/modules/products/pages/sections/ModulesPage";
 import CategoryListPage from "@/modules/catalog/pages/CategoryListPage";
 import CategoryFormPage from "@/modules/catalog/pages/CategoryFormPage";
 import CategoryDetailPage from "@/modules/catalog/pages/CategoryDetailPage";
@@ -60,6 +71,7 @@ import {
 } from "@/modules/system/pages/SystemPages";
 import UnitDefinitionListPage from "@/modules/catalog/pages/UnitDefinitionListPage";
 import UnitDefinitionFormPage from "@/modules/catalog/pages/UnitDefinitionFormPage";
+import { getProductSection } from "@/modules/products/config/productSections";
 
 const ScrollToTop = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -71,6 +83,23 @@ const ScrollToTop = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+/**
+ * Eski adresleri yeni sabit adreslere taşır; yer imleri ve uygulama içindeki
+ * eski bağlantılar 404'e düşmez.
+ */
+const PrefixRedirect: React.FC<{ from: string; to: string }> = ({ from, to }) => {
+  const location = useLocation();
+  const nextPath = `${to}${location.pathname.slice(from.length)}`;
+  return <Navigate to={`${nextPath}${location.search}`} replace />;
+};
+
+/** Eski ürün düzenleme adresi; ürün artık sayfa içi Ürün Seçici ile taşınır. */
+const ProductEditRedirect: React.FC = () => {
+  const { id } = useParams();
+  const target = getProductSection("general").path;
+  return <Navigate to={id ? `${target}?productId=${id}` : target} replace />;
+};
+
 const Pages = () => {
   return (
     <BrowserRouter>
@@ -79,49 +108,29 @@ const Pages = () => {
           <Route element={<ThemeProvider />}>
             <Route element={<AuthGuard />}>
               <Route element={<Layout />}>
-                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route index element={<Navigate to="/products" replace />} />
 
-                <Route path="dashboard" element={<DashboardPage />} />
-
+                {/* ─── Ürün İşlemleri ─────────────────────────────────────── */}
                 <Route path="products" element={<ProductListPage />} />
-                <Route path="products/new" element={<ProductFormPage />} />
+                <Route path="products/new" element={<ProductCreatePage />} />
                 <Route path="products/:id" element={<ProductDetailPage />} />
-                <Route path="products/:id/edit" element={<ProductFormPage />} />
 
-                <Route path="catalog/categories" element={<CategoryListPage />} />
-                <Route path="catalog/categories/new" element={<CategoryFormPage />} />
-                <Route path="catalog/categories/:id/edit" element={<CategoryFormPage />} />
-                <Route path="catalog/categories/:id" element={<CategoryDetailPage />} />
+                <Route path="product-info/general" element={<GeneralInfoPage />} />
+                <Route path="product-info/classification" element={<ClassificationPage />} />
+                <Route path="product-info/media" element={<MediaPage />} />
+                <Route path="product-info/advanced" element={<AdvancedSettingsPage />} />
 
-                <Route path="catalog/suppliers" element={<SupplierListPage />} />
-                <Route path="catalog/suppliers/new" element={<SupplierFormPage />} />
-                <Route path="catalog/suppliers/:id/edit" element={<SupplierFormPage />} />
-                <Route path="catalog/suppliers/:id" element={<SupplierDetailPage />} />
+                <Route path="physical-products/variants" element={<VariantsPage />} />
+                <Route path="physical-products/inventory-supply" element={<InventorySupplyPage />} />
 
-                <Route path="catalog/warehouses" element={<WarehouseListPage />} />
-                <Route path="catalog/warehouses/new" element={<WarehouseFormPage />} />
-                <Route path="catalog/warehouses/:id/edit" element={<WarehouseFormPage />} />
-                <Route path="catalog/warehouses/:id" element={<WarehouseDetailPage />} />
+                <Route path="software-products/pricing-units" element={<PricingUnitsPage />} />
+                <Route path="software-products/sales-plans" element={<SalesPlansPage />} />
+                <Route path="software-products/pricing-rules" element={<PricingRulesPage />} />
+                <Route path="software-products/modules" element={<ModulesPage />} />
 
-                <Route path="catalog/unit-definitions" element={<UnitDefinitionListPage />} />
-                <Route path="catalog/unit-definitions/new" element={<UnitDefinitionFormPage />} />
-                <Route path="catalog/unit-definitions/:id/edit" element={<UnitDefinitionFormPage />} />
+                <Route path="pricing/product-pricing" element={<ProductPricingPage />} />
 
-                <Route path="attributes/definitions" element={<AttributeDefinitionListPage />} />
-                <Route path="attributes/definitions/new" element={<AttributeDefinitionFormPage />} />
-                <Route path="attributes/definitions/:id/edit" element={<AttributeDefinitionFormPage />} />
-                <Route path="attributes/definitions/:id" element={<AttributeDefinitionDetailPage />} />
-                <Route path="attributes/sets" element={<AttributeSetListPage />} />
-                <Route path="attributes/sets/new" element={<AttributeSetFormPage />} />
-                <Route path="attributes/sets/:id/edit" element={<AttributeSetFormPage />} />
-                <Route path="attributes/sets/:id" element={<AttributeSetDetailPage />} />
-
-                <Route path="pricing/pricelists" element={<PriceListListPage />} />
-                <Route path="pricing/pricelists/new" element={<PriceListFormPage />} />
-                <Route path="pricing/pricelists/:id/edit" element={<PriceListFormPage />} />
-                <Route path="pricing/pricelists/:id" element={<PriceListDetailPage />} />
-                <Route path="pricing/campaign-rules" element={<CampaignRulesPage />} />
-
+                {/* ─── Stok İşlemleri ─────────────────────────────────────── */}
                 <Route path="inventory/stock" element={<StockListPage />} />
                 <Route path="inventory/transactions" element={<StockTransactionListPage />} />
                 <Route path="inventory/transactions/new" element={<StockTransactionFormPage />} />
@@ -130,6 +139,42 @@ const Pages = () => {
                 <Route path="inventory/reservations" element={<ReservationListPage />} />
                 <Route path="inventory/reservations/:id" element={<ReservationDetailPage />} />
                 <Route path="inventory/warehouse-stock" element={<WarehouseStockPage />} />
+
+                {/* ─── Yönetim ve Tanımlar ────────────────────────────────── */}
+                <Route path="definitions/categories" element={<CategoryListPage />} />
+                <Route path="definitions/categories/new" element={<CategoryFormPage />} />
+                <Route path="definitions/categories/:id/edit" element={<CategoryFormPage />} />
+                <Route path="definitions/categories/:id" element={<CategoryDetailPage />} />
+
+                <Route path="definitions/attributes" element={<AttributeDefinitionListPage />} />
+                <Route path="definitions/attributes/new" element={<AttributeDefinitionFormPage />} />
+                <Route path="definitions/attributes/:id/edit" element={<AttributeDefinitionFormPage />} />
+                <Route path="definitions/attributes/:id" element={<AttributeDefinitionDetailPage />} />
+
+                <Route path="definitions/attribute-sets" element={<AttributeSetListPage />} />
+                <Route path="definitions/attribute-sets/new" element={<AttributeSetFormPage />} />
+                <Route path="definitions/attribute-sets/:id/edit" element={<AttributeSetFormPage />} />
+                <Route path="definitions/attribute-sets/:id" element={<AttributeSetDetailPage />} />
+
+                <Route path="definitions/software-units" element={<UnitDefinitionListPage />} />
+                <Route path="definitions/software-units/new" element={<UnitDefinitionFormPage />} />
+                <Route path="definitions/software-units/:id/edit" element={<UnitDefinitionFormPage />} />
+
+                <Route path="definitions/suppliers" element={<SupplierListPage />} />
+                <Route path="definitions/suppliers/new" element={<SupplierFormPage />} />
+                <Route path="definitions/suppliers/:id/edit" element={<SupplierFormPage />} />
+                <Route path="definitions/suppliers/:id" element={<SupplierDetailPage />} />
+
+                <Route path="definitions/warehouses" element={<WarehouseListPage />} />
+                <Route path="definitions/warehouses/new" element={<WarehouseFormPage />} />
+                <Route path="definitions/warehouses/:id/edit" element={<WarehouseFormPage />} />
+                <Route path="definitions/warehouses/:id" element={<WarehouseDetailPage />} />
+
+                <Route path="pricing/price-lists" element={<PriceListListPage />} />
+                <Route path="pricing/price-lists/new" element={<PriceListFormPage />} />
+                <Route path="pricing/price-lists/:id/edit" element={<PriceListFormPage />} />
+                <Route path="pricing/price-lists/:id" element={<PriceListDetailPage />} />
+                <Route path="pricing/campaign-rules" element={<CampaignRulesPage />} />
 
                 <Route path="identity/users" element={<UserListPage />} />
                 <Route path="identity/users/new" element={<UserFormPage />} />
@@ -146,6 +191,43 @@ const Pages = () => {
                 <Route path="system/integrations" element={<SystemIntegrationsPage />} />
                 <Route path="system/logs" element={<SystemLogsPage />} />
                 <Route path="system/audit" element={<SystemAuditPage />} />
+
+                {/* ─── Analiz ve Raporlama ────────────────────────────────── */}
+                <Route path="analytics" element={<DashboardPage />} />
+
+                {/* ─── Geriye dönük uyumluluk ─────────────────────────────── */}
+                <Route path="dashboard" element={<Navigate to="/analytics" replace />} />
+                <Route path="products/:id/edit" element={<ProductEditRedirect />} />
+                <Route
+                  path="catalog/categories/*"
+                  element={<PrefixRedirect from="/catalog/categories" to="/definitions/categories" />}
+                />
+                <Route
+                  path="catalog/suppliers/*"
+                  element={<PrefixRedirect from="/catalog/suppliers" to="/definitions/suppliers" />}
+                />
+                <Route
+                  path="catalog/warehouses/*"
+                  element={<PrefixRedirect from="/catalog/warehouses" to="/definitions/warehouses" />}
+                />
+                <Route
+                  path="catalog/unit-definitions/*"
+                  element={<PrefixRedirect from="/catalog/unit-definitions" to="/definitions/software-units" />}
+                />
+                <Route
+                  path="attributes/definitions/*"
+                  element={<PrefixRedirect from="/attributes/definitions" to="/definitions/attributes" />}
+                />
+                <Route
+                  path="attributes/sets/*"
+                  element={<PrefixRedirect from="/attributes/sets" to="/definitions/attribute-sets" />}
+                />
+                <Route
+                  path="pricing/pricelists/*"
+                  element={<PrefixRedirect from="/pricing/pricelists" to="/pricing/price-lists" />}
+                />
+
+                <Route path="*" element={<Navigate to="/products" replace />} />
               </Route>
             </Route>
 
@@ -161,7 +243,6 @@ const Pages = () => {
                 <Route path="reset-password" element={<ResetPassword />} />
                 <Route path="confirm-email" element={<ConfirmEmail />} />
               </Route>
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Route>
         </Routes>

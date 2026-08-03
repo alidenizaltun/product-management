@@ -36,12 +36,12 @@ const CategoryDetailPage: React.FC = () => {
           description={category ? `Kod: ${category.code}` : undefined}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light" onClick={() => navigate("/catalog/categories")}>
+              <Button color="light" onClick={() => navigate("/definitions/categories")}>
                 <Icon name="arrow-left" className="me-1" />
                 Geri
               </Button>
               {id ? (
-                <Link to={`/catalog/categories/${id}/edit`} className="btn btn-primary">
+                <Link to={`/definitions/categories/${id}/edit`} className="btn btn-primary">
                   <Icon name="edit" className="me-1" />
                   Düzenle
                 </Link>

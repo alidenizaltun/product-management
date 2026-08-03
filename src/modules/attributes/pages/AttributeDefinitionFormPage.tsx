@@ -84,7 +84,7 @@ const AttributeDefinitionFormPage: React.FC = () => {
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Özellik tanımı güncellendi." : "Özellik tanımı oluşturuldu.");
-      navigate("/attributes/definitions");
+      navigate("/definitions/attributes");
     } catch (err) {
       showApiError(err);
     }
@@ -101,7 +101,7 @@ const AttributeDefinitionFormPage: React.FC = () => {
           title={title}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light py-2" onClick={() => navigate("/attributes/definitions")} disabled={isPending}>
+              <Button color="light py-2" onClick={() => navigate("/definitions/attributes")} disabled={isPending}>
                 İptal
               </Button>
               <Button color="primary py-2" type="submit" form="attr-def-form" disabled={isPending}>

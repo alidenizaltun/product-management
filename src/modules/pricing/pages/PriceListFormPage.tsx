@@ -86,7 +86,7 @@ const PriceListFormPage: React.FC = () => {
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Fiyat listesi güncellendi." : "Fiyat listesi oluşturuldu.");
-      navigate("/pricing/pricelists");
+      navigate("/pricing/price-lists");
     } catch (err) {
       showApiError(err);
     }
@@ -103,7 +103,7 @@ const PriceListFormPage: React.FC = () => {
           title={title}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light py-2" onClick={() => navigate("/pricing/pricelists")} disabled={isPending}>
+              <Button color="light py-2" onClick={() => navigate("/pricing/price-lists")} disabled={isPending}>
                 İptal
               </Button>
               <Button color="primary py-2" type="submit" form="pricelist-form" disabled={isPending}>

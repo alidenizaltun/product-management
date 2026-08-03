@@ -6,7 +6,7 @@ import LogoDark2x from "@/images/logo-dark2x.png";
 
 const Logo = () => {
   return (
-    <Link to="/" className="logo-link">
+    <Link to="/products" className="logo-link">
       <img className="logo-light logo-img" src={LogoLight2x} alt="logo" />
       <img className="logo-dark logo-img" src={LogoDark2x} alt="logo" />
     </Link>

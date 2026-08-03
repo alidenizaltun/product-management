@@ -69,7 +69,7 @@ const UnitDefinitionFormPage: React.FC = () => {
                 await create.mutateAsync(payload);
             }
             showSuccess(isEdit ? "Birim güncellendi." : "Birim tanımı oluşturuldu.");
-            navigate("/catalog/unit-definitions");
+            navigate("/definitions/software-units");
         } catch (err) {
             showApiError(err);
         }
@@ -89,7 +89,7 @@ const UnitDefinitionFormPage: React.FC = () => {
                         <div className="d-flex gap-2">
                             <Button
                                 color="light py-2"
-                                onClick={() => navigate("/catalog/unit-definitions")}
+                                onClick={() => navigate("/definitions/software-units")}
                                 disabled={isPending}
                             >
                                 İptal

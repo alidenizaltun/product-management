@@ -34,12 +34,12 @@ const WarehouseDetailPage: React.FC = () => {
           description={warehouse ? `Kod: ${warehouse.code}` : undefined}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light" onClick={() => navigate("/catalog/warehouses")}>
+              <Button color="light" onClick={() => navigate("/definitions/warehouses")}>
                 <Icon name="arrow-left" className="me-1" />
                 Geri
               </Button>
               {id ? (
-                <Link to={`/catalog/warehouses/${id}/edit`} className="btn btn-primary">
+                <Link to={`/definitions/warehouses/${id}/edit`} className="btn btn-primary">
                   <Icon name="edit" className="me-1" />
                   Düzenle
                 </Link>

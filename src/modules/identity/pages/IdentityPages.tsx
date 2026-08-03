@@ -36,7 +36,7 @@ const IdentityPlaceholder: React.FC<PlaceholderProps> = ({
               title={emptyTitle}
               description={emptyDescription}
               action={
-                <Button color="light" onClick={() => navigate("/dashboard")}>
+                <Button color="light" onClick={() => navigate("/products")}>
                   <Icon name="arrow-left" className="me-1" />
                   Panele Dön
                 </Button>

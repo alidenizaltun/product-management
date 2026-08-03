@@ -49,7 +49,7 @@ const Login = () => {
       });
 
       if (response.succeeded) {
-        navigate(config.routes.dashboard);
+        navigate(config.routes.home);
       }
     } catch {
       // Error is handled by the store.

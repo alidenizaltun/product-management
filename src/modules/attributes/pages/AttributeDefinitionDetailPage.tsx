@@ -41,12 +41,12 @@ const AttributeDefinitionDetailPage: React.FC = () => {
           description={def ? `Anahtar: ${def.key}` : undefined}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light" onClick={() => navigate("/attributes/definitions")}>
+              <Button color="light" onClick={() => navigate("/definitions/attributes")}>
                 <Icon name="arrow-left" className="me-1" />
                 Geri
               </Button>
               {id ? (
-                <Link to={`/attributes/definitions/${id}/edit`} className="btn btn-primary">
+                <Link to={`/definitions/attributes/${id}/edit`} className="btn btn-primary">
                   <Icon name="edit" className="me-1" />
                   Düzenle
                 </Link>

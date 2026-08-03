@@ -32,7 +32,7 @@ export const useAuth = () => {
       if (response.succeeded) {
         const from =
           (location.state as { from?: { pathname?: string } })?.from?.pathname ||
-          config.routes.dashboard;
+          config.routes.home;
         navigate(from, { replace: true });
       }
       return response;

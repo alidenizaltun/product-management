@@ -34,12 +34,12 @@ const SupplierDetailPage: React.FC = () => {
           description={supplier ? `Kod: ${supplier.supplierCode}` : undefined}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light" onClick={() => navigate("/catalog/suppliers")}>
+              <Button color="light" onClick={() => navigate("/definitions/suppliers")}>
                 <Icon name="arrow-left" className="me-1" />
                 Geri
               </Button>
               {id ? (
-                <Link to={`/catalog/suppliers/${id}/edit`} className="btn btn-primary">
+                <Link to={`/definitions/suppliers/${id}/edit`} className="btn btn-primary">
                   <Icon name="edit" className="me-1" />
                   Düzenle
                 </Link>

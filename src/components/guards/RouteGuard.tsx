@@ -58,7 +58,7 @@ export const GuestGuard: React.FC<RouteGuardProps> = ({ children }) => {
   if (isAuthenticated) {
     const from =
       (location.state as { from?: { pathname?: string } })?.from?.pathname ||
-      config.routes.dashboard;
+      config.routes.home;
 
     return <Navigate to={from} replace />;
   }

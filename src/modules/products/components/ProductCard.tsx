@@ -4,6 +4,7 @@ import { Card } from "reactstrap";
 import StatusBadge from "@/modules/shared/components/StatusBadge";
 import type { ProductDto } from "@/shared/types/productOperations.types";
 import { getProductListImageUrl } from "@/shared/types/productOperations.types";
+import { buildProductSectionLink } from "@/modules/products/config/productSections";
 
 const KIND_META: Record<number, { label: string; color: string; icon: string }> = {
   1: { label: "Fiziksel", color: "primary", icon: "box" },
@@ -30,7 +31,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete, selected =
   const kind = product.kind != null ? KIND_META[product.kind] : undefined;
   const status = product.status != null ? STATUS_META[product.status] : undefined;
   const detailUrl = `/products/${product.id}`;
-  const editUrl = `/products/${product.id}/edit`;
+  // Ürüne bağlı sayfalar sabittir; ürün `?productId=` ile önceden seçilir.
+  const editUrl = buildProductSectionLink("general", product.id);
+  const classificationUrl = buildProductSectionLink("classification", product.id);
   const imageUrl = getProductListImageUrl(product);
   const [imageFailed, setImageFailed] = useState(false);
   const showImage = Boolean(imageUrl) && !imageFailed;
@@ -95,8 +98,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete, selected =
             </Link>
           </li>
           <li>
-            <Link to={editUrl} title="Düzenle">
+            <Link to={editUrl} title="Genel bilgileri düzenle">
               <em className="icon ni ni-edit" />
+            </Link>
+          </li>
+          <li>
+            <Link to={classificationUrl} title="Sınıflandırmayı düzenle">
+              <em className="icon ni ni-folder-list" />
             </Link>
           </li>
           <li>

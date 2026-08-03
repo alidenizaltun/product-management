@@ -47,14 +47,14 @@ export const AttributeSetListPage: React.FC = () => (
   <ComingSoon
     title="Özellik Setleri"
     description="Ürün tipine göre özellik setleri."
-    backTo="/dashboard"
+    backTo="/products"
   />
 );
 
 export const AttributeSetFormPage: React.FC = () => (
-  <ComingSoon title="Özellik Seti Düzenle" backTo="/attributes/sets" />
+  <ComingSoon title="Özellik Seti Düzenle" backTo="/definitions/attribute-sets" />
 );
 
 export const AttributeSetDetailPage: React.FC = () => (
-  <ComingSoon title="Özellik Seti Detayı" backTo="/attributes/sets" />
+  <ComingSoon title="Özellik Seti Detayı" backTo="/definitions/attribute-sets" />
 );

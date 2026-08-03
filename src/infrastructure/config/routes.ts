@@ -8,7 +8,7 @@ export const routes = {
     success: "/auth-success",
   },
   protected: {
-    dashboard: "/dashboard",
+    home: "/products",
     products: "/products",
   },
 } as const;

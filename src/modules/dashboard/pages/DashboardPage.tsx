@@ -130,7 +130,7 @@ const DashboardPage: React.FC = () => {
                 value={categories.length}
                 icon="layers"
                 color="info"
-                to="/catalog/categories"
+                to="/definitions/categories"
               />
             </div>
             <div className="col-sm-6 col-xl-3">
@@ -139,7 +139,7 @@ const DashboardPage: React.FC = () => {
                 value={suppliers.length}
                 icon="building"
                 color="success"
-                to="/catalog/suppliers"
+                to="/definitions/suppliers"
               />
             </div>
             <div className="col-sm-6 col-xl-3">
@@ -148,7 +148,7 @@ const DashboardPage: React.FC = () => {
                 value={warehouses.length}
                 icon="archive"
                 color="warning"
-                to="/catalog/warehouses"
+                to="/definitions/warehouses"
               />
             </div>
           </div>
@@ -272,7 +272,7 @@ const DashboardPage: React.FC = () => {
                     </div>
                     <div className="col-12">
                       <QuickAction
-                        to="/catalog/categories/new"
+                        to="/definitions/categories/new"
                         icon="layers"
                         label="Yeni Kategori"
                         color="info"
@@ -280,7 +280,7 @@ const DashboardPage: React.FC = () => {
                     </div>
                     <div className="col-12">
                       <QuickAction
-                        to="/catalog/suppliers/new"
+                        to="/definitions/suppliers/new"
                         icon="building"
                         label="Yeni Tedarikçi"
                         color="success"

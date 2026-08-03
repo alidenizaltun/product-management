@@ -41,12 +41,12 @@ const SupplierListPage: React.FC = () => {
         render: (it) => (
           <ul className="nk-tb-actions gx-1 justify-content-end">
             <li>
-              <Link to={`/catalog/suppliers/${it.id}`} className="btn btn-icon btn-trigger" title="Detay">
+              <Link to={`/definitions/suppliers/${it.id}`} className="btn btn-icon btn-trigger" title="Detay">
                 <Icon name="eye" />
               </Link>
             </li>
             <li>
-              <Link to={`/catalog/suppliers/${it.id}/edit`} className="btn btn-icon btn-trigger" title="Düzenle">
+              <Link to={`/definitions/suppliers/${it.id}/edit`} className="btn btn-icon btn-trigger" title="Düzenle">
                 <Icon name="edit" />
               </Link>
             </li>
@@ -69,13 +69,13 @@ const SupplierListPage: React.FC = () => {
 
   return (
     <>
-      <Head title="Tedarikçiler" />
+      <Head title="Tedarikçi Tanımları" />
       <Content>
         <PageHeader
-          title="Tedarikçiler"
+          title="Tedarikçi Tanımları"
           description="Tedarikçi bilgilerini yönetin."
           actions={
-            <Button color="primary" onClick={() => navigate("/catalog/suppliers/new")}>
+            <Button color="primary" onClick={() => navigate("/definitions/suppliers/new")}>
               <Icon name="plus" className="me-1" />
               Yeni Tedarikçi
             </Button>
@@ -94,7 +94,7 @@ const SupplierListPage: React.FC = () => {
             emptyIcon="building"
             rowKey={(it) => it.id}
             emptyAction={
-              <Button color="primary" onClick={() => navigate("/catalog/suppliers/new")}>
+              <Button color="primary" onClick={() => navigate("/definitions/suppliers/new")}>
                 <Icon name="plus" className="me-1" />
                 Yeni Tedarikçi
               </Button>

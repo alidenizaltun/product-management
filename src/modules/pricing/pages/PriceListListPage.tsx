@@ -54,12 +54,12 @@ const PriceListListPage: React.FC = () => {
         render: (it) => (
           <ul className="nk-tb-actions gx-1 justify-content-end">
             <li>
-              <Link to={`/pricing/pricelists/${it.id}`} className="btn btn-icon btn-trigger" title="Detay">
+              <Link to={`/pricing/price-lists/${it.id}`} className="btn btn-icon btn-trigger" title="Detay">
                 <Icon name="eye" />
               </Link>
             </li>
             <li>
-              <Link to={`/pricing/pricelists/${it.id}/edit`} className="btn btn-icon btn-trigger" title="Düzenle">
+              <Link to={`/pricing/price-lists/${it.id}/edit`} className="btn btn-icon btn-trigger" title="Düzenle">
                 <Icon name="edit" />
               </Link>
             </li>
@@ -88,7 +88,7 @@ const PriceListListPage: React.FC = () => {
           title="Fiyat Listeleri"
           description="Satış kanalı ve müşteri grubuna göre fiyat listeleri."
           actions={
-            <Button color="primary" onClick={() => navigate("/pricing/pricelists/new")}>
+            <Button color="primary" onClick={() => navigate("/pricing/price-lists/new")}>
               <Icon name="plus" className="me-1" />
               Yeni Fiyat Listesi
             </Button>
@@ -107,7 +107,7 @@ const PriceListListPage: React.FC = () => {
             emptyIcon="coins"
             rowKey={(it) => it.id}
             emptyAction={
-              <Button color="primary" onClick={() => navigate("/pricing/pricelists/new")}>
+              <Button color="primary" onClick={() => navigate("/pricing/price-lists/new")}>
                 <Icon name="plus" className="me-1" />
                 Yeni Fiyat Listesi
               </Button>

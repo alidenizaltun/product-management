@@ -13,8 +13,8 @@ import { findUpper } from "@/utils/Utils";
 
 /** Uygulamada tanımlı route'lara karşılık gelen kısayollar */
 const appShortcuts = [
-  { icon: "dashboard", text: "Gösterge Paneli", link: "/dashboard" },
   { icon: "box", text: "Ürünler", link: "/products" },
+  { icon: "dashboard", text: "Genel Bakış", link: "/analytics" },
 ];
 
 const Appbar = () => {
@@ -45,7 +45,7 @@ const Appbar = () => {
   return (
     <div className={appSidebarClass}>
       <div className="nk-apps-brand">
-        <Link to="/dashboard" className="logo-link">
+        <Link to="/products" className="logo-link">
           <img className="logo-light logo-img" src={LogoSmall} alt="logo" />
           <img className="logo-dark logo-img" src={LogoDark} alt="logo-dark" />
         </Link>

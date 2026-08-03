@@ -58,7 +58,7 @@ const UnitDefinitionListPage: React.FC = () => {
                     <ul className="nk-tb-actions gx-1 justify-content-end">
                         <li>
                             <Link
-                                to={`/catalog/unit-definitions/${it.id}/edit`}
+                                to={`/definitions/software-units/${it.id}/edit`}
                                 className="btn btn-icon btn-trigger"
                                 title="Düzenle"
                             >
@@ -84,13 +84,13 @@ const UnitDefinitionListPage: React.FC = () => {
 
     return (
         <>
-            <Head title="Birim Tanımları" />
+            <Head title="Yazılım Birim Sözlüğü" />
             <Content>
                 <PageHeader
-                    title="Birim Tanımları"
+                    title="Yazılım Birim Sözlüğü"
                     description="Ürün ve fiyatlandırma birimlerini (Adet, Kullanıcı, Lisans vb.) yönetin."
                     actions={
-                        <Button color="primary" onClick={() => navigate("/catalog/unit-definitions/new")}>
+                        <Button color="primary" onClick={() => navigate("/definitions/software-units/new")}>
                             <Icon name="plus" id="" className="me-1" style={{}} />
                             Yeni Birim
                         </Button>
@@ -109,7 +109,7 @@ const UnitDefinitionListPage: React.FC = () => {
                         emptyIcon="layers"
                         rowKey={(it) => it.id}
                         emptyAction={
-                            <Button color="primary" onClick={() => navigate("/catalog/unit-definitions/new")}>
+                            <Button color="primary" onClick={() => navigate("/definitions/software-units/new")}>
                                 <Icon name="plus" id="" className="me-1" style={{}} />
                                 Yeni Birim
                             </Button>
@@ -120,7 +120,7 @@ const UnitDefinitionListPage: React.FC = () => {
 
             <ConfirmDialog
                 open={Boolean(pendingDelete)}
-                title="Birim Tanımı Silinsin mi?"
+                title="Birim Kaydı Silinsin mi?"
                 message={`"${pendingDelete?.name}" birimi kalıcı olarak silinecek.`}
                 variant="danger"
                 loading={remove.isPending}

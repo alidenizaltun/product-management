@@ -35,9 +35,11 @@ interface ProductSectionPageProps {
     children: (context: ProductSectionRenderContext) => React.ReactNode;
     /**
      * Bölüm kendi kayıt akışına sahipse (satır bazlı API çağrıları) sayfa
-     * seviyesindeki kaydet düğmesi gizlenir.
+     * seviyesindeki kaydet düğmesi gizlenir. Seçili ürüne göre değişen
+     * durumlar için (örn. yazılım ürününde bu sayfada düzenlenecek alan
+     * kalmaması) bir fonksiyon da verilebilir.
      */
-    showSave?: boolean;
+    showSave?: boolean | ((product: ProductDetailDto) => boolean);
     /** Ürün seçicinin üstünde gösterilecek ek bilgi/uyarı içeriği */
     intro?: React.ReactNode;
 }
@@ -158,6 +160,11 @@ const ProductSectionPage: React.FC<ProductSectionPageProps> = ({
     };
 
     const kindAllowed = !product || isKindAllowedForSection(section, product.kind);
+    const resolvedShowSave = product
+        ? typeof showSave === "function"
+            ? showSave(product)
+            : showSave
+        : false;
     const kind = product ? KIND_LABELS[product.kind] : undefined;
     const status = product ? STATUS_LABELS[product.status] : undefined;
     const isPending = updateFullMutation.isPending;
@@ -199,7 +206,7 @@ const ProductSectionPage: React.FC<ProductSectionPageProps> = ({
                                     <Button color="light py-2" type="button" onClick={() => navigate("/products")}>
                                         Ürün Listesine Dön
                                     </Button>
-                                    {showSave && product && kindAllowed && (
+                                    {resolvedShowSave && product && kindAllowed && (
                                         <Button color="primary py-2" type="submit" disabled={isPending}>
                                             {isPending ? (
                                                 <>

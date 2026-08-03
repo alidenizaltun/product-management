@@ -10,6 +10,8 @@ interface SoftwareSummaryProps {
     product: ProductDetailDto;
 }
 
+const isSoftwareProduct = (product: ProductDetailDto) => product.kind === 2;
+
 /**
  * Yazılım/lisanslanabilir ürünlerde fiyatlandırma akışının diğer sayfalarına
  * (ürün önceden seçili şekilde) yönlendiren durum kartları.
@@ -79,43 +81,71 @@ const SoftwarePricingSummary: React.FC<SoftwareSummaryProps> = ({ product }) => 
     );
 };
 
+/**
+ * Yazılım ürününde bu sayfada düzenlenecek bir alan yoktur: gerçek fiyat
+ * Satış Planları'ndaki `basePrice`'tan gelir. Bu yüzden Fiyat Tarifeleri ve
+ * Fiyat Listesi Kayıtları formları burada hiç render edilmez; yalnızca ilgili
+ * sayfalara giden özet kartları gösterilir.
+ */
+const SoftwarePricingNotice: React.FC = () => (
+    <div className="alert alert-light d-flex align-items-start gap-2 mb-4">
+        <em className="icon ni ni-info fs-4" />
+        <span className="fs-13px">
+            Yazılım ürünlerinde fiyat, Satış Planları'ndaki taban fiyattan gelir. Bu yüzden bu sayfada Fiyat Tarifeleri
+            veya Fiyat Listesi Kayıtları düzenlenmez — yukarıdaki kartlardan ilgili sayfaya gidebilirsiniz.
+        </span>
+    </div>
+);
+
 /** Fiyatlandırma (ürüne bağlı temel ve alternatif fiyatlar) */
 const ProductPricingPage: React.FC = () => (
-    <ProductSectionPage sectionKey="pricing">
-        {({ product }) => (
-            <>
-                <SoftwarePricingSummary product={product} />
+    <ProductSectionPage sectionKey="pricing" showSave={(product) => !isSoftwareProduct(product)}>
+        {({ product }) => {
+            const isSoftware = isSoftwareProduct(product);
 
-                <section className="card card-bordered mb-4">
-                    <div className="card-inner border-bottom">
-                        <h5 className="title mb-1">Fiyat Tarifeleri</h5>
-                        <p className="text-soft mb-0">
-                            Temel fiyatı bir kartla başlatın; kampanya, bayi veya kanal fiyatlarını ayrı tarifeler olarak
-                            ekleyin.
-                        </p>
-                    </div>
-                    <div className="card-inner">
-                        <PriceMatrix />
-                    </div>
-                </section>
+            return (
+                <>
+                    <SoftwarePricingSummary product={product} />
 
-                <section className="card card-bordered">
-                    <div className="card-inner border-bottom d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                        <div>
-                            <h5 className="title mb-1">Fiyat Listesi Kayıtları</h5>
-                            <p className="text-soft mb-0">Ürünün dahil olduğu fiyat listelerini ve liste fiyatlarını yönetin.</p>
-                        </div>
-                        <Link to="/pricing/price-lists" className="btn btn-outline-light btn-sm">
-                            <em className="icon ni ni-external me-1" />
-                            Fiyat Listeleri
-                        </Link>
-                    </div>
-                    <div className="card-inner">
-                        <PriceListItemTab />
-                    </div>
-                </section>
-            </>
-        )}
+                    {isSoftware ? (
+                        <SoftwarePricingNotice />
+                    ) : (
+                        <>
+                            <section className="card card-bordered mb-4">
+                                <div className="card-inner border-bottom">
+                                    <h5 className="title mb-1">Fiyat Tarifeleri</h5>
+                                    <p className="text-soft mb-0">
+                                        Temel fiyatı bir kartla başlatın; kampanya, bayi veya kanal fiyatlarını ayrı
+                                        tarifeler olarak ekleyin.
+                                    </p>
+                                </div>
+                                <div className="card-inner">
+                                    <PriceMatrix />
+                                </div>
+                            </section>
+
+                            <section className="card card-bordered">
+                                <div className="card-inner border-bottom d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                    <div>
+                                        <h5 className="title mb-1">Fiyat Listesi Kayıtları</h5>
+                                        <p className="text-soft mb-0">
+                                            Ürünün dahil olduğu fiyat listelerini ve liste fiyatlarını yönetin.
+                                        </p>
+                                    </div>
+                                    <Link to="/pricing/price-lists" className="btn btn-outline-light btn-sm">
+                                        <em className="icon ni ni-external me-1" />
+                                        Fiyat Listeleri
+                                    </Link>
+                                </div>
+                                <div className="card-inner">
+                                    <PriceListItemTab />
+                                </div>
+                            </section>
+                        </>
+                    )}
+                </>
+            );
+        }}
     </ProductSectionPage>
 );
 

@@ -24,6 +24,9 @@ interface ProductPricingRulesPanelProps {
   editable?: boolean;
   draftRules?: ProductPricingRuleDto[];
   onDraftRulesChange?: (rules: ProductPricingRuleDto[]) => void;
+  /** Verilirse panel tek bir satış planına kilitlenir: liste filtrelenir, kapsam SELECT'i gizlenir. */
+  lockedLicenseOfferingId?: string;
+  lockedLicenseOfferingTempId?: string;
 }
 
 interface RuleFormState {
@@ -331,15 +334,15 @@ const getAdjustment = (rule: ProductPricingRuleDto): ProductPricingRuleAdjustmen
   }
 };
 
-const emptyForm = (): RuleFormState => ({
+const emptyForm = (lockedOfferingId?: string, lockedOfferingTempId?: string): RuleFormState => ({
   code: "",
   name: "",
   priority: "",
   isActive: true,
   validFrom: "",
   validTo: "",
-  productLicenseOfferingId: "",
-  licenseOfferingTempId: "",
+  productLicenseOfferingId: lockedOfferingId ?? "",
+  licenseOfferingTempId: lockedOfferingTempId ?? "",
   productUnitId: "",
   productUnitTempId: "",
   productUnitIds: [],
@@ -517,18 +520,31 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   editable = false,
   draftRules,
   onDraftRulesChange,
+  lockedLicenseOfferingId,
+  lockedLicenseOfferingTempId,
 }) => {
   const { data, isLoading, isError, refetch } = useProductPricingRules(productId);
   const { createMutation, updateMutation, deleteMutation } = useProductPricingRuleMutations(productId);
-  const [form, setForm] = useState<RuleFormState>(() => emptyForm());
+  const isLocked = Boolean(lockedLicenseOfferingId || lockedLicenseOfferingTempId);
+  const [form, setForm] = useState<RuleFormState>(() => emptyForm(lockedLicenseOfferingId, lockedLicenseOfferingTempId));
   const [deleteTarget, setDeleteTarget] = useState<ProductPricingRuleDto | null>(null);
   const [engineOpen, setEngineOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
-  const rules = useMemo(
+  const allRules = useMemo(
     () => [...(productId ? data ?? [] : draftRules ?? [])].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)),
     [data, draftRules, productId]
   );
+  const rules = useMemo(() => {
+    if (!isLocked) return allRules;
+    return allRules.filter((rule) => {
+      const offeringId = rule.productLicenseOfferingId ?? rule.licenseOfferingId ?? "";
+      return (
+        (lockedLicenseOfferingId && offeringId === lockedLicenseOfferingId) ||
+        (lockedLicenseOfferingTempId && rule.licenseOfferingTempId === lockedLicenseOfferingTempId)
+      );
+    });
+  }, [allRules, isLocked, lockedLicenseOfferingId, lockedLicenseOfferingTempId]);
   const offeringById = useMemo(
     () => new Map(licenseOfferings.map((offering) => [offering.id, offering])),
     [licenseOfferings]
@@ -545,7 +561,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     const fields = new Set<string>();
 
     collectAdjustmentFields(defaultAdjustment, fields);
-    rules.forEach((rule) => collectAdjustmentFields(getAdjustment(rule), fields));
+    allRules.forEach((rule) => collectAdjustmentFields(getAdjustment(rule), fields));
     if (form.adjustment.unitField.trim()) fields.add(form.adjustment.unitField.trim());
     form.adjustment.conditions.forEach((condition) => {
       if (condition.field.trim()) fields.add(condition.field.trim());
@@ -559,11 +575,11 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     const merged = new Map<string, { value: string; label: string }>();
     [...COMMON_CONDITION_FIELDS, ...dynamicFields].forEach((field) => merged.set(field.value, field));
     return [...merged.values()];
-  }, [rules, form.adjustment.unitField, form.adjustment.conditions]);
+  }, [allRules, form.adjustment.unitField, form.adjustment.conditions]);
 
   const ensureUniqueRuleName = (baseName: string) => {
     const usedNames = new Set(
-      rules
+      allRules
         .filter((rule) => rule.id !== form.id)
         .map((rule) => rule.name?.trim().toLocaleLowerCase("tr-TR"))
         .filter(Boolean)
@@ -584,7 +600,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
   const ensureUniqueRuleCode = (baseCode: string) => {
     const usedCodes = new Set(
-      rules
+      allRules
         .filter((rule) => rule.id !== form.id)
         .map((rule) => rule.code?.trim().toLocaleLowerCase("tr-TR"))
         .filter(Boolean)
@@ -604,7 +620,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   };
 
   const resetForm = () => {
-    setForm(emptyForm());
+    setForm(emptyForm(lockedLicenseOfferingId, lockedLicenseOfferingTempId));
     setEngineOpen(false);
     setFormOpen(false);
   };
@@ -713,8 +729,8 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       productUnitTempId: productUnitIds.length === 0 ? productUnitTempIds[0] || null : null,
       productUnitIds: productUnitIds.length ? productUnitIds : undefined,
       productUnitTempIds: productUnitTempIds.length ? productUnitTempIds : undefined,
-      productLicenseOfferingId: form.productLicenseOfferingId || null,
-      licenseOfferingTempId: form.licenseOfferingTempId || null,
+      productLicenseOfferingId: lockedLicenseOfferingId ?? (form.productLicenseOfferingId || null),
+      licenseOfferingTempId: lockedLicenseOfferingTempId ?? (form.licenseOfferingTempId || null),
       priceAdjustment,
       priceAdjustmentJson: JSON.stringify(priceAdjustment),
     };
@@ -997,30 +1013,32 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                         </p>
                       </div>
                       <div className="row g-3 align-items-end">
-                        <div className="col-md-6">
-                          <label className="form-label">
-                            <HelpLabel help="Satış planı müşterinin satın aldığı pakettir. Tüm planlar seçilirse bu kural ürünün bütün paketlerinde çalışır; tek plan seçerseniz kural sadece o pakete uygulanır.">
-                              Hangi satış planı?
-                            </HelpLabel>
-                          </label>
-                          <select
-                            className="form-select"
-                            value={selectedOfferingValue}
-                            onChange={(event) => updateOfferingScope(event.target.value)}
-                          >
-                            <option value="">Tüm planlar</option>
-                            {licenseOfferings.map((offering) => {
-                              const value = offering.id ? `id:${offering.id}` : `temp:${offering._tempId}`;
-                              return (
-                                <option key={value} value={value}>
-                                  {offering.name}
-                                  {!offering.id ? " (kaydedilecek)" : ""}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                        <div className="col-md-6">
+                        {!isLocked && (
+                          <div className="col-md-6">
+                            <label className="form-label">
+                              <HelpLabel help="Satış planı müşterinin satın aldığı pakettir. Tüm planlar seçilirse bu kural ürünün bütün paketlerinde çalışır; tek plan seçerseniz kural sadece o pakete uygulanır.">
+                                Hangi satış planı?
+                              </HelpLabel>
+                            </label>
+                            <select
+                              className="form-select"
+                              value={selectedOfferingValue}
+                              onChange={(event) => updateOfferingScope(event.target.value)}
+                            >
+                              <option value="">Tüm planlar</option>
+                              {licenseOfferings.map((offering) => {
+                                const value = offering.id ? `id:${offering.id}` : `temp:${offering._tempId}`;
+                                return (
+                                  <option key={value} value={value}>
+                                    {offering.name}
+                                    {!offering.id ? " (kaydedilecek)" : ""}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+                        )}
+                        <div className={isLocked ? "col-md-12" : "col-md-6"}>
                           <label className="form-label">
                             <HelpLabel help="Kural birimlerinin tek bir değerle mi yoksa kademeli mi hesaplanacağını seçer. Kademeli modda fiyat etkisi kademelerden gelir.">
                               Hesaplama modu
@@ -1683,7 +1701,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                   size="sm"
                   type="button"
                   onClick={() => {
-                    setForm(emptyForm());
+                    setForm(emptyForm(lockedLicenseOfferingId, lockedLicenseOfferingTempId));
                     setEngineOpen(false);
                     setFormOpen(true);
                   }}
@@ -1765,7 +1783,8 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                       ?? variant?.name
                       ?? variant?.sku
                       ?? (rule.productVariantId ? rule.productVariantId.slice(0, 8) : "");
-                    const hasFilters = Boolean(offeringLabel || productUnitLabel || variantLabel);
+                    const showOfferingBadge = Boolean(offeringLabel) && !isLocked;
+                    const hasFilters = Boolean(showOfferingBadge || productUnitLabel || variantLabel);
 
                     return (
                       <tr key={rule.id}>
@@ -1776,7 +1795,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                         <td>{rule.priority}</td>
                         <td className="fs-13px">{shortJsonSummary(rule)}</td>
                         <td className="fs-12">
-                          {offeringLabel && <span className="badge bg-outline-primary me-1">{offeringLabel}</span>}
+                          {showOfferingBadge && <span className="badge bg-outline-primary me-1">{offeringLabel}</span>}
                           {productUnitLabel && <span className="badge bg-outline-success me-1">{productUnitLabel}</span>}
                           {variantLabel && <span className="badge bg-outline-info me-1">{variantLabel}</span>}
                           {!hasFilters && "Tümü"}

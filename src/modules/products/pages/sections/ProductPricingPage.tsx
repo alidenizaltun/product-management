@@ -19,21 +19,9 @@ const isSoftwareProduct = (product: ProductDetailDto) => product.kind === 2;
 const SoftwarePricingSummary: React.FC<SoftwareSummaryProps> = ({ product }) => {
     const cards = [
         {
-            section: getProductSection("pricing-units"),
-            count: (product.productUnits ?? []).filter((unit) => unit.isActive).length,
-            unit: "aktif birim",
-            visible: product.kind === 2,
-        },
-        {
-            section: getProductSection("sales-plans"),
+            section: getProductSection("software-pricing"),
             count: (product.licenseOfferings ?? []).filter((offering) => offering.isActive).length,
             unit: "aktif plan",
-            visible: product.kind === 2 || product.kind === 3 || product.kind === 4,
-        },
-        {
-            section: getProductSection("pricing-rules"),
-            count: (product.pricingRules ?? []).filter((rule) => rule.isActive).length,
-            unit: "aktif kural",
             visible: product.kind === 2 || product.kind === 3 || product.kind === 4,
         },
         {

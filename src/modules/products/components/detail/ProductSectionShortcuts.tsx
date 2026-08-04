@@ -30,12 +30,8 @@ const isSectionCompleted = (key: ProductSectionKey, product: ProductDetailDto): 
             return (product.inventories ?? []).length > 0 || (product.supplierMaps ?? []).length > 0;
         case "pricing":
             return (product.prices ?? []).length > 0 || (product.priceListItems ?? []).length > 0;
-        case "pricing-units":
-            return (product.productUnits ?? []).length > 0;
-        case "sales-plans":
+        case "software-pricing":
             return (product.licenseOfferings ?? []).length > 0;
-        case "pricing-rules":
-            return (product.pricingRules ?? []).length > 0;
         case "modules":
             return (product.modules ?? []).length > 0;
         default:
@@ -93,6 +89,19 @@ const ProductSectionShortcuts: React.FC<ProductSectionShortcutsProps> = ({ produ
                                             />
                                         </div>
                                         <span className="text-soft fs-12px">{section.description}</span>
+                                        {section.key === "software-pricing" && (
+                                            <div className="d-flex gap-2 mt-2 fs-11px">
+                                                <span className={`badge ${(product.productUnits ?? []).length ? "bg-success" : "bg-outline-secondary"}`}>
+                                                    Birim {(product.productUnits ?? []).length}
+                                                </span>
+                                                <span className={`badge ${(product.licenseOfferings ?? []).length ? "bg-success" : "bg-outline-secondary"}`}>
+                                                    Plan {(product.licenseOfferings ?? []).length}
+                                                </span>
+                                                <span className={`badge ${(product.pricingRules ?? []).length ? "bg-success" : "bg-outline-secondary"}`}>
+                                                    Kural {(product.pricingRules ?? []).length}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </Link>
                             </div>

@@ -44,12 +44,7 @@ const menu = [
   {
     icon: "laptop",
     text: "Yazılım ve Lisanslı Ürün İşlemleri",
-    subMenu: [
-      sectionItem("pricing-units"),
-      sectionItem("sales-plans"),
-      sectionItem("pricing-rules"),
-      sectionItem("modules"),
-    ],
+    subMenu: [sectionItem("software-pricing"), sectionItem("modules")],
   },
   {
     icon: "archive",

@@ -19,9 +19,7 @@ export type ProductSectionKey =
     | "variants"
     | "inventory-supply"
     | "pricing"
-    | "pricing-units"
-    | "sales-plans"
-    | "pricing-rules"
+    | "software-pricing"
     | "modules";
 
 export type ProductSectionGroup = "product-info" | "physical" | "software" | "pricing";
@@ -113,31 +111,11 @@ export const productSections: ProductSectionConfig[] = [
         permission: "product.pricing.edit",
     },
     {
-        key: "pricing-units",
-        label: "Fiyatlandırma Birimleri",
-        path: "/software-products/pricing-units",
-        icon: "grid-add-c",
-        description: "Yazılım birim sözlüğü kayıtlarının ürüne bağlanması",
-        group: "software",
-        allowedKinds: [2],
-        permission: "product.software.edit",
-    },
-    {
-        key: "sales-plans",
-        label: "Satış Planları",
-        path: "/software-products/sales-plans",
-        icon: "layers",
-        description: "Lisans, paket ve abonelik teklifleri",
-        group: "software",
-        allowedKinds: [2, 3, 4],
-        permission: "product.software.edit",
-    },
-    {
-        key: "pricing-rules",
-        label: "Dinamik Fiyat Kuralları",
-        path: "/software-products/pricing-rules",
-        icon: "sign-usd",
-        description: "Miktar, birim ve müşteri grubuna bağlı fiyat kuralları",
+        key: "software-pricing",
+        label: "Fiyatlandırma",
+        path: "/software-products/pricing",
+        icon: "coins",
+        description: "Satış planlarını, fiyat birimlerini ve fiyatlandırma kurallarını tek bir yerden yönetin.",
         group: "software",
         allowedKinds: [2, 3, 4],
         permission: "product.pricing.edit",

@@ -25,6 +25,7 @@ interface ProductCreateFormValues {
 const STATUS_OPTIONS = [
     { value: 0, label: "Taslak" },
     { value: 1, label: "Aktif" },
+    { value: 2, label: "Pasif" },
 ];
 
 const slugify = (value: string) =>
@@ -60,9 +61,9 @@ const ProductCreatePage: React.FC = () => {
     const form = useForm<ProductCreateFormValues>({
         defaultValues: {
             name: "",
-            kind: 1,
+            kind: 2,
             productCode: "",
-            status: 0,
+            status: 1,
             defaultCurrencyCode: "TRY",
         },
         mode: "onBlur",
@@ -154,7 +155,7 @@ const ProductCreatePage: React.FC = () => {
                         )}
 
                         <div className="row g-4">
-                            <div className="col-lg-8">
+                            <div className="col-lg-12">
                                 <section className="card card-bordered">
                                     <div className="card-inner border-bottom">
                                         <h5 className="title mb-1">Ürün Kimliği</h5>
@@ -165,7 +166,7 @@ const ProductCreatePage: React.FC = () => {
                                     </div>
                                     <div className="card-inner">
                                         <div className="row g-3">
-                                            <div className="col-md-8">
+                                            <div className="col-md-6">
                                                 <label className="form-label" htmlFor="product-name">
                                                     Ürün Adı <span className="text-danger">*</span>
                                                 </label>
@@ -178,7 +179,7 @@ const ProductCreatePage: React.FC = () => {
                                                 {errors.name && <span className="invalid-feedback d-block">{errors.name.message}</span>}
                                             </div>
 
-                                            <div className="col-md-4">
+                                            <div className="col-md-3">
                                                 <label className="form-label" htmlFor="product-kind">
                                                     Ürün Türü <span className="text-danger">*</span>
                                                 </label>
@@ -195,31 +196,7 @@ const ProductCreatePage: React.FC = () => {
                                                 </select>
                                             </div>
 
-                                            <div className="col-md-8">
-                                                <label className="form-label" htmlFor="product-code">
-                                                    Ürün Kodu
-                                                </label>
-                                                <div className="input-group">
-                                                    <input
-                                                        id="product-code"
-                                                        className={`form-control ${errors.productCode ? "is-invalid" : ""}`}
-                                                        placeholder="Boş bırakılırsa otomatik üretilir"
-                                                        {...register("productCode")}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-outline-light"
-                                                        onClick={() => setValue("productCode", buildAutoCode(getValues("name")))}
-                                                    >
-                                                        Otomatik Kod
-                                                    </button>
-                                                </div>
-                                                {errors.productCode && (
-                                                    <span className="invalid-feedback d-block">{errors.productCode.message}</span>
-                                                )}
-                                            </div>
-
-                                            <div className="col-md-4">
+                                            <div className="col-md-3">
                                                 <label className="form-label" htmlFor="product-status">
                                                     Durum
                                                 </label>
@@ -235,34 +212,9 @@ const ProductCreatePage: React.FC = () => {
                                                     ))}
                                                 </select>
                                             </div>
-
-                                            <div className="col-md-4">
-                                                <label className="form-label" htmlFor="product-currency">
-                                                    Para Birimi
-                                                </label>
-                                                <input id="product-currency" className="form-control" {...register("defaultCurrencyCode")} />
-                                            </div>
                                         </div>
                                     </div>
                                 </section>
-                            </div>
-
-                            <div className="col-lg-4">
-                                <aside className="card card-bordered">
-                                    <div className="card-inner">
-                                        <h6 className="title mb-2">Sonraki adımlar</h6>
-                                        <p className="text-soft fs-13px">
-                                            Ürün kaydedildikten sonra Ürün Özeti sayfasına yönlendirilirsiniz. Oradaki kısayollar
-                                            sizi ilgili sabit sayfalara bu ürün önceden seçili şekilde götürür:
-                                        </p>
-                                        <ul className="list list-sm list-checked mb-0">
-                                            <li>Genel Bilgiler</li>
-                                            <li>Sınıflandırma</li>
-                                            <li>Medya</li>
-                                            <li>Fiyatlandırma</li>
-                                        </ul>
-                                    </div>
-                                </aside>
                             </div>
                         </div>
                     </Block>

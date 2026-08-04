@@ -108,8 +108,8 @@ export const productSections: ProductSectionConfig[] = [
         path: "/pricing/product-pricing",
         icon: "coins",
         description: "Temel fiyat, alternatif tarifeler ve fiyat listesi kayıtları",
-        group: "pricing",
-        allowedKinds: ALL_PRODUCT_KINDS,
+        group: "physical",
+        allowedKinds: [1],
         permission: "product.pricing.edit",
     },
     {

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "@/modules/products/api/products.api";
 import { queryKeys } from "@/services/query/queryKeys";
+import { forgetRecentProduct } from "@/modules/products/utils/recentProducts";
 import { CreateFullProductRequestDto, UpdateFullProductRequestDto } from "@/shared/types/productOperations.types";
 
 export const useProductMutations = () => {
@@ -25,8 +26,9 @@ export const useProductMutations = () => {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => productsApi.deleteProduct(id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      forgetRecentProduct(id);
     },
   });
 

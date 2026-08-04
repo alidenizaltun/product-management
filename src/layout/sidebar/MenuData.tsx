@@ -39,7 +39,7 @@ const menu = [
   {
     icon: "package",
     text: "Fiziksel Ürün İşlemleri",
-    subMenu: [sectionItem("variants"), sectionItem("inventory-supply")],
+    subMenu: [sectionItem("variants"), sectionItem("inventory-supply"), sectionItem("pricing")],
   },
   {
     icon: "laptop",
@@ -50,11 +50,6 @@ const menu = [
       sectionItem("pricing-rules"),
       sectionItem("modules"),
     ],
-  },
-  {
-    icon: "coins",
-    text: "Fiyatlandırma",
-    link: getProductSection("pricing").path,
   },
   {
     icon: "archive",

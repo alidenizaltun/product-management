@@ -33,3 +33,26 @@ export const rememberRecentProduct = (storageKey: string, product: RecentProduct
         /* localStorage kullanılamıyorsa sessizce vazgeç */
     }
 };
+
+/** Silinen bir ürünü, tüm sayfaların "son kullanılanlar" listesinden temizler. */
+export const forgetRecentProduct = (productId: string) => {
+    try {
+        for (let i = 0; i < window.localStorage.length; i++) {
+            const key = window.localStorage.key(i);
+            if (!key || !key.startsWith(RECENT_STORAGE_PREFIX)) continue;
+
+            const raw = window.localStorage.getItem(key);
+            if (!raw) continue;
+
+            const parsed = JSON.parse(raw) as RecentProduct[];
+            if (!Array.isArray(parsed)) continue;
+
+            const next = parsed.filter((item) => item?.id !== productId);
+            if (next.length !== parsed.length) {
+                window.localStorage.setItem(key, JSON.stringify(next));
+            }
+        }
+    } catch {
+        /* localStorage kullanılamıyorsa sessizce vazgeç */
+    }
+};

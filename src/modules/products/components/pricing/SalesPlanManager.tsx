@@ -100,6 +100,7 @@ const SalesPlanManager: React.FC<SalesPlanManagerProps> = ({ productId }) => {
             />
 
             <SalesPlanModal
+                key={openIndex ?? "sales-plan-closed"}
                 index={openIndex}
                 productId={productId}
                 onClose={handleCloseDrawer}
@@ -107,7 +108,12 @@ const SalesPlanManager: React.FC<SalesPlanManagerProps> = ({ productId }) => {
                 onOpenRules={handleOpenRules}
             />
 
-            <PricingRulesModal index={rulesIndex} productId={productId} onClose={() => setRulesIndex(null)} />
+            <PricingRulesModal
+                key={rulesIndex ?? "pricing-rules-closed"}
+                index={rulesIndex}
+                productId={productId}
+                onClose={() => setRulesIndex(null)}
+            />
 
             <ConfirmDialog
                 open={pendingDeleteIndex != null}

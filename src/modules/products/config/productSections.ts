@@ -81,6 +81,16 @@ export const productSections: ProductSectionConfig[] = [
         permission: "product.basic.edit",
     },
     {
+        key: "pricing",
+        label: "Fiyatlandırma",
+        path: "/pricing/product-pricing",
+        icon: "coins",
+        description: "Temel fiyat, alternatif tarifeler ve fiyat listesi kayıtları",
+        group: "physical",
+        allowedKinds: [1],
+        permission: "product.pricing.edit",
+    },
+    {
         key: "variants",
         label: "Varyantlar",
         path: "/physical-products/variants",
@@ -99,16 +109,6 @@ export const productSections: ProductSectionConfig[] = [
         group: "physical",
         allowedKinds: [1],
         permission: "inventory.transaction",
-    },
-    {
-        key: "pricing",
-        label: "Fiyatlandırma",
-        path: "/pricing/product-pricing",
-        icon: "coins",
-        description: "Temel fiyat, alternatif tarifeler ve fiyat listesi kayıtları",
-        group: "physical",
-        allowedKinds: [1],
-        permission: "product.pricing.edit",
     },
     {
         key: "software-pricing",

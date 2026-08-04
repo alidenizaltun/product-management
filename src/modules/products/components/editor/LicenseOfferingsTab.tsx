@@ -5,10 +5,12 @@ import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Collapse, Modal, ModalBody, ModalHeader, UncontrolledTooltip } from "reactstrap";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import { productsApi } from "@/modules/products/api/products.api";
+import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { queryKeys } from "@/services/query/queryKeys";
 import { BILLING_UNITS, getBillingPeriodValueForUnit } from "@/modules/products/utils/billingPeriod";
 import type { LicenseOfferingForm } from "@/modules/products/types/productEditor.types";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 
 const UNIT_DRAG_MIME = "application/x-product-unit-ref";
 
@@ -36,7 +38,7 @@ const EMPTY_OFFERING = {
     name: "",
     description: "",
     basePrice: 0,
-    currencyCode: "TRY",
+    currencyCode: DEFAULT_CURRENCY_CODE,
     billingPeriodUnit: undefined as number | undefined,
     billingPeriodValue: undefined as number | undefined,
     autoRenew: true,
@@ -84,7 +86,7 @@ const normalizeLicenseModel = (value?: number) => {
     return LICENSE_MODELS.some((item) => item.value === model) ? model : 2;
 };
 
-const formatMoney = (amount?: number, currency = "TRY") =>
+const formatMoney = (amount?: number, currency = DEFAULT_CURRENCY_CODE) =>
     typeof amount === "number" && Number.isFinite(amount)
         ? `${amount.toLocaleString("tr-TR")} ${currency}`
         : `0 ${currency}`;
@@ -334,16 +336,8 @@ const OfferingFields: React.FC<OfferingFieldsProps> = ({
                                     placeholder="0.00"
                                     {...register(`licenseOfferings.${index}.basePrice`, { valueAsNumber: true })}
                                 />
-                                <select
-                                    className="form-select"
-                                    style={{ maxWidth: 120 }}
-                                    {...register(`licenseOfferings.${index}.currencyCode`)}
-                                >
-                                    <option value="TRY">TRY</option>
-                                    <option value="USD">USD</option>
-                                    <option value="EUR">EUR</option>
-                                    <option value="GBP">GBP</option>
-                                </select>
+                                <input type="hidden" {...register(`licenseOfferings.${index}.currencyCode`)} />
+                                <span className="input-group-text">{DEFAULT_CURRENCY_CODE}</span>
                             </div>
                             {errors.licenseOfferings?.[index]?.basePrice && (
                                 <span className="text-danger fs-12">
@@ -661,7 +655,7 @@ const buildOfferingPayload = (offering: LicenseOfferingForm) => {
         name: offering.name?.trim() || "Yeni Plan",
         description: toOptionalString(offering.description),
         basePrice: toOptionalNumber(offering.basePrice) ?? 0,
-        currencyCode: offering.currencyCode?.trim() || "TRY",
+        currencyCode: offering.currencyCode?.trim() || DEFAULT_CURRENCY_CODE,
         billingPeriodUnit: toOptionalNumber(offering.billingPeriodUnit),
         billingPeriodValue: toOptionalNumber(offering.billingPeriodValue),
         autoRenew: Boolean(offering.autoRenew),
@@ -677,12 +671,14 @@ const buildOfferingPayload = (offering: LicenseOfferingForm) => {
 
 const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, productUnits = [] }) => {
     const queryClient = useQueryClient();
-    const { control, getValues, setValue, trigger } = useFormContext<ProductFormValues>();
+    const { control, getValues, setValue, trigger, reset } = useFormContext<ProductFormValues>();
     const { fields, append, remove, move } = useFieldArray({ control, name: "licenseOfferings" });
     const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [editingOfferingIndex, setEditingOfferingIndex] = useState<number | null>(null);
     const [templateModalOpen, setTemplateModalOpen] = useState(false);
+    const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const addTemplate = (template: typeof PLAN_TEMPLATES[number]) => {
         const tempId = generateTempId();
@@ -717,6 +713,44 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
         arrayMove(licenseOfferings, oldIndex, newIndex).forEach((_, offeringIndex) => {
             setValue(`licenseOfferings.${offeringIndex}.sortOrder`, offeringIndex + 1, { shouldDirty: true });
         });
+    };
+
+    const requestRemoveOffering = (index: number) => {
+        const offering = licenseOfferings[index];
+        if (offering?.id) {
+            setPendingDeleteIndex(index);
+        } else {
+            remove(index);
+            if (editingOfferingIndex === index) setEditingOfferingIndex(null);
+        }
+    };
+
+    const confirmRemoveOffering = async () => {
+        if (pendingDeleteIndex == null) return;
+        const offering = licenseOfferings[pendingDeleteIndex];
+
+        if (!offering?.id || !productId) {
+            remove(pendingDeleteIndex);
+            setPendingDeleteIndex(null);
+            setEditingOfferingIndex(null);
+            return;
+        }
+
+        try {
+            setDeleting(true);
+            await productsApi.deleteLicenseOffering(productId, offering.id);
+            remove(pendingDeleteIndex);
+            await queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(productId) });
+            await queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+            reset(getValues());
+            showSuccess("Satış planı silindi.");
+            setPendingDeleteIndex(null);
+            setEditingOfferingIndex(null);
+        } catch (error) {
+            showApiError(error);
+        } finally {
+            setDeleting(false);
+        }
     };
 
     const saveOffering = async (index: number) => {
@@ -755,6 +789,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
 
             await queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(productId) });
             await queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+            reset(getValues());
             closeOfferingCard(cardKey);
         } catch (error) {
             showApiError(error);
@@ -853,7 +888,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                                                 <button
                                                     type="button"
                                                     className="btn btn-sm btn-icon btn-outline-danger"
-                                                    onClick={() => remove(index)}
+                                                    onClick={() => requestRemoveOffering(index)}
                                                     title="Paketi kaldır"
                                                 >
                                                     <em className="icon ni ni-trash" />
@@ -897,7 +932,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                                 </button>
                             </div>
                         ))}
-                        <div className="col-sm-6">
+                        <div className="col-sm-12">
                             <button
                                 type="button"
                                 className="card card-bordered h-100 w-100 bg-white text-start pricing-template-card"
@@ -934,10 +969,7 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                             productId={productId}
                             availableProductUnits={productUnits}
                             saving={savingIndex === editingOfferingIndex}
-                            onRemove={() => {
-                                remove(editingOfferingIndex);
-                                setEditingOfferingIndex(null);
-                            }}
+                            onRemove={() => requestRemoveOffering(editingOfferingIndex)}
                             onMoveUp={() => reorderOfferings(editingOfferingIndex, editingOfferingIndex - 1)}
                             onMoveDown={() => reorderOfferings(editingOfferingIndex, editingOfferingIndex + 1)}
                             onSave={() => void saveOffering(editingOfferingIndex)}
@@ -949,6 +981,17 @@ const LicenseOfferingsTab: React.FC<LicenseOfferingsTabProps> = ({ productId, pr
                     </ModalBody>
                 </Modal>
             )}
+
+            <ConfirmDialog
+                open={pendingDeleteIndex != null}
+                title="Satış Planını Sil"
+                message="Bu satış planı kalıcı olarak silinecek. Devam etmek istiyor musunuz?"
+                variant="danger"
+                confirmLabel="Sil"
+                loading={deleting}
+                onConfirm={() => void confirmRemoveOffering()}
+                onCancel={() => setPendingDeleteIndex(null)}
+            />
         </div>
     );
 };

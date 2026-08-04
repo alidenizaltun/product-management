@@ -1,5 +1,14 @@
 import React, { useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
+import {
+  Navigate,
+  Outlet,
+  Route,
+  RouterProvider,
+  createBrowserRouter,
+  createRoutesFromElements,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import Layout from "@/layout/Index";
 import LayoutNoSidebar from "@/layout/Index-nosidebar";
 import ThemeProvider from "@/layout/provider/Theme";
@@ -73,14 +82,14 @@ import UnitDefinitionListPage from "@/modules/catalog/pages/UnitDefinitionListPa
 import UnitDefinitionFormPage from "@/modules/catalog/pages/UnitDefinitionFormPage";
 import { getProductSection } from "@/modules/products/config/productSections";
 
-const ScrollToTop = ({ children }: { children: React.ReactNode }) => {
+const ScrollToTop: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  return <>{children}</>;
+  return <Outlet />;
 };
 
 /**
@@ -100,14 +109,11 @@ const ProductEditRedirect: React.FC = () => {
   return <Navigate to={id ? `${target}?productId=${id}` : target} replace />;
 };
 
-const Pages = () => {
-  return (
-    <BrowserRouter>
-      <ScrollToTop>
-        <Routes>
-          <Route element={<ThemeProvider />}>
-            <Route element={<AuthGuard />}>
-              <Route element={<Layout />}>
+const routeTree = createRoutesFromElements(
+  <Route element={<ScrollToTop />}>
+    <Route element={<ThemeProvider />}>
+      <Route element={<AuthGuard />}>
+        <Route element={<Layout />}>
                 <Route index element={<Navigate to="/products" replace />} />
 
                 {/* ─── Ürün İşlemleri ─────────────────────────────────────── */}
@@ -245,10 +251,11 @@ const Pages = () => {
               </Route>
             </Route>
           </Route>
-        </Routes>
-      </ScrollToTop>
-    </BrowserRouter>
-  );
-};
+        </Route>
+);
+
+const router = createBrowserRouter(routeTree);
+
+const Pages = () => <RouterProvider router={router} />;
 
 export default Pages;

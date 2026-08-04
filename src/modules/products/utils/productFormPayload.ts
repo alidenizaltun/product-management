@@ -4,6 +4,7 @@ import type {
   ModuleOfferingPriceForm,
   ProductPricingRuleForm,
 } from "@/modules/products/types/productEditor.types";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 
 type PricingRuleSource = ProductPricingRuleDto | ProductPricingRuleForm;
 type FullProductPricingRulePayload = NonNullable<CreateFullProductRequestDto["pricingRules"]>[number];
@@ -67,7 +68,7 @@ const getModuleOfferingPriceKey = (price: {
 export const buildModuleOfferingPricePayloads = (
   prices: ModuleOfferingPriceForm[] | undefined,
   licenseOfferings: LicenseOfferingForm[] | undefined,
-  fallbackCurrency = "TRY"
+  fallbackCurrency = DEFAULT_CURRENCY_CODE
 ) => {
   if (!prices?.length) return undefined;
 

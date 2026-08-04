@@ -1,6 +1,7 @@
 import React from "react";
 import { Badge } from "reactstrap";
 import Icon from "@/components/icon/Icon";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 
 type BadgeColor = "primary" | "success" | "warning" | "danger" | "info" | "secondary" | "light" | "dark";
 
@@ -224,7 +225,7 @@ interface CurrencyProps {
 
 export const Currency: React.FC<CurrencyProps> = ({
   amount,
-  currency = "TRY",
+  currency = DEFAULT_CURRENCY_CODE,
   locale = "tr-TR",
   className = "",
   colored,

@@ -130,86 +130,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   </Modal>
 );
 
-// ─── ConfirmationModal ────────────────────────────────────────────────────────
-
-type ConfirmVariant = "success" | "danger" | "warning" | "info";
-
-interface ConfirmationModalProps {
-  open: boolean;
-  toggle: () => void;
-  title: string;
-  message: string | React.ReactNode;
-  variant?: ConfirmVariant;
-  icon?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  loading?: boolean;
-  onConfirm: () => void | Promise<void>;
-}
-
-const VARIANT_ICONS: Record<ConfirmVariant, string> = {
-  success: "check",
-  danger: "alert-circle",
-  warning: "alert",
-  info: "info",
-};
-
-export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
-  open,
-  toggle,
-  title,
-  message,
-  variant = "danger",
-  icon,
-  confirmLabel = "Onayla",
-  cancelLabel = "İptal",
-  loading,
-  onConfirm,
-}) => {
-  const iconName = icon ?? VARIANT_ICONS[variant];
-  const btnColor = variant === "danger" ? "danger" : variant === "warning" ? "warning" : "primary";
-
-  return (
-    <Modal isOpen={open} toggle={toggle} centered>
-      <ModalBody className="modal-body-lg text-center">
-        <div className="nk-modal">
-          <Icon
-            className={`nk-modal-icon icon-circle icon-circle-xxl ni ni-${iconName} bg-${variant} text-white`}
-            name=""
-          />
-          <h4 className="nk-modal-title mt-3">{title}</h4>
-          <div className="nk-modal-text">
-            {typeof message === "string" ? (
-              <p className="lead">{message}</p>
-            ) : (
-              message
-            )}
-          </div>
-          <div className="nk-modal-action mt-4">
-            <Button color="light" className="btn-mw me-2" onClick={toggle} disabled={loading}>
-              {cancelLabel}
-            </Button>
-            <Button
-              color={btnColor}
-              className="btn-mw"
-              onClick={onConfirm}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" />
-                  İşleniyor...
-                </>
-              ) : (
-                confirmLabel
-              )}
-            </Button>
-          </div>
-        </div>
-      </ModalBody>
-    </Modal>
-  );
-};
+// Not: Onay diyalogları için tek, merkezi bir implementasyon kullanılır —
+// bkz. ConfirmDialog.tsx. Burada ayrıca bir ConfirmationModal tanımlanmaz.
 
 // ─── ImagePreviewModal ────────────────────────────────────────────────────────
 

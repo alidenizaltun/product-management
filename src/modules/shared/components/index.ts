@@ -2,6 +2,7 @@
 export { default as AppTabs } from "./AppTabs";
 export type { TabItem } from "./AppTabs";
 export { default as ConfirmDialog } from "./ConfirmDialog";
+export { default as UnsavedChangesDialog } from "./UnsavedChangesDialog";
 export { default as DataTableServer } from "./DataTableServer";
 export type { DataColumn } from "./DataTableServer";
 export { default as EmptyState } from "./EmptyState";
@@ -23,10 +24,19 @@ export {
 } from "./LoadingSkeleton";
 
 // ─── Filter & Search ──────────────────────────────────────────────────────────
-export { FilterBar, FilterChip, SearchInput, FilterGroup } from "./FilterBar";
+export { default as FilterBar, FilterChip, SearchInput, FilterGroup } from "./FilterBar";
+export type { FilterOption, FilterItem } from "./FilterBar";
 
 // ─── Form Utilities ───────────────────────────────────────────────────────────
 export { FormCard, FormRow, FormSection, FormActions } from "./FormCard";
+export { default as FormField } from "./FormField";
+export type { FormFieldProps } from "./FormField";
+export { TextInput, NumberInput, Textarea, Checkbox } from "./TextInput";
+export type { TextInputProps, NumberInputProps, TextareaProps, CheckboxProps } from "./TextInput";
+export { LoadingButton, IconButton } from "./LoadingButton";
+export type { LoadingButtonProps, IconButtonProps } from "./LoadingButton";
+export { default as StickyActionBar } from "./StickyActionBar";
+export type { StickyActionBarProps } from "./StickyActionBar";
 
 // ─── Detail / Display ─────────────────────────────────────────────────────────
 export { DetailSection, DetailCard, DetailRow, DetailBadge } from "./DetailSection";
@@ -42,7 +52,7 @@ export {
 } from "./StatWidget";
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
-export { FormModal, DetailModal, ConfirmationModal, ImagePreviewModal } from "./FormModal";
+export { FormModal, DetailModal, ImagePreviewModal } from "./FormModal";
 
 // ─── Notifications & Alerts ───────────────────────────────────────────────────
 export {
@@ -91,9 +101,6 @@ export {
 } from "./InfoCard";
 
 export { default as DataListCard, CardGrid, KanbanColumn } from "./DataListCard";
-
-// ─── Table ────────────────────────────────────────────────────────────────────
-export { default as ResponsiveTable, SimplePagination, PageSizeSelector } from "./ResponsiveTable";
 
 // ─── Page Layouts ─────────────────────────────────────────────────────────────
 export {

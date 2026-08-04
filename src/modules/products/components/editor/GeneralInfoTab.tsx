@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import JsonFieldEditor from "@/modules/shared/components/JsonFieldEditor";
+import { TextInput, NumberInput, Textarea, Checkbox, FormField } from "@/modules/shared/components";
 import { unitDefinitionsApi } from "@/services/unitDefinitions/unitDefinitions.api";
 import type { LookupItem } from "@/services/lookup/lookups.api";
 
@@ -75,72 +76,81 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
             </div>
 
             <div className="col-lg-6">
-                <label className="form-label">
-                    Ürün Adı <span className="text-danger">*</span>
-                </label>
-                <input
-                    className={`form-control form-control-lg ${errors.name ? "is-invalid" : ""}`}
+                <TextInput
+                    label="Ürün Adı"
+                    required
+                    size="lg"
                     placeholder="Ürün adını girin"
+                    error={errors.name?.message}
                     {...register("name", { required: "Ürün adı zorunludur" })}
                 />
-                {errors.name && <div className="invalid-feedback">{errors.name.message}</div>}
             </div>
 
             <div className="col-lg-3 col-md-6">
-                <label className="form-label">Ürün Tipi</label>
-                <select className="form-control form-select form-control-lg" {...register("kind", { valueAsNumber: true })}>
-                    <option value={2}>Yazılım</option>
-                    {/* <option value={1}>Fiziksel</option> */}
-                    {/* <option value={3}>Hizmet</option> */}
-                    {/* <option value={4}>Abonelik</option> */}
-                </select>
-            </div>
-
-            <div className="col-lg-3 col-md-6">
-                <label className="form-label">Durum</label>
-                <select className="form-control form-select form-control-lg" {...register("status", { valueAsNumber: true })}>
-                    <option value={0}>Taslak</option>
-                    <option value={1}>Aktif</option>
-                    <option value={2}>Pasif</option>
-                    <option value={3}>Arşivlendi</option>
-                </select>
-            </div>
-
-            <div className="col-md-6">
-                <label className="form-label">Marka</label>
-                <input className="form-control" placeholder="Marka adı" {...register("brand")} />
-            </div>
-
-            <div className="col-md-6">
-                <label className="form-label">
-                    SKU / Ürün Kodu <span className="text-danger">*</span>
-                </label>
-                <div className="input-group">
-                    <input
-                        className={`form-control ${errors.productCode ? "is-invalid" : ""}`}
-                        placeholder="PRD-0001"
-                        {...register("productCode", { required: "Ürün kodu zorunludur" })}
-                    />
-                    <button
-                        type="button"
-                        className="btn btn-outline-light"
-                        disabled={!name?.trim()}
-                        onClick={suggestSku}
+                <FormField label="Ürün Tipi" htmlFor="product-kind-select">
+                    <select
+                        id="product-kind-select"
+                        className="form-control form-select form-control-lg"
+                        {...register("kind", { valueAsNumber: true })}
                     >
-                        <em className="icon ni ni-magic me-1" />
-                        Öner
-                    </button>
-                </div>
-                {errors.productCode && <div className="invalid-feedback d-block">{errors.productCode.message}</div>}
-                {!productCode?.trim() && (
-                    <div className="form-note">Ürün adından otomatik SKU önerisi alabilirsiniz.</div>
-                )}
+                        <option value={2}>Yazılım</option>
+                        {/* <option value={1}>Fiziksel</option> */}
+                        {/* <option value={3}>Hizmet</option> */}
+                        {/* <option value={4}>Abonelik</option> */}
+                    </select>
+                </FormField>
+            </div>
+
+            <div className="col-lg-3 col-md-6">
+                <FormField label="Durum" htmlFor="product-status-select">
+                    <select
+                        id="product-status-select"
+                        className="form-control form-select form-control-lg"
+                        {...register("status", { valueAsNumber: true })}
+                    >
+                        <option value={0}>Taslak</option>
+                        <option value={1}>Aktif</option>
+                        <option value={2}>Pasif</option>
+                        <option value={3}>Arşivlendi</option>
+                    </select>
+                </FormField>
             </div>
 
             <div className="col-md-6">
-                <label className="form-label">Kısa Açıklama</label>
-                <textarea
-                    className="form-control"
+                <TextInput label="Marka" placeholder="Marka adı" {...register("brand")} />
+            </div>
+
+            <div className="col-md-6">
+                <FormField
+                    label="SKU / Ürün Kodu"
+                    htmlFor="product-code-input"
+                    required
+                    error={errors.productCode?.message}
+                    hint={!productCode?.trim() ? "Ürün adından otomatik SKU önerisi alabilirsiniz." : undefined}
+                >
+                    <div className="input-group">
+                        <input
+                            id="product-code-input"
+                            className={`form-control ${errors.productCode ? "is-invalid" : ""}`}
+                            placeholder="PRD-0001"
+                            {...register("productCode", { required: "Ürün kodu zorunludur" })}
+                        />
+                        <button
+                            type="button"
+                            className="btn btn-outline-light"
+                            disabled={!name?.trim()}
+                            onClick={suggestSku}
+                        >
+                            <em className="icon ni ni-magic me-1" />
+                            Öner
+                        </button>
+                    </div>
+                </FormField>
+            </div>
+
+            <div className="col-md-6">
+                <Textarea
+                    label="Kısa Açıklama"
                     rows={3}
                     placeholder="Vitrin kartında görünecek kısa açıklama"
                     {...register("shortDescription")}
@@ -148,9 +158,8 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
             </div>
 
             <div className="col-md-6">
-                <label className="form-label">Detaylı Açıklama</label>
-                <textarea
-                    className="form-control"
+                <Textarea
+                    label="Detaylı Açıklama"
                     rows={3}
                     placeholder="Ürün detayında kullanılacak açıklamayı yazın"
                     {...register("description")}
@@ -173,38 +182,19 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
 
             {advancedOpen && (
                 <>
-                    <div className={`col-md-${isSoftwareProduct ? "6" : "4"}`}>
-                        <label className="form-label">
-                            Para Birimi <span className="text-danger">*</span>
-                        </label>
-                        <select
-                            className={`form-control form-select ${errors.defaultCurrencyCode ? "is-invalid" : ""}`}
-                            {...register("defaultCurrencyCode", { required: "Para birimi zorunludur" })}
-                        >
-                            <option value="TRY">TRY — Türk Lirası</option>
-                            <option value="USD">USD — Amerikan Doları</option>
-                            <option value="EUR">EUR — Euro</option>
-                            <option value="GBP">GBP — İngiliz Sterlini</option>
-                        </select>
-                        {errors.defaultCurrencyCode && (
-                            <div className="invalid-feedback">{errors.defaultCurrencyCode.message}</div>
-                        )}
-                    </div>
+                    <input type="hidden" {...register("defaultCurrencyCode")} />
 
-                    <div className={`col-md-${isSoftwareProduct ? "6" : "4"}`}>
-                        <label className="form-label">Üretici</label>
-                        <input className="form-control" placeholder="Üretici firma" {...register("manufacturer")} />
+                    <div className={isSoftwareProduct ? "col-md-12" : "col-md-6"}>
+                        <TextInput label="Üretici" placeholder="Üretici firma" {...register("manufacturer")} />
                     </div>
 
                     {!isSoftwareProduct && (
-                        <div className="col-md-4">
-                            <label className="form-label">Barkod</label>
-                            <input className="form-control" placeholder="EAN / UPC barkod" {...register("barcode")} />
+                        <div className="col-md-6">
+                            <TextInput label="Barkod" placeholder="EAN / UPC barkod" {...register("barcode")} />
                         </div>
                     )}
 
                     <div className="col-md-6">
-                        <label className="form-label">Vergi Oranı (%)</label>
                         {isEdit ? (
                             <>
                                 <input
@@ -212,24 +202,23 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
                                     value={coerceTaxRate(taxRate)}
                                     {...register("taxRate", { setValueAs: coerceTaxRate })}
                                 />
-                                <input
-                                    type="number"
+                                <NumberInput
+                                    label="Vergi Oranı (%)"
                                     step="0.01"
-                                    min="0"
-                                    max="100"
-                                    className="form-control"
+                                    min={0}
+                                    max={100}
                                     value={coerceTaxRate(taxRate)}
                                     disabled
                                     readOnly
+                                    onChange={() => {}}
                                 />
                             </>
                         ) : (
-                            <input
-                                type="number"
+                            <NumberInput
+                                label="Vergi Oranı (%)"
                                 step="0.01"
-                                min="0"
-                                max="100"
-                                className="form-control"
+                                min={0}
+                                max={100}
                                 placeholder="0"
                                 {...register("taxRate", { setValueAs: coerceTaxRate })}
                             />
@@ -237,17 +226,11 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
                     </div>
 
                     <div className="col-md-6">
-                        <label className="form-label">Vergi Kodu</label>
-                        <input className="form-control" placeholder="KDV18" {...register("taxCode")} />
+                        <TextInput label="Vergi Kodu" placeholder="KDV18" {...register("taxCode")} />
                     </div>
 
                     <div className="col-md-6">
-                        <label className="form-label">Etiketler</label>
-                        <input
-                            className="form-control"
-                            placeholder="etiket1, etiket2, etiket3"
-                            {...register("tags")}
-                        />
+                        <TextInput label="Etiketler" placeholder="etiket1, etiket2, etiket3" {...register("tags")} />
                     </div>
 
                     <div className="col-md-6">
@@ -257,61 +240,14 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
                     <div className="col-12">
                         <h6 className="overline-title text-primary mb-3">Satış Ayarları</h6>
                         <div className="d-flex flex-wrap gap-4">
-                            <div className="form-check form-switch">
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id="chk-isActive"
-                                    {...register("isActive")}
-                                />
-                                <label className="form-check-label" htmlFor="chk-isActive">
-                                    Aktif
-                                </label>
-                            </div>
-                            <div className="form-check form-switch">
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id="chk-isSellable"
-                                    {...register("isSellable")}
-                                />
-                                <label className="form-check-label" htmlFor="chk-isSellable">
-                                    Satılabilir
-                                </label>
-                            </div>
-                            <div className="form-check form-switch">
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id="chk-isPurchasable"
-                                    {...register("isPurchasable")}
-                                />
-                                <label className="form-check-label" htmlFor="chk-isPurchasable">
-                                    Satın Alınabilir
-                                </label>
-                            </div>
-                            <div className="form-check form-switch">
-                                {isSoftwareProduct ? (
-                                    <input
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        id="chk-trackInventory"
-                                        checked={false}
-                                        disabled
-                                        readOnly
-                                    />
-                                ) : (
-                                    <input
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        id="chk-trackInventory"
-                                        {...register("trackInventory")}
-                                    />
-                                )}
-                                <label className="form-check-label" htmlFor="chk-trackInventory">
-                                    Stok Takibi
-                                </label>
-                            </div>
+                            <Checkbox label="Aktif" switchStyle {...register("isActive")} />
+                            <Checkbox label="Satılabilir" switchStyle {...register("isSellable")} />
+                            <Checkbox label="Satın Alınabilir" switchStyle {...register("isPurchasable")} />
+                            {isSoftwareProduct ? (
+                                <Checkbox label="Stok Takibi" switchStyle checked={false} disabled readOnly />
+                            ) : (
+                                <Checkbox label="Stok Takibi" switchStyle {...register("trackInventory")} />
+                            )}
                         </div>
                     </div>
                 </>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useModuleOfferingPrices } from "@/modules/products/hooks/useModuleOfferingPrices";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 import type {
     ProductModuleOfferingPriceDto,
     CreateProductModuleOfferingPriceRequest,
@@ -16,11 +17,10 @@ interface FormState {
 const EMPTY_FORM: FormState = {
     productLicenseOfferingId: "",
     price: "",
-    currencyCode: "TRY",
+    currencyCode: DEFAULT_CURRENCY_CODE,
     isActive: true,
 };
 
-const CURRENCY_OPTIONS = ["TRY", "USD", "EUR", "GBP"];
 const ALL_LICENSE_OFFERINGS_KEY = "__all_license_offerings__";
 
 interface Props {
@@ -173,19 +173,7 @@ const ModuleOfferingPricesPanel: React.FC<Props> = ({ productId, moduleId, licen
                                         onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                                         required
                                     />
-                                    <select
-                                        className="form-select"
-                                        style={{ maxWidth: 96 }}
-                                        value={form.currencyCode}
-                                        onChange={(e) => setForm((f) => ({ ...f, currencyCode: e.target.value }))}
-                                        required
-                                    >
-                                        {CURRENCY_OPTIONS.map((currency) => (
-                                            <option key={currency} value={currency}>
-                                                {currency}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <span className="input-group-text">{DEFAULT_CURRENCY_CODE}</span>
                                 </div>
                             </div>
                             <div className="col-md-1 d-flex align-items-end pb-1">

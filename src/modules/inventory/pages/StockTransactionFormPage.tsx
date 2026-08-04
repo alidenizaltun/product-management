@@ -1,7 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
-import { Button } from "reactstrap";
 import Content from "@/layout/content/Content";
 import Head from "@/layout/head/Head";
 import Icon from "@/components/icon/Icon";
@@ -9,6 +8,8 @@ import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
 import ProductSelect from "@/modules/shared/components/selects/ProductSelect";
 import WarehouseSelect from "@/modules/shared/components/selects/WarehouseSelect";
+import { TextInput, NumberInput, Textarea, FormField, LoadingButton, UnsavedChangesDialog } from "@/modules/shared/components";
+import { useUnsavedChangesGuard } from "@/modules/shared/hooks/useUnsavedChangesGuard";
 import { useInventoryTransactionMutations } from "@/modules/inventory/hooks/useInventory";
 
 interface FormValues {
@@ -31,7 +32,7 @@ const StockTransactionFormPage: React.FC = () => {
     control,
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<FormValues>({
     defaultValues: {
       productId: "",
@@ -58,8 +59,11 @@ const StockTransactionFormPage: React.FC = () => {
       note: values.note || undefined,
       occurredAt: values.occurredAt || undefined,
     });
+    allowNextNavigation();
     navigate("/inventory/transactions");
   };
+
+  const { blocker, allowNextNavigation } = useUnsavedChangesGuard(isDirty);
 
   return (
     <>
@@ -70,22 +74,18 @@ const StockTransactionFormPage: React.FC = () => {
           description="Stok giriş, çıkış veya düzeltme kaydı oluşturun."
           actions={
             <div className="d-flex gap-2">
-              <Button color="light py-2" onClick={() => navigate("/inventory/transactions")} disabled={create.isPending}>
+              <button
+                type="button"
+                className="btn btn-light py-2"
+                onClick={() => navigate("/inventory/transactions")}
+                disabled={create.isPending}
+              >
                 İptal
-              </Button>
-              <Button color="primary py-2" type="submit" form="tx-form" disabled={create.isPending}>
-                {create.isPending ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" />
-                    Kaydediliyor...
-                  </>
-                ) : (
-                  <>
-                    <Icon name="save" className="me-1" />
-                    Kaydet
-                  </>
-                )}
-              </Button>
+              </button>
+              <LoadingButton color="primary py-2" type="submit" form="tx-form" loading={create.isPending}>
+                <Icon name="save" className="me-1" />
+                Kaydet
+              </LoadingButton>
             </div>
           }
         />
@@ -94,109 +94,97 @@ const StockTransactionFormPage: React.FC = () => {
             <div className="card-inner">
               <form id="tx-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
                 <div className="col-md-6">
-                  <label className="form-label">
-                    Ürün <span className="text-danger">*</span>
-                  </label>
-                  <Controller
-                    control={control}
-                    name="productId"
-                    rules={{ required: "Ürün seçiniz" }}
-                    render={({ field }) => (
-                      <ProductSelect
-                        value={field.value || null}
-                        onChange={(val) => field.onChange(val ?? "")}
-                      />
-                    )}
-                  />
-                  {errors.productId && (
-                    <div className="text-danger fs-12px mt-1">{errors.productId.message}</div>
-                  )}
+                  <FormField label="Ürün" htmlFor="tx-product" required error={errors.productId?.message}>
+                    <Controller
+                      control={control}
+                      name="productId"
+                      rules={{ required: "Ürün seçiniz" }}
+                      render={({ field }) => (
+                        <ProductSelect
+                          value={field.value || null}
+                          onChange={(val) => field.onChange(val ?? "")}
+                          isInvalid={Boolean(errors.productId)}
+                        />
+                      )}
+                    />
+                  </FormField>
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label">Depo</label>
-                  <Controller
-                    control={control}
-                    name="warehouseId"
-                    render={({ field }) => (
-                      <WarehouseSelect
-                        value={field.value || null}
-                        onChange={(val) => field.onChange(val ?? "")}
-                      />
-                    )}
-                  />
+                  <FormField label="Depo" htmlFor="tx-warehouse">
+                    <Controller
+                      control={control}
+                      name="warehouseId"
+                      render={({ field }) => (
+                        <WarehouseSelect
+                          value={field.value || null}
+                          onChange={(val) => field.onChange(val ?? "")}
+                        />
+                      )}
+                    />
+                  </FormField>
                 </div>
 
                 <div className="col-md-3">
-                  <label className="form-label">İşlem Tipi</label>
-                  <select
-                    className="form-control form-select"
-                    {...register("transactionType", { valueAsNumber: true })}
-                  >
-                    <option value={1}>Giriş</option>
-                    <option value={2}>Çıkış</option>
-                    <option value={3}>Transfer</option>
-                    <option value={4}>Düzeltme</option>
-                    <option value={5}>İade</option>
-                  </select>
+                  <FormField label="İşlem Tipi" htmlFor="tx-type">
+                    <select
+                      id="tx-type"
+                      className="form-control form-select"
+                      {...register("transactionType", { valueAsNumber: true })}
+                    >
+                      <option value={1}>Giriş</option>
+                      <option value={2}>Çıkış</option>
+                      <option value={3}>Transfer</option>
+                      <option value={4}>Düzeltme</option>
+                      <option value={5}>İade</option>
+                    </select>
+                  </FormField>
                 </div>
 
                 <div className="col-md-3">
-                  <label className="form-label">
-                    Miktar <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    className={`form-control ${errors.quantity ? "is-invalid" : ""}`}
+                  <NumberInput
+                    label="Miktar"
+                    required
+                    min={1}
+                    error={errors.quantity?.message}
                     {...register("quantity", {
                       valueAsNumber: true,
                       required: "Miktar zorunludur",
                       min: { value: 1, message: "En az 1" },
                     })}
                   />
-                  {errors.quantity && <div className="invalid-feedback">{errors.quantity.message}</div>}
                 </div>
 
                 <div className="col-md-3">
-                  <label className="form-label">Birim Maliyet</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-control"
-                    {...register("unitCost", { valueAsNumber: true })}
-                  />
+                  <NumberInput label="Birim Maliyet" step="0.01" min={0} {...register("unitCost", { valueAsNumber: true })} />
                 </div>
 
                 <div className="col-md-3">
-                  <label className="form-label">Tarih</label>
-                  <input type="datetime-local" className="form-control" {...register("occurredAt")} />
+                  <TextInput label="Tarih" type="datetime-local" {...register("occurredAt")} />
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label">Referans Tipi</label>
-                  <input
-                    className="form-control"
+                  <TextInput
+                    label="Referans Tipi"
                     placeholder="initial, order, adjustment..."
                     {...register("referenceType")}
                   />
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label">Referans No</label>
-                  <input className="form-control" {...register("referenceNumber")} />
+                  <TextInput label="Referans No" {...register("referenceNumber")} />
                 </div>
 
                 <div className="col-12">
-                  <label className="form-label">Not</label>
-                  <textarea className="form-control" rows={2} {...register("note")} />
+                  <Textarea label="Not" rows={2} {...register("note")} />
                 </div>
               </form>
             </div>
           </div>
         </Block>
       </Content>
+
+      <UnsavedChangesDialog blocker={blocker} />
     </>
   );
 };

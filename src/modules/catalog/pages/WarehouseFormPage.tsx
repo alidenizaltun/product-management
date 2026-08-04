@@ -1,12 +1,13 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { Button } from "reactstrap";
 import Content from "@/layout/content/Content";
 import Head from "@/layout/head/Head";
 import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
+import { TextInput, Textarea, Checkbox, LoadingButton, UnsavedChangesDialog } from "@/modules/shared/components";
+import { useUnsavedChangesGuard } from "@/modules/shared/hooks/useUnsavedChangesGuard";
 import { useWarehouse, useWarehouseMutations } from "@/modules/catalog/hooks/useCatalog";
 import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
 
@@ -32,7 +33,7 @@ const WarehouseFormPage: React.FC = () => {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<WarehouseFormValues>({
     defaultValues: {
       code: "",
@@ -77,6 +78,7 @@ const WarehouseFormPage: React.FC = () => {
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Depo güncellendi." : "Depo oluşturuldu.");
+      allowNextNavigation();
       navigate("/definitions/warehouses");
     } catch (err) {
       showApiError(err);
@@ -85,6 +87,7 @@ const WarehouseFormPage: React.FC = () => {
 
   const isPending = create.isPending || update.isPending;
   const title = isEdit ? "Depo Düzenle" : "Yeni Depo";
+  const { blocker, allowNextNavigation } = useUnsavedChangesGuard(isDirty);
 
   return (
     <>
@@ -94,22 +97,18 @@ const WarehouseFormPage: React.FC = () => {
           title={title}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light py-2" onClick={() => navigate("/definitions/warehouses")} disabled={isPending}>
+              <button
+                type="button"
+                className="btn btn-light py-2"
+                onClick={() => navigate("/definitions/warehouses")}
+                disabled={isPending}
+              >
                 İptal
-              </Button>
-              <Button color="primary py-2" type="submit" form="warehouse-form" disabled={isPending}>
-                {isPending ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" />
-                    Kaydediliyor...
-                  </>
-                ) : (
-                  <>
-                    <Icon name="save" className="me-1" />
-                    Kaydet
-                  </>
-                )}
-              </Button>
+              </button>
+              <LoadingButton color="primary py-2" type="submit" form="warehouse-form" loading={isPending}>
+                <Icon name="save" className="me-1" />
+                Kaydet
+              </LoadingButton>
             </div>
           }
         />
@@ -126,61 +125,43 @@ const WarehouseFormPage: React.FC = () => {
               <div className="card-inner">
                 <form id="warehouse-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
                   <div className="col-md-4">
-                    <label className="form-label">
-                      Kod <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      className={`form-control ${errors.code ? "is-invalid" : ""}`}
+                    <TextInput
+                      label="Kod"
+                      required
                       placeholder="WH-IST-01"
+                      error={errors.code?.message}
                       {...register("code", { required: "Kod zorunludur" })}
                     />
-                    {errors.code && <div className="invalid-feedback">{errors.code.message}</div>}
                   </div>
 
                   <div className="col-md-8">
-                    <label className="form-label">
-                      Ad <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      className={`form-control ${errors.name ? "is-invalid" : ""}`}
+                    <TextInput
+                      label="Ad"
+                      required
                       placeholder="Depo adı"
+                      error={errors.name?.message}
                       {...register("name", { required: "Ad zorunludur" })}
                     />
-                    {errors.name && <div className="invalid-feedback">{errors.name.message}</div>}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">Şehir</label>
-                    <input className="form-control" {...register("city")} />
+                    <TextInput label="Şehir" {...register("city")} />
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">Ülke</label>
-                    <input className="form-control" {...register("country")} />
+                    <TextInput label="Ülke" {...register("country")} />
                   </div>
 
                   <div className="col-12">
-                    <label className="form-label">Adres</label>
-                    <textarea className="form-control" rows={2} {...register("address")} />
+                    <Textarea label="Adres" rows={2} {...register("address")} />
                   </div>
 
                   <div className="col-12">
-                    <label className="form-label">Açıklama</label>
-                    <textarea className="form-control" rows={2} {...register("description")} />
+                    <Textarea label="Açıklama" rows={2} {...register("description")} />
                   </div>
 
                   <div className="col-12">
-                    <div className="form-check form-switch">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id="warehouse-active"
-                        {...register("isActive")}
-                      />
-                      <label className="form-check-label" htmlFor="warehouse-active">
-                        Aktif
-                      </label>
-                    </div>
+                    <Checkbox label="Aktif" switchStyle {...register("isActive")} />
                   </div>
                 </form>
               </div>
@@ -188,6 +169,8 @@ const WarehouseFormPage: React.FC = () => {
           )}
         </Block>
       </Content>
+
+      <UnsavedChangesDialog blocker={blocker} />
     </>
   );
 };

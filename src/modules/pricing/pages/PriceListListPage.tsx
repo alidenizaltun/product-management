@@ -32,11 +32,6 @@ const PriceListListPage: React.FC = () => {
       { key: "code", title: "Kod", render: (it) => <span className="fw-medium">{it.code}</span> },
       { key: "name", title: "Ad", render: (it) => it.name },
       {
-        key: "currency",
-        title: "Para Birimi",
-        render: (it) => <span className="badge bg-outline-info">{it.currencyCode}</span>,
-      },
-      {
         key: "channel",
         title: "Satış Kanalı",
         render: (it) => <span className="text-soft">{it.salesChannel || "—"}</span>,

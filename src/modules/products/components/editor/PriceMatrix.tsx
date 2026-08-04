@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 
 const PRICE_TYPES = [
   { value: 1, label: "Satış Fiyatı", icon: "cart", color: "primary" },
@@ -32,7 +33,7 @@ const emptyPrice = (overrides: Partial<ProductFormValues["prices"][number]> = {}
   priceType: 1,
   amount: undefined as number | undefined,
   compareAtAmount: undefined as number | undefined,
-  currencyCode: "TRY",
+  currencyCode: DEFAULT_CURRENCY_CODE,
   minQuantity: 1,
   maxQuantity: undefined as number | undefined,
   salesChannel: "",
@@ -71,7 +72,7 @@ const PRICE_TEMPLATES = [
 const getPriceMeta = (value?: number) =>
   PRICE_TYPES.find((item) => item.value === Number(value)) ?? PRICE_TYPES[0];
 
-const formatMoney = (amount?: number, currency = "TRY") =>
+const formatMoney = (amount?: number, currency = DEFAULT_CURRENCY_CODE) =>
   typeof amount === "number" && Number.isFinite(amount)
     ? `${amount.toLocaleString("tr-TR")} ${currency}`
     : `0 ${currency}`;
@@ -221,16 +222,8 @@ const PriceMatrix: React.FC = () => {
                           required: "Tutar zorunludur",
                         })}
                       />
-                      <select
-                        className="form-select"
-                        style={{ maxWidth: 120 }}
-                        {...register(`prices.${index}.currencyCode`)}
-                      >
-                        <option value="TRY">TRY</option>
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                      </select>
+                      <input type="hidden" {...register(`prices.${index}.currencyCode`)} />
+                      <span className="input-group-text">{DEFAULT_CURRENCY_CODE}</span>
                     </div>
                     {amountError && <div className="invalid-feedback d-block">{amountError.message}</div>}
                   </div>

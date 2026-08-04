@@ -1,17 +1,19 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "reactstrap";
 import { useForm } from "react-hook-form";
 import Content from "@/layout/content/Content";
 import Head from "@/layout/head/Head";
 import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
+import { TextInput, FormField, LoadingButton, UnsavedChangesDialog } from "@/modules/shared/components";
+import { useUnsavedChangesGuard } from "@/modules/shared/hooks/useUnsavedChangesGuard";
 import { showSuccess } from "@/modules/shared/components/NotificationAlert";
 import { parseApiErrors, toFormPath } from "@/utils/apiErrors";
 import { useProductMutations } from "@/modules/products/hooks/useProductMutations";
 import { buildDefaultValues, buildFullProductPayload } from "@/modules/products/utils/productFormMapper";
 import { KIND_LABELS } from "@/modules/products/components/detail/constants";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 import type { ProductFormValues } from "@/modules/products/types/productEditor.types";
 
 interface ProductCreateFormValues {
@@ -64,7 +66,7 @@ const ProductCreatePage: React.FC = () => {
             kind: 2,
             productCode: "",
             status: 1,
-            defaultCurrencyCode: "TRY",
+            defaultCurrencyCode: DEFAULT_CURRENCY_CODE,
         },
         mode: "onBlur",
     });
@@ -75,8 +77,9 @@ const ProductCreatePage: React.FC = () => {
         setError,
         getValues,
         setValue,
-        formState: { errors },
+        formState: { errors, isDirty },
     } = form;
+    const { blocker, allowNextNavigation } = useUnsavedChangesGuard(isDirty);
 
     const onSubmit = async (values: ProductCreateFormValues) => {
         setSubmitError(null);
@@ -95,6 +98,7 @@ const ProductCreatePage: React.FC = () => {
         try {
             const created = await createFullMutation.mutateAsync(payload);
             showSuccess("Ürün oluşturuldu. Bölümleri ilgili sayfalardan tamamlayabilirsiniz.");
+            allowNextNavigation();
             navigate(`/products/${created.id}`);
         } catch (err: unknown) {
             const { fieldErrors, generalErrors } = parseApiErrors(err);
@@ -126,22 +130,17 @@ const ProductCreatePage: React.FC = () => {
                         description="Önce ürün kimliğini oluşturun; diğer bölümleri sabit menüdeki sayfalardan tamamlayın."
                         actions={
                             <div className="d-flex gap-2 align-items-center flex-wrap">
-                                <Button color="light py-2" type="button" onClick={() => navigate("/products")}>
+                                <button
+                                    type="button"
+                                    className="btn btn-light py-2"
+                                    onClick={() => navigate("/products")}
+                                >
                                     Ürün Listesine Dön
-                                </Button>
-                                <Button color="primary py-2" type="submit" disabled={isPending}>
-                                    {isPending ? (
-                                        <>
-                                            <span className="spinner-border spinner-border-sm me-2" />
-                                            Kaydediliyor...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icon name="save" className="me-1" id="" style={{}} />
-                                            Oluştur ve Devam Et
-                                        </>
-                                    )}
-                                </Button>
+                                </button>
+                                <LoadingButton color="primary py-2" type="submit" loading={isPending}>
+                                    <Icon name="save" className="me-1" id="" style={{}} />
+                                    Oluştur ve Devam Et
+                                </LoadingButton>
                             </div>
                         }
                     />
@@ -167,50 +166,46 @@ const ProductCreatePage: React.FC = () => {
                                     <div className="card-inner">
                                         <div className="row g-3">
                                             <div className="col-md-6">
-                                                <label className="form-label" htmlFor="product-name">
-                                                    Ürün Adı <span className="text-danger">*</span>
-                                                </label>
-                                                <input
+                                                <TextInput
                                                     id="product-name"
-                                                    className={`form-control ${errors.name ? "is-invalid" : ""}`}
+                                                    label="Ürün Adı"
+                                                    required
                                                     placeholder="Örn. Kurumsal Lisans Paketi"
+                                                    error={errors.name?.message}
                                                     {...register("name", { required: "Ürün adı zorunludur" })}
                                                 />
-                                                {errors.name && <span className="invalid-feedback d-block">{errors.name.message}</span>}
                                             </div>
 
                                             <div className="col-md-3">
-                                                <label className="form-label" htmlFor="product-kind">
-                                                    Ürün Türü <span className="text-danger">*</span>
-                                                </label>
-                                                <select
-                                                    id="product-kind"
-                                                    className="form-select"
-                                                    {...register("kind", { required: true, valueAsNumber: true })}
-                                                >
-                                                    {Object.entries(KIND_LABELS).map(([value, meta]) => (
-                                                        <option key={value} value={value}>
-                                                            {meta.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                <FormField label="Ürün Türü" htmlFor="product-kind" required>
+                                                    <select
+                                                        id="product-kind"
+                                                        className="form-select"
+                                                        {...register("kind", { required: true, valueAsNumber: true })}
+                                                    >
+                                                        {Object.entries(KIND_LABELS).map(([value, meta]) => (
+                                                            <option key={value} value={value}>
+                                                                {meta.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </FormField>
                                             </div>
 
                                             <div className="col-md-3">
-                                                <label className="form-label" htmlFor="product-status">
-                                                    Durum
-                                                </label>
-                                                <select
-                                                    id="product-status"
-                                                    className="form-select"
-                                                    {...register("status", { valueAsNumber: true })}
-                                                >
-                                                    {STATUS_OPTIONS.map((option) => (
-                                                        <option key={option.value} value={option.value}>
-                                                            {option.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                <FormField label="Durum" htmlFor="product-status">
+                                                    <select
+                                                        id="product-status"
+                                                        className="form-select"
+                                                        {...register("status", { valueAsNumber: true })}
+                                                    >
+                                                        {STATUS_OPTIONS.map((option) => (
+                                                            <option key={option.value} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </FormField>
                                             </div>
                                         </div>
                                     </div>
@@ -220,6 +215,8 @@ const ProductCreatePage: React.FC = () => {
                     </Block>
                 </form>
             </Content>
+
+            <UnsavedChangesDialog blocker={blocker} />
         </>
     );
 };

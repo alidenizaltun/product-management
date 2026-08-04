@@ -7,6 +7,9 @@ import Head from "@/layout/head/Head";
 import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
+import StickyActionBar from "@/modules/shared/components/StickyActionBar";
+import UnsavedChangesDialog from "@/modules/shared/components/UnsavedChangesDialog";
+import { useUnsavedChangesGuard } from "@/modules/shared/hooks/useUnsavedChangesGuard";
 import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
 import { parseApiErrors, toFormPath } from "@/utils/apiErrors";
 import ProductPicker from "@/modules/products/components/ProductPicker";
@@ -82,25 +85,11 @@ const ProductSectionPage: React.FC<ProductSectionPageProps> = ({
         }
     }, [product, productId, reset, defaultValues, section.key]);
 
-    useEffect(() => {
-        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            if (!isDirty) return;
-            event.preventDefault();
-            event.returnValue = "";
-        };
-        window.addEventListener("beforeunload", handleBeforeUnload);
-        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [isDirty]);
+    const { blocker: navigationBlocker } = useUnsavedChangesGuard(isDirty);
 
     const handleProductChange = useCallback(
         (nextId: string | null) => {
             if (nextId === productId) return;
-            if (
-                isDirty &&
-                !window.confirm("Bu sayfada kaydedilmemiş değişiklikler var. Ürünü değiştirmek istediğinize emin misiniz?")
-            ) {
-                return;
-            }
 
             setSubmitError(null);
             const nextParams = new URLSearchParams(searchParams);
@@ -111,7 +100,7 @@ const ProductSectionPage: React.FC<ProductSectionPageProps> = ({
             }
             setSearchParams(nextParams, { replace: true });
         },
-        [isDirty, productId, searchParams, setSearchParams]
+        [productId, searchParams, setSearchParams]
     );
 
     const handleFormKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
@@ -291,9 +280,20 @@ const ProductSectionPage: React.FC<ProductSectionPageProps> = ({
                                 children({ productId, product })
                             )}
                         </Block>
+
+                        {resolvedShowSave && product && kindAllowed && (
+                            <StickyActionBar
+                                dirty={isDirty}
+                                loading={isPending}
+                                submitLabel="Kaydet"
+                                onSubmit={handleSubmit(onSubmit)}
+                            />
+                        )}
                     </form>
                 </FormProvider>
             </Content>
+
+            <UnsavedChangesDialog blocker={navigationBlocker} />
         </>
     );
 };

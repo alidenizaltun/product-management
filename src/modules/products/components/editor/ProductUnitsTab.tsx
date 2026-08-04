@@ -1,9 +1,11 @@
 import React, { useEffect, useId, useState } from "react";
+import { arrayMove } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader, UncontrolledTooltip } from "reactstrap";
 import { unitDefinitionsApi } from "@/services/unitDefinitions/unitDefinitions.api";
 import { productsApi } from "@/modules/products/api/products.api";
+import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { queryKeys } from "@/services/query/queryKeys";
 import type { ProductFormValues, ProductUnitForm } from "@/modules/products/types/productEditor.types";
@@ -70,7 +72,7 @@ const HelpLabel: React.FC<HelpLabelProps> = ({ children, help }) => {
 
 const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
     const queryClient = useQueryClient();
-    const { control, register, setValue, getValues } = useFormContext<ProductFormValues>();
+    const { control, register, setValue, getValues, reset } = useFormContext<ProductFormValues>();
     const { fields, append, remove, move } = useFieldArray({ control, name: "productUnits" });
     const productUnits = useWatch({ control, name: "productUnits" }) ?? [];
     const [unitDefinitions, setUnitDefinitions] = useState<UnitDefinitionDto[]>([]);
@@ -79,6 +81,8 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
     const [quickDefinition, setQuickDefinition] = useState<QuickUnitDefinitionForm>(EMPTY_QUICK_DEFINITION);
     const [creatingDefinition, setCreatingDefinition] = useState(false);
     const [editingUnitIndex, setEditingUnitIndex] = useState<number | null>(null);
+    const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
+    const [deleting, setDeleting] = useState(false);
     useEffect(() => {
         unitDefinitionsApi.getAll().then(setUnitDefinitions).catch(() => setUnitDefinitions([]));
     }, []);
@@ -178,6 +182,40 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
         });
     };
 
+    const requestRemoveUnit = (index: number) => {
+        const unit = productUnits[index];
+        if (unit?.id) {
+            setPendingDeleteIndex(index);
+        } else {
+            remove(index);
+        }
+    };
+
+    const confirmRemoveUnit = async () => {
+        if (pendingDeleteIndex == null) return;
+        const unit = productUnits[pendingDeleteIndex];
+
+        if (!unit?.id) {
+            remove(pendingDeleteIndex);
+            setPendingDeleteIndex(null);
+            return;
+        }
+
+        try {
+            setDeleting(true);
+            await productsApi.deleteProductUnit(unit.id);
+            remove(pendingDeleteIndex);
+            await invalidateProductUnits();
+            reset(getValues());
+            showSuccess("Ürün birimi silindi.");
+            setPendingDeleteIndex(null);
+        } catch (error) {
+            showApiError(error);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     const buildPayload = (unit: ProductUnitForm): CreateProductUnitRequestDto | null => {
         const unitDefinitionId = unit.unitDefinitionId?.trim();
         const code = unit.code?.trim();
@@ -275,6 +313,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
             }
 
             await invalidateProductUnits();
+            reset(getValues());
             closeUnitEditor();
         } catch (error) {
             showApiError(error);
@@ -365,7 +404,7 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                                 <button
                                                     type="button"
                                                     className="btn btn-sm btn-icon btn-outline-danger"
-                                                    onClick={() => remove(index)}
+                                                    onClick={() => requestRemoveUnit(index)}
                                                     title="Birimi kaldır"
                                                 >
                                                     <em className="icon ni ni-trash" />
@@ -373,139 +412,145 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                                             </div>
                                         </td>
 
-                                                        <Modal isOpen={editingUnitIndex === index} toggle={closeUnitEditor} size="lg" centered>
-                                                            <ModalHeader toggle={closeUnitEditor}>
-                                                                {saved ? "Ürün Birimini Güncelle" : "Ürün Birimi Ekle"}
-                                                            </ModalHeader>
-                                                            <ModalBody className="pricing-manager-modal-body">
-                                                                <div className="pricing-manager-modal-intro">
-                                                                    <span className="overline-title text-primary">Birim bilgileri</span>
-                                                                    <p className="text-soft fs-13px mb-0">
-                                                                        Fiyatlandırmada kullanılacak ürün içi birimi ve durumunu tanımlayın.
-                                                                    </p>
-                                                                </div>
-                                                            <div className="pricing-form-grid">
-                                                                <div className="pricing-form-field">
-                                                                    <label className="form-label">
-                                                                        <HelpLabel help="Üründe kullanacağınız temel ölçü veya kullanım birimini sözlükten seçer. Seçilen sözlük değeri ürün içi kod ve ad alanlarını otomatik doldurur.">
-                                                                            Birim sözlüğü
-                                                                        </HelpLabel>
-                                                                    </label>
-                                                                    <div className="input-group">
-                                                                        <select
-                                                                            className="form-select"
-                                                                            value={unit?.unitDefinitionId ?? ""}
-                                                                            onChange={(event) => applyDefinition(index, event.target.value)}
-                                                                        >
-                                                                            <option value="">Birim seçiniz</option>
-                                                                            {unitDefinitions.map((definition) => {
-                                                                                const usedByAnotherUnit = productUnits.some(
-                                                                                    (productUnit, unitIndex) =>
-                                                                                        unitIndex !== index &&
-                                                                                        productUnit.unitDefinitionId === definition.id
-                                                                                );
+                                        <Modal isOpen={editingUnitIndex === index} toggle={closeUnitEditor} size="lg" centered>
+                                            <ModalHeader toggle={closeUnitEditor}>
+                                                {saved ? "Ürün Birimini Güncelle" : "Ürün Birimi Ekle"}
+                                            </ModalHeader>
+                                            <ModalBody className="pricing-manager-modal-body">
+                                                <div className="pricing-manager-modal-intro">
+                                                    <span className="overline-title text-primary">Birim bilgileri</span>
+                                                    <p className="text-soft fs-13px mb-0">
+                                                        Fiyatlandırmada kullanılacak ürün içi birimi ve durumunu tanımlayın.
+                                                    </p>
+                                                </div>
+                                                <div className="pricing-form-grid">
+                                                    <div className="pricing-form-field">
+                                                        <label className="form-label">
+                                                            <HelpLabel help="Üründe kullanacağınız temel ölçü veya kullanım birimini sözlükten seçer. Seçilen sözlük değeri ürün içi kod ve ad alanlarını otomatik doldurur.">
+                                                                Birim sözlüğü
+                                                            </HelpLabel>
+                                                        </label>
+                                                        <div className="input-group">
+                                                            <select
+                                                                className="form-select"
+                                                                value={unit?.unitDefinitionId ?? ""}
+                                                                onChange={(event) => applyDefinition(index, event.target.value)}
+                                                            >
+                                                                <option value="">Birim seçiniz</option>
+                                                                {unitDefinitions.map((definition) => {
+                                                                    const usedByAnotherUnit = productUnits.some(
+                                                                        (productUnit, unitIndex) =>
+                                                                            unitIndex !== index &&
+                                                                            productUnit.unitDefinitionId === definition.id
+                                                                    );
 
-                                                                                return (
-                                                                                    <option
-                                                                                        key={definition.id}
-                                                                                        value={definition.id}
-                                                                                        disabled={usedByAnotherUnit}
-                                                                                    >
-                                                                                        {definition.name} ({definition.code})
-                                                                                        {usedByAnotherUnit ? " - kullanımda" : ""}
-                                                                                    </option>
-                                                                                );
-                                                                            })}
-                                                                        </select>
-                                                                        <button
-                                                                            type="button"
-                                                                            className="btn btn-outline-primary btn-icon"
-                                                                            onClick={() => openQuickAdd(index)}
-                                                                            title="Birim sözlüğü ekle"
+                                                                    return (
+                                                                        <option
+                                                                            key={definition.id}
+                                                                            value={definition.id}
+                                                                            disabled={usedByAnotherUnit}
                                                                         >
-                                                                            <em className="icon ni ni-plus" />
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="pricing-form-field">
-                                                                    <label className="form-label">
-                                                                        <HelpLabel help="Bu ürün içinde birimi kısa ve teknik olarak tanımlayan koddur. Örneğin USER, DEVICE veya API_CALL gibi kural ve planlarda kolay tanınacak bir değer kullanın.">
-                                                                            Ürün birim kodu
-                                                                        </HelpLabel>
-                                                                    </label>
-                                                                    <input className="form-control" {...register(`productUnits.${index}.code`)} />
-                                                                </div>
-                                                                <div className="pricing-form-field">
-                                                                    <label className="form-label">
-                                                                        <HelpLabel help="Bu birimin ekranda kullanıcıya görünecek adıdır. Satış planı ve fiyatlandırma kuralı seçicilerinde bu ad üzerinden anlaşılır.">
-                                                                            Ürün birim adı
-                                                                        </HelpLabel>
-                                                                    </label>
-                                                                    <input className="form-control" {...register(`productUnits.${index}.name`)} />
-                                                                </div>
-                                                                <div className="pricing-form-field pricing-form-field--full">
-                                                                    <label className="form-label">
-                                                                        <HelpLabel help="Bu birimin hangi fiyatlandırma senaryosu için kullanılacağını açıklayan opsiyonel nottur. Örneğin kullanıcı başına, şube başına veya işlem adedi gibi bağlam yazılabilir.">
-                                                                            Birim açıklaması
-                                                                        </HelpLabel>
-                                                                    </label>
-                                                                    <input className="form-control" {...register(`productUnits.${index}.description`)} />
-                                                                </div>
-                                                                <div className="pricing-form-field pricing-form-field--wide d-flex flex-wrap gap-4">
-                                                                    <div className="form-check form-switch">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="form-check-input"
-                                                                            id={`product-unit-default-${field.id}`}
-                                                                            checked={Boolean(unit?.isDefault)}
-                                                                            onChange={(event) => setDefault(index, event.target.checked)}
-                                                                        />
-                                                                        <label className="form-check-label" htmlFor={`product-unit-default-${field.id}`}>
-                                                                            <HelpLabel help="Bu ürün için ana veya varsayılan fiyatlandırma birimini belirtir. Plan veya kural tarafında özel seçim yapılmadığında referans alınacak birim olarak kullanılabilir.">
-                                                                                Varsayılan birim
-                                                                            </HelpLabel>
-                                                                        </label>
-                                                                    </div>
-                                                                    <div className="form-check form-switch">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="form-check-input"
-                                                                            id={`product-unit-active-${field.id}`}
-                                                                            {...register(`productUnits.${index}.isActive`)}
-                                                                        />
-                                                                        <label className="form-check-label" htmlFor={`product-unit-active-${field.id}`}>
-                                                                            <HelpLabel help="Pasif birimler ürün üzerinde saklanır ancak yeni satış planı ve fiyatlandırma kuralı seçimlerinde aktif birim gibi kullanılmaz.">
-                                                                                Birim aktif
-                                                                            </HelpLabel>
-                                                                        </label>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="pricing-form-field pricing-form-field--full d-flex flex-wrap justify-content-end align-items-center gap-2 border-top pt-3 h-100">
-                                                                    <Button color="light" type="button" onClick={closeUnitEditor} disabled={saving}>
-                                                                        Kapat
-                                                                    </Button>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn btn-primary"
-                                                                        disabled={saving}
-                                                                        onClick={() => void saveUnit(index)}
-                                                                    >
-                                                                        {saving ? (
-                                                                            <>
-                                                                                <span className="spinner-border spinner-border-sm me-2" />
-                                                                                Kaydediliyor...
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <em className={`icon ni ni-${saved ? "save" : "plus"} me-1`} />
-                                                                                {saved ? "Birimi Güncelle" : "Birimi Ekle"}
-                                                                            </>
-                                                                        )}
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                            </ModalBody>
-                                                        </Modal>
+                                                                            {definition.name} ({definition.code})
+                                                                            {usedByAnotherUnit ? " - kullanımda" : ""}
+                                                                        </option>
+                                                                    );
+                                                                })}
+                                                            </select>
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-outline-primary btn-icon"
+                                                                onClick={() => openQuickAdd(index)}
+                                                                title="Birim sözlüğü ekle"
+                                                            >
+                                                                <em className="icon ni ni-plus" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    {/* <div className="pricing-form-field">
+                                                        <label className="form-label">
+                                                            <HelpLabel help="Bu kod, seçtiğiniz birim sözlüğünden otomatik alınır. Elle girmenize gerek yoktur; değiştirmek için farklı bir birim sözlüğü seçin.">
+                                                                Ürün birim kodu
+                                                            </HelpLabel>
+                                                        </label>
+                                                        <input
+                                                            className="form-control"
+                                                            value={unit?.code || ""}
+                                                            placeholder="Birim sözlüğü seçilince otomatik doldurulur"
+                                                            disabled
+                                                            readOnly
+                                                        />
+                                                    </div> */}
+                                                    <div className="pricing-form-field">
+                                                        <label className="form-label">
+                                                            <HelpLabel help="Bu birimin ekranda kullanıcıya görünecek adıdır. Satış planı ve fiyatlandırma kuralı seçicilerinde bu ad üzerinden anlaşılır.">
+                                                                Ürün birim adı
+                                                            </HelpLabel>
+                                                        </label>
+                                                        <input className="form-control" {...register(`productUnits.${index}.name`)} />
+                                                    </div>
+                                                    <div className="pricing-form-field pricing-form-field--full">
+                                                        <label className="form-label">
+                                                            <HelpLabel help="Bu birimin hangi fiyatlandırma senaryosu için kullanılacağını açıklayan opsiyonel nottur. Örneğin kullanıcı başına, şube başına veya işlem adedi gibi bağlam yazılabilir.">
+                                                                Birim açıklaması
+                                                            </HelpLabel>
+                                                        </label>
+                                                        <input className="form-control" {...register(`productUnits.${index}.description`)} />
+                                                    </div>
+                                                    <div className="pricing-form-field pricing-form-field--wide d-flex flex-wrap gap-4">
+                                                        <div className="form-check form-switch">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="form-check-input"
+                                                                id={`product-unit-default-${field.id}`}
+                                                                checked={Boolean(unit?.isDefault)}
+                                                                onChange={(event) => setDefault(index, event.target.checked)}
+                                                            />
+                                                            <label className="form-check-label" htmlFor={`product-unit-default-${field.id}`}>
+                                                                <HelpLabel help="Bu ürün için ana veya varsayılan fiyatlandırma birimini belirtir. Plan veya kural tarafında özel seçim yapılmadığında referans alınacak birim olarak kullanılabilir.">
+                                                                    Varsayılan birim
+                                                                </HelpLabel>
+                                                            </label>
+                                                        </div>
+                                                        <div className="form-check form-switch">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="form-check-input"
+                                                                id={`product-unit-active-${field.id}`}
+                                                                {...register(`productUnits.${index}.isActive`)}
+                                                            />
+                                                            <label className="form-check-label" htmlFor={`product-unit-active-${field.id}`}>
+                                                                <HelpLabel help="Pasif birimler ürün üzerinde saklanır ancak yeni satış planı ve fiyatlandırma kuralı seçimlerinde aktif birim gibi kullanılmaz.">
+                                                                    Birim aktif
+                                                                </HelpLabel>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div className="pricing-form-field pricing-form-field--full d-flex flex-wrap justify-content-end align-items-center gap-2 border-top pt-3 h-100">
+                                                        <Button color="light" type="button" onClick={closeUnitEditor} disabled={saving}>
+                                                            Kapat
+                                                        </Button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-primary"
+                                                            disabled={saving}
+                                                            onClick={() => void saveUnit(index)}
+                                                        >
+                                                            {saving ? (
+                                                                <>
+                                                                    <span className="spinner-border spinner-border-sm me-2" />
+                                                                    Kaydediliyor...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <em className={`icon ni ni-${saved ? "save" : "plus"} me-1`} />
+                                                                    {saved ? "Birimi Güncelle" : "Birimi Ekle"}
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </ModalBody>
+                                        </Modal>
                                     </tr>
                                 );
                             })}
@@ -589,6 +634,17 @@ const ProductUnitsTab: React.FC<ProductUnitsTabProps> = ({ productId }) => {
                     </Button>
                 </ModalFooter>
             </Modal>
+
+            <ConfirmDialog
+                open={pendingDeleteIndex != null}
+                title="Ürün Birimini Sil"
+                message="Bu ürün birimi kalıcı olarak silinecek. Devam etmek istiyor musunuz?"
+                variant="danger"
+                confirmLabel="Sil"
+                loading={deleting}
+                onConfirm={() => void confirmRemoveUnit()}
+                onCancel={() => setPendingDeleteIndex(null)}
+            />
         </div>
     );
 };

@@ -11,15 +11,15 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 
-const CURRENCY_OPTIONS = ["TRY", "USD", "EUR", "GBP"];
 const ALL_LICENSE_OFFERINGS_KEY = "__all_license_offerings__";
 
 const EMPTY_MODULE = {
     moduleCode: "",
     name: "",
     description: "",
-    currencyCode: "TRY",
+    currencyCode: DEFAULT_CURRENCY_CODE,
     isOptional: true,
     isActive: true,
     sortOrder: 0,
@@ -31,7 +31,7 @@ const EMPTY_OFFERING_PRICE = {
     licenseOfferingTempId: undefined as string | undefined,
     appliesToAllLicenseOfferings: false,
     price: 0,
-    currencyCode: "TRY",
+    currencyCode: DEFAULT_CURRENCY_CODE,
     isActive: true,
 };
 
@@ -173,17 +173,11 @@ const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ module
                                                 placeholder="0.00"
                                                 {...register(`modules.${moduleIndex}.offeringPrices.${priceIndex}.price`, { valueAsNumber: true })}
                                             />
-                                            <select
-                                                className="form-select"
-                                                style={{ maxWidth: 96 }}
+                                            <input
+                                                type="hidden"
                                                 {...register(`modules.${moduleIndex}.offeringPrices.${priceIndex}.currencyCode`)}
-                                            >
-                                                {CURRENCY_OPTIONS.map((currency) => (
-                                                    <option key={currency} value={currency}>
-                                                        {currency}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            />
+                                            <span className="input-group-text">{DEFAULT_CURRENCY_CODE}</span>
                                         </div>
                                     </div>
                                     <div className="col-md-2 d-flex align-items-end pb-1">
@@ -332,7 +326,7 @@ const ProductModulesTab: React.FC = () => {
                                                 <input type="hidden" {...register(`modules.${index}.sortOrder`, { valueAsNumber: true })} />
 
                                                 <div className="row g-3">
-                                                    <div className="col-md-3">
+                                                    <div className="col-md-4">
                                                         <label className="form-label">
                                                             Modül Kodu
                                                         </label>
@@ -347,7 +341,7 @@ const ProductModulesTab: React.FC = () => {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="col-md-5">
+                                                    <div className="col-md-8">
                                                         <label className="form-label">
                                                             Modül Adı <span className="text-danger">*</span>
                                                         </label>
@@ -362,19 +356,7 @@ const ProductModulesTab: React.FC = () => {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="col-md-4">
-                                                        <label className="form-label">Varsayılan para birimi</label>
-                                                        <select
-                                                            className="form-control form-select"
-                                                            {...register(`modules.${index}.currencyCode`)}
-                                                        >
-                                                            {CURRENCY_OPTIONS.map((currency) => (
-                                                                <option key={currency} value={currency}>
-                                                                    {currency}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
+                                                    <input type="hidden" {...register(`modules.${index}.currencyCode`)} />
                                                     <div className="col-12">
                                                         <label className="form-label">Açıklama</label>
                                                         <input

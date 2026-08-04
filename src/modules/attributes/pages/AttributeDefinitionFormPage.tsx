@@ -1,12 +1,13 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { Button } from "reactstrap";
 import Content from "@/layout/content/Content";
 import Head from "@/layout/head/Head";
 import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
+import { TextInput, FormField, Checkbox, LoadingButton, UnsavedChangesDialog } from "@/modules/shared/components";
+import { useUnsavedChangesGuard } from "@/modules/shared/hooks/useUnsavedChangesGuard";
 import {
   useAttributeDefinition,
   useAttributeDefinitionMutations,
@@ -36,7 +37,7 @@ const AttributeDefinitionFormPage: React.FC = () => {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<FormValues>({
     defaultValues: {
       key: "",
@@ -84,6 +85,7 @@ const AttributeDefinitionFormPage: React.FC = () => {
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Özellik tanımı güncellendi." : "Özellik tanımı oluşturuldu.");
+      allowNextNavigation();
       navigate("/definitions/attributes");
     } catch (err) {
       showApiError(err);
@@ -92,6 +94,7 @@ const AttributeDefinitionFormPage: React.FC = () => {
 
   const isPending = create.isPending || update.isPending;
   const title = isEdit ? "Özellik Tanımı Düzenle" : "Yeni Özellik Tanımı";
+  const { blocker, allowNextNavigation } = useUnsavedChangesGuard(isDirty);
 
   return (
     <>
@@ -101,22 +104,18 @@ const AttributeDefinitionFormPage: React.FC = () => {
           title={title}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light py-2" onClick={() => navigate("/definitions/attributes")} disabled={isPending}>
+              <button
+                type="button"
+                className="btn btn-light py-2"
+                onClick={() => navigate("/definitions/attributes")}
+                disabled={isPending}
+              >
                 İptal
-              </Button>
-              <Button color="primary py-2" type="submit" form="attr-def-form" disabled={isPending}>
-                {isPending ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" />
-                    Kaydediliyor...
-                  </>
-                ) : (
-                  <>
-                    <Icon name="save" className="me-1" />
-                    Kaydet
-                  </>
-                )}
-              </Button>
+              </button>
+              <LoadingButton color="primary py-2" type="submit" form="attr-def-form" loading={isPending}>
+                <Icon name="save" className="me-1" />
+                Kaydet
+              </LoadingButton>
             </div>
           }
         />
@@ -133,86 +132,55 @@ const AttributeDefinitionFormPage: React.FC = () => {
               <div className="card-inner">
                 <form id="attr-def-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
                   <div className="col-md-6">
-                    <label className="form-label">
-                      Anahtar <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      className={`form-control ${errors.key ? "is-invalid" : ""}`}
+                    <TextInput
+                      label="Anahtar"
+                      required
                       placeholder="color"
+                      error={errors.key?.message}
                       {...register("key", { required: "Anahtar zorunludur" })}
                     />
-                    {errors.key && <div className="invalid-feedback">{errors.key.message}</div>}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">
-                      Görünen Ad <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      className={`form-control ${errors.displayName ? "is-invalid" : ""}`}
+                    <TextInput
+                      label="Görünen Ad"
+                      required
                       placeholder="Renk"
+                      error={errors.displayName?.message}
                       {...register("displayName", { required: "Görünen ad zorunludur" })}
                     />
-                    {errors.displayName && (
-                      <div className="invalid-feedback">{errors.displayName.message}</div>
-                    )}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">Veri Tipi</label>
-                    <select className="form-control form-select" {...register("dataType", { valueAsNumber: true })}>
-                      <option value={1}>Metin</option>
-                      <option value={2}>Sayı</option>
-                      <option value={3}>Boolean</option>
-                      <option value={4}>Tarih</option>
-                      <option value={5}>Liste</option>
-                    </select>
+                    <FormField label="Veri Tipi" htmlFor="attr-data-type">
+                      <select
+                        id="attr-data-type"
+                        className="form-control form-select"
+                        {...register("dataType", { valueAsNumber: true })}
+                      >
+                        <option value={1}>Metin</option>
+                        <option value={2}>Sayı</option>
+                        <option value={3}>Boolean</option>
+                        <option value={4}>Tarih</option>
+                        <option value={5}>Liste</option>
+                      </select>
+                    </FormField>
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label d-block">Özellikler</label>
+                    <span className="form-label d-block">Özellikler</span>
                     <div className="d-flex flex-wrap gap-3 mt-1">
-                      <div className="form-check form-switch">
-                        <input
-                          type="checkbox"
-                          id="attr-required"
-                          className="form-check-input"
-                          {...register("isRequired")}
-                        />
-                        <label htmlFor="attr-required" className="form-check-label">
-                          Zorunlu
-                        </label>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input
-                          type="checkbox"
-                          id="attr-filterable"
-                          className="form-check-input"
-                          {...register("isFilterable")}
-                        />
-                        <label htmlFor="attr-filterable" className="form-check-label">
-                          Filtrelenebilir
-                        </label>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input
-                          type="checkbox"
-                          id="attr-axis"
-                          className="form-check-input"
-                          {...register("isVariantAxis")}
-                        />
-                        <label htmlFor="attr-axis" className="form-check-label">
-                          Varyant Eksen
-                        </label>
-                      </div>
+                      <Checkbox label="Zorunlu" switchStyle {...register("isRequired")} />
+                      <Checkbox label="Filtrelenebilir" switchStyle {...register("isFilterable")} />
+                      <Checkbox label="Varyant Eksen" switchStyle {...register("isVariantAxis")} />
                     </div>
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">İzinli Değerler (JSON)</label>
-                    <input
-                      className={`form-control ${errors.allowedValuesJson ? "is-invalid" : ""}`}
+                    <TextInput
+                      label="İzinli Değerler (JSON)"
                       placeholder='["red","green","blue"]'
+                      error={errors.allowedValuesJson?.message}
                       {...register("allowedValuesJson", {
                         validate: (v) => {
                           if (!v) return true;
@@ -220,16 +188,13 @@ const AttributeDefinitionFormPage: React.FC = () => {
                         },
                       })}
                     />
-                    {errors.allowedValuesJson && (
-                      <div className="invalid-feedback">{errors.allowedValuesJson.message}</div>
-                    )}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">Doğrulama Kuralı (JSON)</label>
-                    <input
-                      className={`form-control ${errors.validationRuleJson ? "is-invalid" : ""}`}
+                    <TextInput
+                      label="Doğrulama Kuralı (JSON)"
                       placeholder='{"min":0,"max":100}'
+                      error={errors.validationRuleJson?.message}
                       {...register("validationRuleJson", {
                         validate: (v) => {
                           if (!v) return true;
@@ -237,9 +202,6 @@ const AttributeDefinitionFormPage: React.FC = () => {
                         },
                       })}
                     />
-                    {errors.validationRuleJson && (
-                      <div className="invalid-feedback">{errors.validationRuleJson.message}</div>
-                    )}
                   </div>
                 </form>
               </div>
@@ -247,6 +209,8 @@ const AttributeDefinitionFormPage: React.FC = () => {
           )}
         </Block>
       </Content>
+
+      <UnsavedChangesDialog blocker={blocker} />
     </>
   );
 };

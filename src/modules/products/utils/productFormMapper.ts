@@ -7,6 +7,7 @@
  * eşlemeyi ve aynı kayıt yükünü kullanabilmesi için buraya taşındı.
  */
 import { ProductDetailDto, UnitRole } from "@/shared/types/productOperations.types";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 import {
     ProductFormValues,
     PhysicalProfileForm,
@@ -116,7 +117,7 @@ export const buildDefaultValues = (): ProductFormValues => ({
     isSellable: true,
     isPurchasable: true,
     trackInventory: false,
-    defaultCurrencyCode: "TRY",
+    defaultCurrencyCode: DEFAULT_CURRENCY_CODE,
     unitDefinitionId: "",
     taxRate: 0,
     taxCode: "",
@@ -167,7 +168,7 @@ export const mapProductToForm = (product: ProductDetailDto): ProductFormValues =
         isSellable: Boolean(product.isSellable),
         isPurchasable: Boolean(product.isPurchasable),
         trackInventory: Boolean(product.trackInventory),
-        defaultCurrencyCode: product.defaultCurrencyCode ?? "TRY",
+        defaultCurrencyCode: product.defaultCurrencyCode ?? DEFAULT_CURRENCY_CODE,
         unitDefinitionId: product.unitDefinitionId ?? "",
         taxRate: product.taxRate ?? 0,
         taxCode: product.taxCode ?? "",

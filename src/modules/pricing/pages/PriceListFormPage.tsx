@@ -1,14 +1,16 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { Button } from "reactstrap";
 import Content from "@/layout/content/Content";
 import Head from "@/layout/head/Head";
 import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/modules/shared/components/PageHeader";
+import { TextInput, Textarea, Checkbox, LoadingButton, UnsavedChangesDialog } from "@/modules/shared/components";
+import { useUnsavedChangesGuard } from "@/modules/shared/hooks/useUnsavedChangesGuard";
 import { usePriceList, usePriceListMutations } from "@/modules/pricing/hooks/usePricing";
 import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 
 interface FormValues {
   code: string;
@@ -35,13 +37,13 @@ const PriceListFormPage: React.FC = () => {
     handleSubmit,
     reset,
     getValues,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<FormValues>({
     defaultValues: {
       code: "",
       name: "",
       description: "",
-      currencyCode: "TRY",
+      currencyCode: DEFAULT_CURRENCY_CODE,
       isActive: true,
       validFrom: "",
       validTo: "",
@@ -86,6 +88,7 @@ const PriceListFormPage: React.FC = () => {
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Fiyat listesi güncellendi." : "Fiyat listesi oluşturuldu.");
+      allowNextNavigation();
       navigate("/pricing/price-lists");
     } catch (err) {
       showApiError(err);
@@ -94,6 +97,7 @@ const PriceListFormPage: React.FC = () => {
 
   const isPending = create.isPending || update.isPending;
   const title = isEdit ? "Fiyat Listesi Düzenle" : "Yeni Fiyat Listesi";
+  const { blocker, allowNextNavigation } = useUnsavedChangesGuard(isDirty);
 
   return (
     <>
@@ -103,22 +107,18 @@ const PriceListFormPage: React.FC = () => {
           title={title}
           actions={
             <div className="d-flex gap-2">
-              <Button color="light py-2" onClick={() => navigate("/pricing/price-lists")} disabled={isPending}>
+              <button
+                type="button"
+                className="btn btn-light py-2"
+                onClick={() => navigate("/pricing/price-lists")}
+                disabled={isPending}
+              >
                 İptal
-              </Button>
-              <Button color="primary py-2" type="submit" form="pricelist-form" disabled={isPending}>
-                {isPending ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" />
-                    Kaydediliyor...
-                  </>
-                ) : (
-                  <>
-                    <Icon name="save" className="me-1" />
-                    Kaydet
-                  </>
-                )}
-              </Button>
+              </button>
+              <LoadingButton color="primary py-2" type="submit" form="pricelist-form" loading={isPending}>
+                <Icon name="save" className="me-1" />
+                Kaydet
+              </LoadingButton>
             </div>
           }
         />
@@ -134,63 +134,48 @@ const PriceListFormPage: React.FC = () => {
             <div className="card card-bordered">
               <div className="card-inner">
                 <form id="pricelist-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
+                  <input type="hidden" {...register("currencyCode")} />
+
                   <div className="col-md-4">
-                    <label className="form-label">
-                      Kod <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      className={`form-control ${errors.code ? "is-invalid" : ""}`}
+                    <TextInput
+                      label="Kod"
+                      required
                       placeholder="PL-RETAIL"
+                      error={errors.code?.message}
                       {...register("code", { required: "Kod zorunludur" })}
                     />
-                    {errors.code && <div className="invalid-feedback">{errors.code.message}</div>}
                   </div>
 
-                  <div className="col-md-5">
-                    <label className="form-label">
-                      Ad <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      className={`form-control ${errors.name ? "is-invalid" : ""}`}
+                  <div className="col-md-8">
+                    <TextInput
+                      label="Ad"
+                      required
+                      error={errors.name?.message}
                       {...register("name", { required: "Ad zorunludur" })}
                     />
-                    {errors.name && <div className="invalid-feedback">{errors.name.message}</div>}
-                  </div>
-
-                  <div className="col-md-3">
-                    <label className="form-label">Para Birimi</label>
-                    <select className="form-control form-select" {...register("currencyCode")}>
-                      <option value="TRY">TRY</option>
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
-                    </select>
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">Satış Kanalı</label>
-                    <input className="form-control" placeholder="web, mobile, pos..." {...register("salesChannel")} />
+                    <TextInput label="Satış Kanalı" placeholder="web, mobile, pos..." {...register("salesChannel")} />
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">Müşteri Grubu Kodu</label>
-                    <input
-                      className="form-control"
+                    <TextInput
+                      label="Müşteri Grubu Kodu"
                       placeholder="retail, wholesale, vip..."
                       {...register("customerGroupCode")}
                     />
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">Geçerlilik Başlangıcı</label>
-                    <input type="datetime-local" className="form-control" {...register("validFrom")} />
+                    <TextInput label="Geçerlilik Başlangıcı" type="datetime-local" {...register("validFrom")} />
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label">Geçerlilik Bitişi</label>
-                    <input
+                    <TextInput
+                      label="Geçerlilik Bitişi"
                       type="datetime-local"
-                      className={`form-control ${errors.validTo ? "is-invalid" : ""}`}
+                      error={errors.validTo?.message}
                       {...register("validTo", {
                         validate: (value) => {
                           const from = getValues("validFrom");
@@ -201,26 +186,14 @@ const PriceListFormPage: React.FC = () => {
                         },
                       })}
                     />
-                    {errors.validTo && <div className="invalid-feedback">{errors.validTo.message}</div>}
                   </div>
 
                   <div className="col-12">
-                    <label className="form-label">Açıklama</label>
-                    <textarea className="form-control" rows={2} {...register("description")} />
+                    <Textarea label="Açıklama" rows={2} {...register("description")} />
                   </div>
 
                   <div className="col-12">
-                    <div className="form-check form-switch">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id="pl-active"
-                        {...register("isActive")}
-                      />
-                      <label className="form-check-label" htmlFor="pl-active">
-                        Aktif
-                      </label>
-                    </div>
+                    <Checkbox label="Aktif" switchStyle {...register("isActive")} />
                   </div>
                 </form>
               </div>
@@ -228,6 +201,8 @@ const PriceListFormPage: React.FC = () => {
           )}
         </Block>
       </Content>
+
+      <UnsavedChangesDialog blocker={blocker} />
     </>
   );
 };

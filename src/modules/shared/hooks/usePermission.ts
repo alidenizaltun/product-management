@@ -1,14 +1,24 @@
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 
+// Backend'deki Permissions.BypassRoles ile birebir aynı tutulmalı.
+const BYPASS_ROLES = ["Admin", "SuperAdmin"];
+
 /**
- * Backend henüz kullanıcı bazlı bir permission/claim seti döndürmüyor
- * (User.roles hiçbir yerde tüketilmiyor). Bu hook o yüzden şimdilik her
- * zaman true döner; tüketen bileşenler değişmeden, backend permission
- * modeli eklendiğinde sadece burası güncellenerek gerçek kontrole geçilir.
+ * permissionKey verilmezse (genel bir kontrol yoksa) true döner.
+ * BYPASS_ROLES içindeki rollere sahip kullanıcılar her zaman yetkilidir;
+ * diğerleri için backend'den /api/auth/me ile gelen permissions listesi
+ * kontrol edilir.
  */
-export const usePermission = (_permissionKey?: string): boolean => {
+export const usePermission = (permissionKey?: string): boolean => {
     const { user } = useAuth();
-    void user;
-    void _permissionKey;
-    return true;
+
+    if (!permissionKey) {
+        return true;
+    }
+
+    if (user?.roles?.some((r) => BYPASS_ROLES.includes(r))) {
+        return true;
+    }
+
+    return user?.permissions?.includes(permissionKey) ?? false;
 };

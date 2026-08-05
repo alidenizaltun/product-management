@@ -60,22 +60,17 @@ import StockTransactionDetailPage from "@/modules/inventory/pages/StockTransacti
 import ReservationListPage from "@/modules/inventory/pages/ReservationListPage";
 import ReservationDetailPage from "@/modules/inventory/pages/ReservationDetailPage";
 import WarehouseStockPage from "@/modules/inventory/pages/WarehouseStockPage";
-import {
-  LoginAuditPage,
-  PermissionMatrixPage,
-  RoleDetailPage,
-  RoleFormPage,
-  RoleListPage,
-  UserDetailPage,
-  UserFormPage,
-  UserListPage,
-} from "@/modules/identity/pages/IdentityPages";
-import {
-  SystemAuditPage,
-  SystemIntegrationsPage,
-  SystemLogsPage,
-  SystemSettingsPage,
-} from "@/modules/system/pages/SystemPages";
+import { LoginAuditPage } from "@/modules/identity/pages/IdentityPages";
+import UserListPage from "@/modules/identity/pages/UserListPage";
+import UserFormPage from "@/modules/identity/pages/UserFormPage";
+import UserDetailPage from "@/modules/identity/pages/UserDetailPage";
+import RoleListPage from "@/modules/identity/pages/RoleListPage";
+import RoleFormPage from "@/modules/identity/pages/RoleFormPage";
+import RoleDetailPage from "@/modules/identity/pages/RoleDetailPage";
+import PermissionMatrixPage from "@/modules/identity/pages/PermissionMatrixPage";
+import { SystemAuditPage, SystemLogsPage } from "@/modules/system/pages/SystemPages";
+import SystemSettingsPage from "@/modules/system/pages/SystemSettingsPage";
+import SystemIntegrationsPage from "@/modules/system/pages/SystemIntegrationsPage";
 import UnitDefinitionListPage from "@/modules/catalog/pages/UnitDefinitionListPage";
 import UnitDefinitionFormPage from "@/modules/catalog/pages/UnitDefinitionFormPage";
 import { getProductSection } from "@/modules/products/config/productSections";

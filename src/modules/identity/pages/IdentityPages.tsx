@@ -29,7 +29,7 @@ const IdentityPlaceholder: React.FC<PlaceholderProps> = ({
       <Head title={title} />
       <Content>
         <PageHeader title={title} description={description} />
-        <Block>
+        <Block className="" size="">
           <div className="card card-bordered">
             <EmptyState
               icon={emptyIcon}
@@ -37,7 +37,7 @@ const IdentityPlaceholder: React.FC<PlaceholderProps> = ({
               description={emptyDescription}
               action={
                 <Button color="light" onClick={() => navigate("/products")}>
-                  <Icon name="arrow-left" className="me-1" />
+                  <Icon name="arrow-left" id="" className="me-1" style={{}} />
                   Panele Dön
                 </Button>
               }
@@ -48,58 +48,6 @@ const IdentityPlaceholder: React.FC<PlaceholderProps> = ({
     </>
   );
 };
-
-export const UserListPage: React.FC = () => (
-  <IdentityPlaceholder
-    title="Kullanıcılar"
-    description="Sistem kullanıcı hesapları."
-    emptyTitle="Kullanıcı yönetimi yakında"
-    emptyDescription="Bu modül henüz hazırlanma aşamasında."
-    emptyIcon="users"
-  />
-);
-
-export const UserFormPage: React.FC = () => (
-  <IdentityPlaceholder
-    title="Kullanıcı Düzenle"
-    emptyTitle="Kullanıcı yönetimi yakında"
-    emptyIcon="user-add"
-  />
-);
-
-export const UserDetailPage: React.FC = () => (
-  <IdentityPlaceholder
-    title="Kullanıcı Detayı"
-    emptyTitle="Kullanıcı yönetimi yakında"
-    emptyIcon="user"
-  />
-);
-
-export const RoleListPage: React.FC = () => (
-  <IdentityPlaceholder
-    title="Roller"
-    description="Rol ve yetki modeli."
-    emptyTitle="Rol yönetimi yakında"
-    emptyIcon="shield-star"
-  />
-);
-
-export const RoleFormPage: React.FC = () => (
-  <IdentityPlaceholder title="Rol Düzenle" emptyTitle="Rol yönetimi yakında" emptyIcon="shield-star" />
-);
-
-export const RoleDetailPage: React.FC = () => (
-  <IdentityPlaceholder title="Rol Detayı" emptyTitle="Rol yönetimi yakında" emptyIcon="shield-star" />
-);
-
-export const PermissionMatrixPage: React.FC = () => (
-  <IdentityPlaceholder
-    title="Yetki Matrisi"
-    description="Rol-yetki eşleştirmesi."
-    emptyTitle="Yetki matrisi yakında"
-    emptyIcon="shield-check"
-  />
-);
 
 export const LoginAuditPage: React.FC = () => (
   <IdentityPlaceholder

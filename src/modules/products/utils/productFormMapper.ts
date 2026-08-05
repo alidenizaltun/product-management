@@ -590,6 +590,7 @@ export const buildFullProductPayload = (
 
                     return {
                         ...lo,
+                        basePrice: 0,
                         id: loId || undefined,
                         // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
                         _tempId: _tempId || undefined,

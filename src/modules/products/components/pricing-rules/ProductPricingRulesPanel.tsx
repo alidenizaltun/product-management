@@ -133,12 +133,6 @@ const CONDITION_OPERATORS = [
   { value: "exists", label: "Değer var" },
 ];
 
-const COMMON_CONDITION_FIELDS = [
-  { value: "quantity", label: "Miktar" },
-  { value: "seats", label: "Kullanıcı / koltuk sayısı" },
-  { value: "feature.seats", label: "Özellik: kullanıcı sayısı" },
-];
-
 interface HelpLabelProps {
   children: React.ReactNode;
   help: string;
@@ -557,25 +551,20 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     () => new Map(variants.map((variant) => [variant.id, variant])),
     [variants]
   );
-  const conditionFieldOptions = useMemo(() => {
-    const fields = new Set<string>();
-
-    collectAdjustmentFields(defaultAdjustment, fields);
-    allRules.forEach((rule) => collectAdjustmentFields(getAdjustment(rule), fields));
-    if (form.adjustment.unitField.trim()) fields.add(form.adjustment.unitField.trim());
-    form.adjustment.conditions.forEach((condition) => {
-      if (condition.field.trim()) fields.add(condition.field.trim());
+  const unitsByDefinitionId = useMemo(() => {
+    const map = new Map<string, ScopedProductUnitOption>();
+    productUnits.forEach((unit) => {
+      if (unit.unitDefinitionId && !map.has(unit.unitDefinitionId)) map.set(unit.unitDefinitionId, unit);
     });
-
-    const dynamicFields = [...fields].map((field) => ({
-      value: field,
-      label: formatFieldLabel(field),
-    }));
-
-    const merged = new Map<string, { value: string; label: string }>();
-    [...COMMON_CONDITION_FIELDS, ...dynamicFields].forEach((field) => merged.set(field.value, field));
-    return [...merged.values()];
-  }, [allRules, form.adjustment.unitField, form.adjustment.conditions]);
+    return map;
+  }, [productUnits]);
+  const formatConditionFieldLabel = (field: string) => {
+    if (field.startsWith("unit.")) {
+      const unit = unitsByDefinitionId.get(field.replace("unit.", ""));
+      if (unit) return getProductUnitLabel(unit);
+    }
+    return formatFieldLabel(field);
+  };
 
   const ensureUniqueRuleName = (baseName: string) => {
     const usedNames = new Set(
@@ -861,6 +850,31 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   const selectedUnitNames = selectedProductUnitObjects.map(getProductUnitLabel);
   const pending = createMutation.isPending || updateMutation.isPending;
   const isUnitMode = form.adjustment.mode === "unit";
+  const conditionFieldOptions = (() => {
+    const fields = new Set<string>();
+
+    collectAdjustmentFields(defaultAdjustment, fields);
+    allRules.forEach((rule) => collectAdjustmentFields(getAdjustment(rule), fields));
+    if (form.adjustment.unitField.trim()) fields.add(form.adjustment.unitField.trim());
+    form.adjustment.conditions.forEach((condition) => {
+      if (condition.field.trim()) fields.add(condition.field.trim());
+    });
+
+    const dynamicFields = [...fields].map((field) => ({
+      value: field,
+      label: formatConditionFieldLabel(field),
+    }));
+    const unitFields = activeSelectableProductUnits
+      .filter((unit) => unit.unitDefinitionId)
+      .map((unit) => ({
+        value: `unit.${unit.unitDefinitionId}`,
+        label: getProductUnitLabel(unit),
+      }));
+
+    const merged = new Map<string, { value: string; label: string }>();
+    [...unitFields, ...dynamicFields].forEach((field) => merged.set(field.value, field));
+    return [...merged.values()];
+  })();
 
   if (!productId && !onDraftRulesChange) {
     return (
@@ -1435,7 +1449,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                   <div className="row g-2 align-items-end" key={index}>
                                     <div className="col-md-5">
                                       <label className="form-label">
-                                        <HelpLabel help="Koşulun hangi veri alanına bakacağını seçer. Miktar, kullanıcı sayısı veya fiyat hesaplamasında kullanılan özel bir alan olabilir.">
+                                        <HelpLabel help="Koşulun hangi veri alanına bakacağını seçer. Miktar, kullanıcı sayısı, seçili pakete atanan diğer birimlerin miktarı veya fiyat hesaplamasında kullanılan özel bir alan olabilir.">
                                           Koşul alanı
                                         </HelpLabel>
                                       </label>

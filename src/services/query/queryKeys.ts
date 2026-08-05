@@ -21,4 +21,16 @@ export const queryKeys = {
     unitDefinitions: ["catalog", "unitDefinitions"] as const,
     unitDefinition: (id: string) => ["catalog", "unitDefinitions", id] as const,
   },
+  identity: {
+    users: (params?: Record<string, unknown>) => ["identity", "users", params ?? {}] as const,
+    user: (id: string) => ["identity", "users", id] as const,
+    roles: ["identity", "roles"] as const,
+    role: (id: string) => ["identity", "roles", id] as const,
+    permissionCatalog: ["identity", "permissionCatalog"] as const,
+  },
+  system: {
+    settings: ["system", "settings"] as const,
+    integrations: ["system", "integrations"] as const,
+    integration: (id: string) => ["system", "integrations", id] as const,
+  },
 };

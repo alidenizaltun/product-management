@@ -8,6 +8,7 @@ export interface User {
   emailConfirmed: boolean;
   isActive: boolean;
   roles: string[];
+  permissions: string[];
   createdAt: string;
 }
 

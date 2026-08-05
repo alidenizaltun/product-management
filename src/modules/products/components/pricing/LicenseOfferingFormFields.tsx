@@ -141,7 +141,7 @@ export const buildOfferingPayload = (offering: {
         licenseModel: normalizeLicenseModel(offering.licenseModel),
         name: offering.name?.trim() || "Yeni Plan",
         description: toOptionalString(offering.description),
-        basePrice: toOptionalNumber(offering.basePrice) ?? 0,
+        basePrice: 0,
         currencyCode: offering.currencyCode?.trim() || DEFAULT_CURRENCY_CODE,
         billingPeriodUnit: toOptionalNumber(offering.billingPeriodUnit),
         billingPeriodValue: toOptionalNumber(offering.billingPeriodValue),
@@ -259,7 +259,7 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
         const current = getValues(`licenseOfferings.${index}`);
         setValue(`licenseOfferings.${index}`, { ...current, ...template.offering }, { shouldDirty: true });
         setTemplateApplied(true);
-        window.setTimeout(() => setFocus(`licenseOfferings.${index}.basePrice`), 50);
+        window.setTimeout(() => setFocus(`licenseOfferings.${index}.name`), 50);
     };
 
     const skipTemplate = () => {
@@ -307,7 +307,7 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
             <input type="hidden" {...register(`licenseOfferings.${index}.sortOrder`, { valueAsNumber: true })} />
             <input type="hidden" {...register(`licenseOfferings.${index}.currencyCode`)} />
 
-            <div className="col-lg-7">
+            <div className="col-lg-12">
                 <label className="form-label">
                     <HelpLabel help="Müşterinin satın alacağı paketin görünen adıdır. Aylık Plan, Yıllık Plan veya Kurumsal Paket gibi satışta anlaşılır bir ad kullanın.">
                         Plan adı
@@ -322,28 +322,6 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
                 />
                 {errors.licenseOfferings?.[index]?.name && (
                     <span className="text-danger fs-12">{errors.licenseOfferings[index]?.name?.message}</span>
-                )}
-            </div>
-            <div className="col-lg-5">
-                <label className="form-label">
-                    <HelpLabel help="Bu satış planının dinamik kurallar çalışmadan önceki başlangıç fiyatıdır.">
-                        Taban fiyat
-                    </HelpLabel>{" "}
-                    <span className="text-danger">*</span>
-                </label>
-                <div className="input-group input-group-lg">
-                    <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-control"
-                        placeholder="0.00"
-                        {...register(`licenseOfferings.${index}.basePrice`, { valueAsNumber: true })}
-                    />
-                    <span className="input-group-text">{offering?.currencyCode || DEFAULT_CURRENCY_CODE}</span>
-                </div>
-                {errors.licenseOfferings?.[index]?.basePrice && (
-                    <span className="text-danger fs-12">{errors.licenseOfferings[index]?.basePrice?.message}</span>
                 )}
             </div>
 
@@ -537,7 +515,6 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
 
             <div className="col-12 fs-12px text-soft">
                 <span className={`badge badge-dim bg-${meta.color} me-1`}>{meta.label}</span>
-                {formatMoney(offering?.basePrice, offering?.currencyCode)}
             </div>
         </div>
     );

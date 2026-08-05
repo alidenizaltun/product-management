@@ -24,6 +24,20 @@ export const apiEndpoints = {
     list: "/api/unit-definitions",
     byId: (id: string) => `/api/unit-definitions/${id}`,
   },
+  identity: {
+    users: "/api/users",
+    userById: (id: string) => `/api/users/${id}`,
+    resendInvitation: (id: string) => `/api/users/${id}/resend-invitation`,
+    roles: "/api/roles",
+    roleById: (id: string) => `/api/roles/${id}`,
+    permissionCatalog: "/api/roles/permissions/catalog",
+  },
+  system: {
+    settings: "/api/system-settings",
+    integrations: "/api/integrations",
+    integrationById: (id: string) => `/api/integrations/${id}`,
+    integrationTest: (id: string) => `/api/integrations/${id}/test`,
+  },
   products: {
     list: "/api/products",
     byId: (id: string) => `/api/products/${id}`,

@@ -21,7 +21,7 @@ const SystemPlaceholder: React.FC<{
       <Head title={title} />
       <Content>
         <PageHeader title={title} description={description} />
-        <Block>
+        <Block className="" size="">
           <div className="card card-bordered">
             <EmptyState
               icon={emptyIcon}
@@ -29,7 +29,7 @@ const SystemPlaceholder: React.FC<{
               description={emptyDescription}
               action={
                 <Button color="light" onClick={() => navigate("/products")}>
-                  <Icon name="arrow-left" className="me-1" />
+                  <Icon name="arrow-left" id="" className="me-1" style={{}} />
                   Panele Dön
                 </Button>
               }
@@ -40,25 +40,6 @@ const SystemPlaceholder: React.FC<{
     </>
   );
 };
-
-export const SystemSettingsPage: React.FC = () => (
-  <SystemPlaceholder
-    title="Sistem Ayarları"
-    description="Genel sistem yapılandırması."
-    emptyTitle="Ayarlar yakında"
-    emptyDescription="Bu modül henüz hazırlanma aşamasında."
-    emptyIcon="setting"
-  />
-);
-
-export const SystemIntegrationsPage: React.FC = () => (
-  <SystemPlaceholder
-    title="Entegrasyonlar"
-    description="Üçüncü parti entegrasyonlar."
-    emptyTitle="Entegrasyonlar yakında"
-    emptyIcon="puzzle"
-  />
-);
 
 export const SystemLogsPage: React.FC = () => (
   <SystemPlaceholder

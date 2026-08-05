@@ -47,13 +47,11 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
 
         const valid = await trigger([
             `licenseOfferings.${index}.name`,
-            `licenseOfferings.${index}.basePrice`,
             `licenseOfferings.${index}.validTo`,
         ]);
         if (!valid) {
             const fieldErrors = formState.errors.licenseOfferings?.[index];
             if (fieldErrors?.name) setFocus(`licenseOfferings.${index}.name`);
-            else if (fieldErrors?.basePrice) setFocus(`licenseOfferings.${index}.basePrice`);
             else if (fieldErrors?.validTo) setFocus(`licenseOfferings.${index}.validTo`);
             return;
         }

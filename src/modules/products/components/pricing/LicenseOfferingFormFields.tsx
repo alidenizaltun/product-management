@@ -1,17 +1,9 @@
 import React, { useId, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { Collapse, UncontrolledTooltip } from "reactstrap";
+import { UncontrolledTooltip } from "reactstrap";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import { BILLING_UNITS, getBillingPeriodValueForUnit } from "@/modules/products/utils/billingPeriod";
 import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
-
-export interface AssignableProductUnit {
-    id?: string;
-    _tempId?: string;
-    code?: string;
-    name?: string;
-    isActive?: boolean;
-}
 
 export const generateOfferingTempId = () => `temp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
@@ -86,30 +78,6 @@ export const formatMoney = (amount?: number, currency = DEFAULT_CURRENCY_CODE) =
     typeof amount === "number" && Number.isFinite(amount)
         ? `${amount.toLocaleString("tr-TR")} ${currency}`
         : `0 ${currency}`;
-
-export const toUnitScopeValues = (ids?: Array<string | null | undefined>, tempIds?: Array<string | null | undefined>) => [
-    ...(ids ?? []).filter(Boolean).map((id) => `id:${id}`),
-    ...(tempIds ?? []).filter(Boolean).map((id) => `temp:${id}`),
-];
-
-export const splitUnitScopeValues = (values: string[]) => {
-    const productUnitIds = values
-        .filter((value) => value.startsWith("id:"))
-        .map((value) => value.replace("id:", ""))
-        .filter(Boolean);
-
-    const productUnitTempIds = values
-        .filter((value) => value.startsWith("temp:"))
-        .map((value) => value.replace("temp:", ""))
-        .filter(Boolean);
-
-    return {
-        productUnitIds,
-        productUnitTempIds,
-        productUnitId: productUnitIds[0],
-        productUnitTempId: productUnitIds.length === 0 ? productUnitTempIds[0] : undefined,
-    };
-};
 
 export const buildOfferingPayload = (offering: {
     productUnitIds?: string[];
@@ -187,21 +155,17 @@ export const HelpLabel: React.FC<HelpLabelProps> = ({ children, help }) => {
 interface LicenseOfferingFormFieldsProps {
     index: number;
     fieldId: string;
-    availableProductUnits: AssignableProductUnit[];
-    onOpenUnitModal: () => void;
     firstFieldRef?: React.Ref<HTMLInputElement>;
 }
 
 /**
  * Bir satış planının form alanları. Yeni plan için önce şablon seçtirir (isim,
- * satış modeli ve faturalama otomatik dolar); ekranda daima sadece Plan adı,
- * Taban fiyat ve Birim seçimi görünür, geri kalan her şey "Detaylar" altındadır.
+ * satış modeli ve faturalama otomatik dolar); tüm alanlar tek ekranda,
+ * akordiyon olmadan doğrudan görünür.
  */
 const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
     index,
     fieldId,
-    availableProductUnits,
-    onOpenUnitModal,
     firstFieldRef,
 }) => {
     const {
@@ -215,7 +179,6 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
     const offering = useWatch({ control, name: `licenseOfferings.${index}` });
     const isNewPlan = !offering?.id;
     const [templateApplied, setTemplateApplied] = useState(false);
-    const [advancedOpen, setAdvancedOpen] = useState(false);
     const showTemplatePicker = isNewPlan && !templateApplied;
 
     const model = Number(offering?.licenseModel ?? 2);
@@ -223,16 +186,6 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
     const meta = getModelMeta(normalizedModel);
     const showBilling = normalizedModel === 2;
     const showTrial = normalizedModel === 5;
-
-    const assignableProductUnits = availableProductUnits.filter((unit) => unit.isActive !== false && (unit.id || unit._tempId));
-    const selectedUnitValues = toUnitScopeValues(
-        offering?.productUnitIds?.length ? offering.productUnitIds : offering?.productUnitId ? [offering.productUnitId] : [],
-        offering?.productUnitTempIds?.length
-            ? offering.productUnitTempIds
-            : offering?.productUnitTempId
-                ? [offering.productUnitTempId]
-                : []
-    );
 
     React.useEffect(() => {
         if (model !== normalizedModel) {
@@ -244,16 +197,6 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
             setValue(`licenseOfferings.${index}.gracePeriodDays`, undefined, { shouldDirty: true });
         }
     }, [index, model, normalizedModel, setValue]);
-
-    const changeProductUnit = (value: string, checked: boolean) => {
-        const values = checked ? [...selectedUnitValues, value] : selectedUnitValues.filter((item) => item !== value);
-        const scope = splitUnitScopeValues([...new Set(values)]);
-
-        setValue(`licenseOfferings.${index}.productUnitIds`, scope.productUnitIds, { shouldDirty: true });
-        setValue(`licenseOfferings.${index}.productUnitTempIds`, scope.productUnitTempIds, { shouldDirty: true });
-        setValue(`licenseOfferings.${index}.productUnitId`, scope.productUnitId, { shouldDirty: true });
-        setValue(`licenseOfferings.${index}.productUnitTempId`, scope.productUnitTempId, { shouldDirty: true });
-    };
 
     const applyTemplate = (template: typeof PLAN_TEMPLATES[number]) => {
         const current = getValues(`licenseOfferings.${index}`);
@@ -325,71 +268,16 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
                 )}
             </div>
 
-            <div className="col-12">
-                <div className="d-flex align-items-center justify-content-between">
-                    <span className="overline-title text-primary">Birim seçimi</span>
-                    <button type="button" className="btn btn-sm btn-outline-primary btn-icon" onClick={onOpenUnitModal} title="Evrensel birimden ekle">
-                        <em className="icon ni ni-plus" />
-                    </button>
-                </div>
-                <div className="pricing-unit-dropzone mt-1">
-                    <div className="form-check">
-                        <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id={`offering-unit-default-${fieldId}`}
-                            checked={selectedUnitValues.length === 0}
-                            onChange={() => {
-                                const scope = splitUnitScopeValues([]);
-                                setValue(`licenseOfferings.${index}.productUnitIds`, scope.productUnitIds, { shouldDirty: true });
-                                setValue(`licenseOfferings.${index}.productUnitTempIds`, scope.productUnitTempIds, { shouldDirty: true });
-                                setValue(`licenseOfferings.${index}.productUnitId`, scope.productUnitId, { shouldDirty: true });
-                                setValue(`licenseOfferings.${index}.productUnitTempId`, scope.productUnitTempId, { shouldDirty: true });
-                            }}
-                        />
-                        <label className="form-check-label" htmlFor={`offering-unit-default-${fieldId}`}>
-                            Birimsiz paket
-                        </label>
-                    </div>
-                    {assignableProductUnits.map((unit) => {
-                        const optionValue = unit.id ? `id:${unit.id}` : `temp:${unit._tempId}`;
-                        return (
-                            <div className="form-check" key={optionValue}>
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id={`offering-unit-${fieldId}-${optionValue}`}
-                                    checked={selectedUnitValues.includes(optionValue)}
-                                    onChange={(event) => changeProductUnit(optionValue, event.target.checked)}
-                                />
-                                <label className="form-check-label" htmlFor={`offering-unit-${fieldId}-${optionValue}`}>
-                                    {unit.name || unit.code}
-                                    {!unit.id ? " (kaydedilecek)" : ""}
-                                </label>
-                            </div>
-                        );
-                    })}
-                    {assignableProductUnits.length === 0 && (
-                        <span className="text-soft fs-12px">Henüz birim eklenmedi. + butonuyla ekleyebilirsiniz.</span>
-                    )}
-                </div>
-            </div>
-
-            <div className="col-12 d-flex flex-wrap align-items-center justify-content-between gap-2 mt-1">
+            <div className="col-12 d-flex flex-wrap align-items-center gap-2 mt-1">
                 <div className="form-check form-switch mb-0">
                     <input type="checkbox" className="form-check-input" id={`offering-active-${fieldId}`} {...register(`licenseOfferings.${index}.isActive`)} />
                     <label className="form-check-label" htmlFor={`offering-active-${fieldId}`}>
                         Plan aktif
                     </label>
                 </div>
-                <button type="button" className="btn btn-sm btn-outline-light" onClick={() => setAdvancedOpen((current) => !current)}>
-                    <em className={`icon ni ni-chevron-${advancedOpen ? "up" : "down"} me-1`} />
-                    Detaylar
-                </button>
             </div>
 
             <div className="col-12">
-                <Collapse isOpen={advancedOpen}>
                     <div className="row g-3 pt-2 border-top">
                         <div className="col-md-6">
                             <label className="form-label">
@@ -510,7 +398,6 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
                             )}
                         </div>
                     </div>
-                </Collapse>
             </div>
 
             <div className="col-12 fs-12px text-soft">

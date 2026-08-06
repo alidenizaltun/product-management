@@ -3,13 +3,11 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { productsApi } from "@/modules/products/api/products.api";
-import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
+import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
 import { usePermission } from "@/modules/shared/hooks/usePermission";
-import { addOrReuseProductUnit, invalidateAllPricingQueries } from "@/modules/products/utils/productUnitSync";
+import { invalidateAllPricingQueries } from "@/modules/products/utils/productUnitSync";
 import type { ProductFormValues } from "@/modules/products/types/productEditor.types";
-import type { UnitDefinitionDto } from "@/shared/types/productOperations.types";
 import LicenseOfferingFormFields, { buildOfferingPayload } from "./LicenseOfferingFormFields";
-import UnitQuickAddModal from "./UnitQuickAddModal";
 
 interface SalesPlanModalProps {
     index: number | null;
@@ -23,11 +21,8 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
     const queryClient = useQueryClient();
     const canEdit = usePermission("product.pricing.edit");
     const { control, getValues, setValue, trigger, reset, setFocus, formState } = useFormContext<ProductFormValues>();
-    const productUnits = useWatch({ control, name: "productUnits" }) ?? [];
     const offering = useWatch({ control, name: index != null ? `licenseOfferings.${index}` : "licenseOfferings.0" });
     const [saving, setSaving] = useState(false);
-    const [unitModalOpen, setUnitModalOpen] = useState(false);
-    const [addingUnit, setAddingUnit] = useState(false);
 
     const isOpen = index != null;
 
@@ -57,11 +52,6 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
         }
 
         const currentOffering = getValues(`licenseOfferings.${index}`);
-        if (currentOffering.productUnitTempIds?.length || currentOffering.productUnitTempId) {
-            showWarning("Birim kaydı tamamlanamadı, lütfen tekrar deneyin.");
-            return;
-        }
-
         const payload = buildOfferingPayload(currentOffering);
 
         try {
@@ -85,34 +75,6 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
         }
     };
 
-    const handleUnitSelected = async (definition: UnitDefinitionDto) => {
-        try {
-            setAddingUnit(true);
-            const { productUnitId, reused } = await addOrReuseProductUnit({
-                productId,
-                unitDefinitionId: definition.id,
-                unitDefinitionCode: definition.code,
-                unitDefinitionName: definition.name,
-                getValues,
-                setValue,
-                queryClient,
-            });
-
-            const currentIds = getValues(`licenseOfferings.${index}.productUnitIds`) ?? [];
-            if (!currentIds.includes(productUnitId)) {
-                setValue(`licenseOfferings.${index}.productUnitIds`, [...currentIds, productUnitId], { shouldDirty: true });
-                setValue(`licenseOfferings.${index}.productUnitId`, productUnitId, { shouldDirty: true });
-            }
-
-            showSuccess(reused ? "Bu birim zaten ekliydi, satış planı için seçildi." : "Birim eklendi ve satış planı için seçildi.");
-            setUnitModalOpen(false);
-        } catch (error) {
-            showApiError(error);
-        } finally {
-            setAddingUnit(false);
-        }
-    };
-
     const handleCancel = () => {
         if (saving) return;
         onClose();
@@ -121,13 +83,11 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
     return (
         <>
             <Modal isOpen={isOpen} toggle={handleCancel} size="lg" centered scrollable>
-                <ModalHeader toggle={handleCancel}>{isSaved ? "Satış Planını Düzenle" : "Yeni Satış Planı"}</ModalHeader>
+                <ModalHeader toggle={handleCancel}>{isSaved ? "Satış Planı Ayarları" : "Yeni Satış Planı"}</ModalHeader>
                 <ModalBody>
                     <LicenseOfferingFormFields
                         index={index}
                         fieldId={String(offering?.id ?? offering?._tempId ?? index)}
-                        availableProductUnits={productUnits}
-                        onOpenUnitModal={() => setUnitModalOpen(true)}
                     />
 
                     {isSaved && (
@@ -177,14 +137,6 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
                     </div>
                 </ModalFooter>
             </Modal>
-
-            <UnitQuickAddModal
-                isOpen={unitModalOpen}
-                onClose={() => setUnitModalOpen(false)}
-                existingUnitDefinitionIds={productUnits.map((unit) => unit.unitDefinitionId).filter(Boolean)}
-                onUnitSelected={(definition) => void handleUnitSelected(definition)}
-                adding={addingUnit}
-            />
         </>
     );
 };

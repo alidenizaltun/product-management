@@ -344,6 +344,33 @@
     background: $light-100;
 }
 
+.pricing-unit-list{
+    display: flex;
+    flex-direction: column;
+    gap: .375rem;
+    min-height: 2.5rem;
+    padding: .5rem;
+    border: 1px dashed $light-300;
+    border-radius: 8px;
+    background: rgba($light-100, .55);
+}
+
+.pricing-unit-list-item{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .375rem .625rem;
+    border: 1px solid $light-200;
+    border-radius: 8px;
+    background: $white;
+    font-size: 12px;
+}
+
+.pricing-rule-modal{
+    --bs-modal-width: 1140px;
+}
+
 .pricing-rule-scope-copy{
     margin-bottom: .75rem;
     p{

@@ -51,6 +51,7 @@ export const apiEndpoints = {
     pricingTierById: (productId: string, tierId: string) => `/api/products/${productId}/pricing-tiers/${tierId}`,
     pricingRules: (id: string) => `/api/products/${id}/pricing-rules`,
     pricingRuleById: (pricingRuleId: string) => `/api/products/pricing-rules/${pricingRuleId}`,
+    reorderPricingRules: (id: string) => `/api/products/${id}/pricing-rules/reorder`,
     productUnits: (productId: string) => `/api/products/${productId}/units`,
     productUnitById: (productUnitId: string) => `/api/products/units/${productUnitId}`,
     licenseOfferings: (id: string) => `/api/products/${id}/license-offerings`,

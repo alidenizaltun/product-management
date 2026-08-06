@@ -1,29 +1,18 @@
 import React from "react";
 import { Button } from "reactstrap";
-import type { LicenseOfferingForm, ProductUnitForm } from "@/modules/products/types/productEditor.types";
+import type { LicenseOfferingForm } from "@/modules/products/types/productEditor.types";
 import { formatMoney, getModelMeta } from "./LicenseOfferingFormFields";
 import { usePermission } from "@/modules/shared/hooks/usePermission";
 
 interface SalesPlanListPanelProps {
     offerings: LicenseOfferingForm[];
-    productUnits: ProductUnitForm[];
     onCreateNew: () => void;
     onEdit: (index: number) => void;
     onDelete: (index: number) => void;
     onOpenRules: (index: number) => void;
 }
 
-const resolveUnitLabel = (offering: LicenseOfferingForm, productUnits: ProductUnitForm[]) => {
-    const ids = offering.productUnitIds?.length ? offering.productUnitIds : offering.productUnitId ? [offering.productUnitId] : [];
-    if (!ids.length) return "Birimsiz paket";
-
-    const names = ids
-        .map((id) => productUnits.find((unit) => unit.id === id)?.name)
-        .filter((name): name is string => Boolean(name));
-    return names.length ? names.join(", ") : "Birimsiz paket";
-};
-
-const SalesPlanListPanel: React.FC<SalesPlanListPanelProps> = ({ offerings, productUnits, onCreateNew, onEdit, onDelete, onOpenRules }) => {
+const SalesPlanListPanel: React.FC<SalesPlanListPanelProps> = ({ offerings, onCreateNew, onEdit, onDelete, onOpenRules }) => {
     const canEdit = usePermission("product.pricing.edit");
 
     return (
@@ -47,56 +36,44 @@ const SalesPlanListPanel: React.FC<SalesPlanListPanelProps> = ({ offerings, prod
                     <p className="mb-0">Henüz satış planı eklenmedi.</p>
                 </div>
             ) : (
-                <div className="table-responsive">
-                    <table className="table table-middle mb-0">
-                        <thead className="table-light">
-                            <tr>
-                                <th>Plan adı</th>
-                                <th>Seçili birim</th>
-                                <th>Taban fiyat</th>
-                                <th>Durum</th>
-                                {canEdit && <th className="text-end">İşlem</th>}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {offerings.map((offering, index) => {
-                                const meta = getModelMeta(Number(offering.licenseModel ?? 2));
-                                return (
-                                    <tr key={offering.id ?? offering._tempId ?? index}>
-                                        <td>
-                                            <div className="fw-medium">{offering.name || `Plan #${index + 1}`}</div>
-                                            <span className={`badge badge-dim bg-${meta.color} fs-11px`}>{meta.label}</span>
-                                        </td>
-                                        <td className="fs-12px">{resolveUnitLabel(offering, productUnits)}</td>
-                                        <td>{formatMoney(offering.basePrice, offering.currencyCode)}</td>
-                                        <td>
-                                            <span className={`badge bg-${offering.isActive ? "success" : "secondary"}`}>
-                                                {offering.isActive ? "Aktif" : "Pasif"}
-                                            </span>
-                                        </td>
-                                        {canEdit && (
-                                            <td className="text-end">
-                                                <div className="d-inline-flex flex-wrap justify-content-end gap-1">
+                <div className="card-inner">
+                    <div className="row g-3">
+                        {offerings.map((offering, index) => {
+                            const meta = getModelMeta(Number(offering.licenseModel ?? 2));
+                            return (
+                                <div className="col-sm-4 col-xl-3" key={offering.id ?? offering._tempId ?? index}>
+                                    <div className="card card-bordered h-100">
+                                        <div className="card-inner d-flex flex-column h-100">
+                                            <div className="d-flex justify-content-between align-items-start mb-2">
+                                                <span className={`badge badge-dim bg-${meta.color} fs-11px`}>{meta.label}</span>
+                                                <span className={`badge bg-${offering.isActive ? "success" : "secondary"}`}>
+                                                    {offering.isActive ? "Aktif" : "Pasif"}
+                                                </span>
+                                            </div>
+                                            <h6 className="title mb-1">{offering.name || `Plan #${index + 1}`}</h6>
+                                            {canEdit && (
+                                                <div className="d-flex flex-wrap gap-1 mt-auto pt-2">
                                                     <Button color="light" size="sm" type="button" onClick={() => onEdit(index)}>
-                                                        <em className="icon ni ni-edit me-1" />
-                                                        Düzenle
+                                                        <em className="icon ni ni-setting me-1" />
+                                                        Ayarlar
                                                     </Button>
                                                     {offering.id && (
                                                         <Button color="light" size="sm" type="button" onClick={() => onOpenRules(index)} title="Fiyatlandırma kurallarını yönet">
-                                                            <em className="icon ni ni-coins" />
+                                                            <em className="icon ni ni-coins me-1" />
+                                                            Fiyatlandırma
                                                         </Button>
                                                     )}
-                                                    <Button color="danger" outline size="sm" type="button" onClick={() => onDelete(index)} title="Planı sil">
+                                                    <Button color="danger" outline size="sm" type="button" className="ms-auto" onClick={() => onDelete(index)} title="Planı sil">
                                                         <em className="icon ni ni-trash" />
                                                     </Button>
                                                 </div>
-                                            </td>
-                                        )}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>

@@ -61,9 +61,28 @@ export const useProductPricingRuleMutations = (productId?: string) => {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: (orderedPricingRuleIds: string[]) =>
+      productsApi.reorderPricingRules(productId as string, orderedPricingRuleIds),
+    onMutate: (orderedPricingRuleIds: string[]) => {
+      if (!pricingRulesKey) return;
+      queryClient.setQueryData<ProductPricingRuleDto[]>(pricingRulesKey, (current = []) => {
+        const byId = new Map(current.map((rule) => [rule.id, rule]));
+        return orderedPricingRuleIds
+          .map((id, index) => {
+            const rule = byId.get(id);
+            return rule ? { ...rule, priority: (index + 1) * 10 } : undefined;
+          })
+          .filter((rule): rule is ProductPricingRuleDto => Boolean(rule));
+      });
+    },
+    onSettled: () => invalidate(),
+  });
+
   return {
     createMutation,
     updateMutation,
     deleteMutation,
+    reorderMutation,
   };
 };

@@ -129,6 +129,10 @@ export const productsApi = {
     await apiClient.delete<void>(apiEndpoints.products.pricingRuleById(pricingRuleId));
   },
 
+  reorderPricingRules: async (productId: string, orderedPricingRuleIds: string[]): Promise<void> => {
+    await apiClient.put<void>(apiEndpoints.products.reorderPricingRules(productId), { orderedPricingRuleIds });
+  },
+
   // --- Product Units ---
   getProductUnits: async (productId: string): Promise<ProductUnitDto[]> => {
     return apiClient.get<ProductUnitDto[]>(apiEndpoints.products.productUnits(productId));

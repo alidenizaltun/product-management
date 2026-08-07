@@ -12,6 +12,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
+import { createModuleCode } from "@/modules/products/utils/productFormMapper";
 
 const ALL_LICENSE_OFFERINGS_KEY = "__all_license_offerings__";
 
@@ -327,22 +328,7 @@ const ProductModulesTab: React.FC = () => {
                                                 <input type="hidden" {...register(`modules.${index}.sortOrder`, { valueAsNumber: true })} />
 
                                                 <div className="row g-3">
-                                                    <div className="col-md-4">
-                                                        <label className="form-label">
-                                                            Modül Kodu
-                                                        </label>
-                                                        <input
-                                                            className="form-control"
-                                                            placeholder="Boşsa otomatik üretilir"
-                                                            {...register(`modules.${index}.moduleCode`)}
-                                                        />
-                                                        {errors.modules?.[index]?.moduleCode && (
-                                                            <span className="text-danger fs-12">
-                                                                {errors.modules[index]?.moduleCode?.message}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="col-md-8">
+                                                    <div className="col-12">
                                                         <label className="form-label">
                                                             Modül Adı <span className="text-danger">*</span>
                                                         </label>
@@ -355,6 +341,11 @@ const ProductModulesTab: React.FC = () => {
                                                             <span className="text-danger fs-12">
                                                                 {errors.modules[index]?.name?.message}
                                                             </span>
+                                                        )}
+                                                        {!modules[index]?.moduleCode?.trim() && (
+                                                            <p className="text-soft fs-12 mt-1 mb-0">
+                                                                Kod: <span className="fw-medium">{createModuleCode(modules[index]?.name || "", index)}</span>
+                                                            </p>
                                                         )}
                                                     </div>
                                                     <input type="hidden" {...register(`modules.${index}.currencyCode`)} />

@@ -35,7 +35,7 @@ const Login = () => {
     defaultValues: {
       email: "",
       password: "",
-      rememberMe: false,
+      rememberMe: true,
     },
   });
 
@@ -142,7 +142,7 @@ const Login = () => {
                   </div>
                 </div>
 
-                {/* <div className="form-group">
+                <div className="form-group">
                   <div className="custom-control custom-control-xs custom-checkbox">
                     <input
                       type="checkbox"
@@ -155,7 +155,7 @@ const Login = () => {
                       Beni hatırla
                     </label>
                   </div>
-                </div> */}
+                </div>
 
                 <div className="form-group">
                   <Button size="lg" className="btn-block" type="submit" color="primary" disabled={isLoading}>

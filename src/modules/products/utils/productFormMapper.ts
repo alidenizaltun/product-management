@@ -545,65 +545,73 @@ export const buildFullProductPayload = (
                 : undefined,
         // Yazılım ürünü (kind=2) için ek lisans alanları
         modules:
-            values.kind === 2 && normalizedModules?.length
-                ? normalizedModules.map((m) => {
-                    const offeringPrices = buildModuleOfferingPricePayloads(
-                        m.offeringPrices,
-                        values.licenseOfferings,
-                        values.defaultCurrencyCode
-                    );
+            values.kind === 2
+                ? normalizedModules?.length
+                    ? normalizedModules.map((m) => {
+                        const offeringPrices = buildModuleOfferingPricePayloads(
+                            m.offeringPrices,
+                            values.licenseOfferings,
+                            values.defaultCurrencyCode
+                        );
 
-                    return {
-                        productId: productId ?? undefined,
-                        moduleCode: m.moduleCode,
-                        name: m.name,
-                        description: m.description,
-                        currencyCode: m.currencyCode,
-                        isOptional: m.isOptional,
-                        isActive: m.isActive,
-                        sortOrder: m.sortOrder,
-                        offeringPrices,
-                    };
-                })
+                        return {
+                            productId: productId ?? undefined,
+                            moduleCode: m.moduleCode,
+                            name: m.name,
+                            description: m.description,
+                            currencyCode: m.currencyCode,
+                            isOptional: m.isOptional,
+                            isActive: m.isActive,
+                            sortOrder: m.sortOrder,
+                            offeringPrices,
+                        };
+                    })
+                    : isEdit
+                        ? []
+                        : undefined
                 : undefined,
         softwarePricingTiers: undefined,
         licenseOfferings:
-            values.kind === 2 && values.licenseOfferings?.length
-                ? values.licenseOfferings.map(({
-                    id: loId,
-                    convertToOfferingId,
-                    _tempId,
-                    productUnitId,
-                    productUnitTempId,
-                    productUnitIds,
-                    productUnitTempIds,
-                    ...lo
-                }) => {
-                    const savedUnitIds = (productUnitIds?.length ? productUnitIds : productUnitId ? [productUnitId] : [])
-                        .filter(Boolean);
-                    const tempUnitIds = (productUnitTempIds?.length
-                        ? productUnitTempIds
-                        : productUnitTempId
-                            ? [productUnitTempId]
-                            : []
-                    ).filter(Boolean);
+            values.kind === 2
+                ? values.licenseOfferings?.length
+                    ? values.licenseOfferings.map(({
+                        id: loId,
+                        convertToOfferingId,
+                        _tempId,
+                        productUnitId,
+                        productUnitTempId,
+                        productUnitIds,
+                        productUnitTempIds,
+                        ...lo
+                    }) => {
+                        const savedUnitIds = (productUnitIds?.length ? productUnitIds : productUnitId ? [productUnitId] : [])
+                            .filter(Boolean);
+                        const tempUnitIds = (productUnitTempIds?.length
+                            ? productUnitTempIds
+                            : productUnitTempId
+                                ? [productUnitTempId]
+                                : []
+                        ).filter(Boolean);
 
-                    return {
-                        ...lo,
-                        basePrice: 0,
-                        id: loId || undefined,
-                        // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
-                        _tempId: _tempId || undefined,
-                        productUnitId: savedUnitIds[0] || undefined,
-                        productUnitTempId: savedUnitIds.length === 0 ? tempUnitIds[0] || undefined : undefined,
-                        productUnitIds: savedUnitIds.length ? savedUnitIds : undefined,
-                        productUnitTempIds: tempUnitIds.length ? tempUnitIds : undefined,
-                        convertToOfferingId: convertToOfferingId || undefined,
-                        validFrom: lo.validFrom || null,
-                        validTo: lo.validTo || null,
-                        productId: productId ?? undefined,
-                    };
-                })
+                        return {
+                            ...lo,
+                            basePrice: 0,
+                            id: loId || undefined,
+                            // Backend henüz kaydedilmemiş offering'leri _tempId ile eşleştirir
+                            _tempId: _tempId || undefined,
+                            productUnitId: savedUnitIds[0] || undefined,
+                            productUnitTempId: savedUnitIds.length === 0 ? tempUnitIds[0] || undefined : undefined,
+                            productUnitIds: savedUnitIds.length ? savedUnitIds : undefined,
+                            productUnitTempIds: tempUnitIds.length ? tempUnitIds : undefined,
+                            convertToOfferingId: convertToOfferingId || undefined,
+                            validFrom: lo.validFrom || null,
+                            validTo: lo.validTo || null,
+                            productId: productId ?? undefined,
+                        };
+                    })
+                    : isEdit
+                        ? []
+                        : undefined
                 : undefined,
         pricingRules: buildPricingRulePayloads(pricingRulesForPayload, isEdit),
     };

@@ -69,7 +69,7 @@ const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ module
 
     const licenseOfferings = useWatch({ control, name: "licenseOfferings" }) ?? [];
     const watchedPrices = useWatch({ control, name: `modules.${moduleIndex}.offeringPrices` }) ?? [];
-    const allOfferings = licenseOfferings.filter((lo) => Boolean(lo.id) || Boolean(lo._tempId));
+    const allOfferings = licenseOfferings.filter((lo) => lo.isActive !== false && (Boolean(lo.id) || Boolean(lo._tempId)));
 
     if (allOfferings.length === 0) {
         return (
@@ -118,6 +118,7 @@ const ModuleOfferingPricesSection: React.FC<{ moduleIndex: number }> = ({ module
                                         </label>
                                         <select
                                             className="form-control form-select form-select-sm"
+                                            required
                                             value={
                                                 watchedPrices[priceIndex]?.appliesToAllLicenseOfferings
                                                     ? ALL_LICENSE_OFFERINGS_KEY

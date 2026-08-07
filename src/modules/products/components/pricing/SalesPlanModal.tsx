@@ -90,7 +90,7 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
                         fieldId={String(offering?.id ?? offering?._tempId ?? index)}
                     />
 
-                    {isSaved && (
+                    {/* {isSaved && (
                         <>
                             <hr className="my-4" />
                             <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
@@ -106,7 +106,7 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
                                 </Button>
                             </div>
                         </>
-                    )}
+                    )} */}
                 </ModalBody>
                 <ModalFooter className="d-flex justify-content-between">
                     <div>

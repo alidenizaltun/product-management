@@ -381,11 +381,16 @@
 }
 
 .pricing-rule-section{
-    &--divided{
-        margin-top: .25rem;
-        padding-top: 1rem;
-        border-top: 1px solid $light-200;
-    }
+    padding: 1rem 1.125rem;
+    border: 1px solid $light-200;
+    border-radius: 10px;
+    background: rgba($light-100, .45);
+}
+
+.pricing-rule-sections{
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
 
 .pricing-manager-head{

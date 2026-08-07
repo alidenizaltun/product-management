@@ -52,7 +52,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authApi.login(request);
           if (response.succeeded && response.token && response.user) {
-            storageService.storeAuthData(response.token, response.user, request.rememberMe ?? false);
+            storageService.storeAuthData(response.token, response.user, request.rememberMe ?? true);
             set({ user: response.user, isAuthenticated: true, isLoading: false });
           } else {
             set({ isLoading: false, error: response.errors?.join(", ") || "Giriş başarısız." });

@@ -188,3 +188,65 @@ export const addOrReuseProductUnit = async ({
 
     return { productUnitId: created.id, reused: false };
 };
+
+interface RemoveProductUnitParams {
+    productId: string;
+    unit: { id?: string; _tempId?: string };
+    getValues: UseFormGetValues<ProductFormValues>;
+    setValue: UseFormSetValue<ProductFormValues>;
+    queryClient: QueryClient;
+}
+
+/**
+ * "Kaldır" akışının çekirdeği: ürün-birim bağlantısını (ProductUnits satırı) kaldırır.
+ * Evrensel birim tanımına (UnitDefinition) dokunmaz. Henüz kaydedilmemiş (_tempId'li)
+ * birimlerde backend çağrısı yapılmaz. Kaldırılan birime yapılan tüm plan/kural
+ * referansları da (dangling kalmasınlar diye) formdan temizlenir.
+ */
+export const removeProductUnit = async ({
+    productId,
+    unit,
+    getValues,
+    setValue,
+    queryClient,
+}: RemoveProductUnitParams): Promise<void> => {
+    if (unit.id) {
+        await productsApi.deleteProductUnit(unit.id);
+    }
+
+    const productUnits = getValues("productUnits") ?? [];
+    setValue(
+        "productUnits",
+        productUnits.filter((item) => (unit.id ? item.id !== unit.id : item._tempId !== unit._tempId)),
+        { shouldDirty: true }
+    );
+
+    const stripUnitReference = (ids?: string[], tempIds?: string[]) => ({
+        ids: (ids ?? []).filter((id) => id !== unit.id),
+        tempIds: (tempIds ?? []).filter((tempId) => tempId !== unit._tempId),
+    });
+
+    const licenseOfferings = getValues("licenseOfferings") ?? [];
+    licenseOfferings.forEach((offering, index) => {
+        const { ids, tempIds } = stripUnitReference(offering.productUnitIds, offering.productUnitTempIds);
+        if (ids.length === (offering.productUnitIds?.length ?? 0) && tempIds.length === (offering.productUnitTempIds?.length ?? 0)) return;
+        setValue(`licenseOfferings.${index}.productUnitIds`, ids, { shouldDirty: true });
+        setValue(`licenseOfferings.${index}.productUnitTempIds`, tempIds, { shouldDirty: true });
+        setValue(`licenseOfferings.${index}.productUnitId`, ids[0], { shouldDirty: true });
+        setValue(`licenseOfferings.${index}.productUnitTempId`, ids.length === 0 ? tempIds[0] : undefined, { shouldDirty: true });
+    });
+
+    const pricingRules = getValues("pricingRules") ?? [];
+    pricingRules.forEach((rule, index) => {
+        const { ids, tempIds } = stripUnitReference(rule.productUnitIds, rule.productUnitTempIds);
+        if (ids.length === (rule.productUnitIds?.length ?? 0) && tempIds.length === (rule.productUnitTempIds?.length ?? 0)) return;
+        setValue(`pricingRules.${index}.productUnitIds`, ids, { shouldDirty: true });
+        setValue(`pricingRules.${index}.productUnitTempIds`, tempIds, { shouldDirty: true });
+        setValue(`pricingRules.${index}.productUnitId`, ids[0], { shouldDirty: true });
+        setValue(`pricingRules.${index}.productUnitTempId`, ids.length === 0 ? tempIds[0] : undefined, { shouldDirty: true });
+    });
+
+    if (unit.id) {
+        await invalidateAllPricingQueries(queryClient, productId);
+    }
+};

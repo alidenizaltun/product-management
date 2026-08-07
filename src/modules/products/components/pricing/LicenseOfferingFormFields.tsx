@@ -268,7 +268,7 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
                 )}
             </div>
 
-            <div className="col-12 d-flex flex-wrap align-items-center gap-2 mt-1">
+            <div className="col-12 d-flex flex-wrap align-items-center gap-2 my-1">
                 <div className="form-check form-switch mb-0">
                     <input type="checkbox" className="form-check-input" id={`offering-active-${fieldId}`} {...register(`licenseOfferings.${index}.isActive`)} />
                     <label className="form-check-label" htmlFor={`offering-active-${fieldId}`}>
@@ -279,7 +279,7 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
 
             <div className="col-12">
                     <div className="row g-3 pt-2 border-top">
-                        <div className="col-md-6">
+                        <div className={showBilling || showTrial ? `col-md-6` : `col-md-12`}>
                             <label className="form-label">
                                 <HelpLabel help="Planın hangi satış mantığıyla sunulacağını belirler. Abonelik dönemsel yenileme, tek seferlik kalıcı lisans, deneme ise geçici erişim senaryosu içindir.">
                                     Satış modeli
@@ -339,7 +339,7 @@ const LicenseOfferingFormFields: React.FC<LicenseOfferingFormFieldsProps> = ({
                                     </div>
                                 </div>
                                 <div className="col-md-6">
-                                    <div className="form-check form-switch mt-4">
+                                    <div className="form-check form-switch mt-4 pt-2">
                                         <input
                                             type="checkbox"
                                             className="form-check-input"

@@ -5,7 +5,7 @@ import { Button } from "reactstrap";
 import { productsApi } from "@/modules/products/api/products.api";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
 import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
-import { addOrReuseProductUnit, invalidateAllPricingQueries, mapFormProductUnitsToDto } from "@/modules/products/utils/productUnitSync";
+import { addOrReuseProductUnit, invalidateAllPricingQueries, mapFormProductUnitsToDto, removeProductUnit } from "@/modules/products/utils/productUnitSync";
 import { usePermission } from "@/modules/shared/hooks/usePermission";
 import type { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import type { ProductLicenseOfferingDto } from "@/shared/types/productOperations.types";
@@ -28,10 +28,7 @@ const SalesPlanManager: React.FC<SalesPlanManagerProps> = ({ productId }) => {
 
     const [openIndex, setOpenIndex] = useState<number | null>(null);
     const [rulesIndex, setRulesIndex] = useState<number | null>(null);
-    const rulesOffering = useWatch({
-        control,
-        name: rulesIndex != null ? `licenseOfferings.${rulesIndex}` : "licenseOfferings.0",
-    });
+    const rulesOffering = rulesIndex != null ? offerings[rulesIndex] : undefined;
     const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -134,6 +131,15 @@ const SalesPlanManager: React.FC<SalesPlanManagerProps> = ({ productId }) => {
                                     unitDefinitionId: definition.id,
                                     unitDefinitionCode: definition.code,
                                     unitDefinitionName: definition.name,
+                                    getValues,
+                                    setValue,
+                                    queryClient,
+                                })
+                            }
+                            onRemoveProductUnit={(unit) =>
+                                removeProductUnit({
+                                    productId,
+                                    unit,
                                     getValues,
                                     setValue,
                                     queryClient,

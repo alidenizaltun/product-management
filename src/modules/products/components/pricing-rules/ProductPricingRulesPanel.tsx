@@ -39,9 +39,13 @@ interface ProductPricingRulesPanelProps {
   lockedLicenseOfferingId?: string;
   lockedLicenseOfferingTempId?: string;
   /** Verilirse birim seçimi adımında yeni evrensel birim oluşturma butonu gösterilir. */
-  onCreateProductUnit?: (definition: UnitDefinitionDto) => Promise<{ productUnitId: string; reused: boolean }>;
-  /** Verilirse ürüne atanmış birimler için "Kaldır" butonu gösterilir (ürün-birim bağlantısı kaldırılır, evrensel birim silinmez). */
+  onCreateProductUnit?: (definition: UnitDefinitionDto) => Promise<{ productUnitId: string; reused: boolean; isTemp: boolean }>;
+  /** Verilirse ürüne atanmış birimler için "Komple Kaldır" butonu gösterilir (ürün-birim bağlantısı tamamen kaldırılır, evrensel birim silinmez). */
   onRemoveProductUnit?: (unit: ScopedProductUnitOption) => Promise<void>;
+  /** Bir birim bu plana (kilitli satış planına) atandığında çağrılır: örn. birim bir kurala eklendiğinde veya yeni oluşturulduğunda. */
+  onAssignProductUnitToPlan?: (unit: { id?: string; _tempId?: string }) => Promise<void>;
+  /** Verilirse birimi sadece bu plandan kaldırma seçeneği gösterilir (ürün ve diğer planlarda kalmaya devam eder). */
+  onRemoveProductUnitFromPlan?: (unit: ScopedProductUnitOption) => Promise<void>;
 }
 
 interface RuleFormState {
@@ -500,6 +504,8 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   lockedLicenseOfferingTempId,
   onCreateProductUnit,
   onRemoveProductUnit,
+  onAssignProductUnitToPlan,
+  onRemoveProductUnitFromPlan,
 }) => {
   const { data, isLoading, isError, refetch } = useProductPricingRules(productId);
   const { createMutation, updateMutation, deleteMutation, reorderMutation } = useProductPricingRuleMutations(productId);
@@ -510,7 +516,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   const [formOpen, setFormOpen] = useState(false);
   const [unitModalOpen, setUnitModalOpen] = useState(false);
   const [addingUnit, setAddingUnit] = useState(false);
-  const [removeUnitTarget, setRemoveUnitTarget] = useState<ScopedProductUnitOption | null>(null);
+  const [removeUnitTarget, setRemoveUnitTarget] = useState<{ unit: ScopedProductUnitOption; mode: "product" | "plan" } | null>(null);
   const [removingUnit, setRemovingUnit] = useState(false);
   const dragSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -535,6 +541,16 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     () => new Map(licenseOfferings.map((offering) => [offering.id, offering])),
     [licenseOfferings]
   );
+  const lockedOffering = useMemo(() => {
+    if (!isLocked) return undefined;
+    return licenseOfferings.find((offering) => {
+      if (lockedLicenseOfferingId && offering.id === lockedLicenseOfferingId) return true;
+      if (lockedLicenseOfferingTempId && offering._tempId === lockedLicenseOfferingTempId) return true;
+      return false;
+    });
+  }, [isLocked, licenseOfferings, lockedLicenseOfferingId, lockedLicenseOfferingTempId]);
+  const lockedOfferingUnitIds = useMemo(() => new Set(lockedOffering?.productUnitIds ?? []), [lockedOffering]);
+  const lockedOfferingUnitTempIds = useMemo(() => new Set(lockedOffering?.productUnitTempIds ?? []), [lockedOffering]);
   const productUnitById = useMemo(
     () => new Map(productUnits.map((unit) => [unit.id, unit])),
     [productUnits]
@@ -773,8 +789,9 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
     try {
       setAddingUnit(true);
-      const { productUnitId } = await onCreateProductUnit(definition);
-      updateProductUnitScope(`id:${productUnitId}`, true);
+      const { productUnitId, isTemp } = await onCreateProductUnit(definition);
+      updateProductUnitScope(isTemp ? `temp:${productUnitId}` : `id:${productUnitId}`, true);
+      await onAssignProductUnitToPlan?.(isTemp ? { _tempId: productUnitId } : { id: productUnitId });
       setUnitModalOpen(false);
     } catch (error) {
       showApiError(error);
@@ -799,18 +816,25 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       return !isCurrentPlan;
     });
 
-  const handleRequestRemoveUnit = (unit: ScopedProductUnitOption) => {
-    if (!onRemoveProductUnit) return;
-    setRemoveUnitTarget(unit);
+  const handleRequestRemoveUnit = (unit: ScopedProductUnitOption, mode: "product" | "plan") => {
+    if (mode === "product" && !onRemoveProductUnit) return;
+    if (mode === "plan" && !onRemoveProductUnitFromPlan) return;
+    setRemoveUnitTarget({ unit, mode });
   };
 
   const handleConfirmRemoveUnit = async () => {
-    if (!removeUnitTarget || !onRemoveProductUnit) return;
+    if (!removeUnitTarget) return;
+    const { unit, mode } = removeUnitTarget;
 
     try {
       setRemovingUnit(true);
-      await onRemoveProductUnit(removeUnitTarget);
-      showSuccess("Birim üründen kaldırıldı.");
+      if (mode === "product" && onRemoveProductUnit) {
+        await onRemoveProductUnit(unit);
+        showSuccess("Birim üründen kaldırıldı.");
+      } else if (mode === "plan" && onRemoveProductUnitFromPlan) {
+        await onRemoveProductUnitFromPlan(unit);
+        showSuccess("Birim bu plandan kaldırıldı.");
+      }
       setRemoveUnitTarget(null);
     } catch (error) {
       showApiError(error);
@@ -846,9 +870,13 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       return value === selectedOfferingValue;
     })
     : undefined;
-  // Birimler artık plana değil ürüne bağlıdır; kapsam olarak seçilen plan ne olursa olsun
-  // ürünün tüm birimleri kural için eklenebilir.
-  const activeSelectableProductUnits = productUnits.filter((unit) => unit.isActive && (unit.id || unit._tempId));
+  // Her satış planı sadece kendi productUnitIds/productUnitTempIds listesindeki birimleri görür.
+  // Bir birim bu plana henüz atanmamışsa burada listelenmez; ataması "Yeni birim ekle" akışıyla yapılır.
+  const activeSelectableProductUnits = productUnits.filter((unit) => {
+    if (!unit.isActive || !(unit.id || unit._tempId)) return false;
+    if (!isLocked) return true;
+    return (unit.id && lockedOfferingUnitIds.has(unit.id)) || (unit._tempId && lockedOfferingUnitTempIds.has(unit._tempId));
+  });
   const availableProductUnits = activeSelectableProductUnits.filter(
     (unit) => !selectedProductUnitValues.includes(getProductUnitScopeValue(unit))
   );
@@ -979,14 +1007,26 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                   <em className="icon ni ni-plus" />
                                   Ekle
                                 </Button>
+                                {onRemoveProductUnitFromPlan && (
+                                  <Button
+                                    color="warning"
+                                    outline
+                                    size="sm"
+                                    type="button"
+                                    title="Sadece bu plandan kaldır"
+                                    onClick={() => handleRequestRemoveUnit(unit, "plan")}
+                                  >
+                                    <em className="icon ni ni-signout" />
+                                  </Button>
+                                )}
                                 {onRemoveProductUnit && (
                                   <Button
                                     color="danger"
                                     outline
                                     size="sm"
                                     type="button"
-                                    title="Birimi üründen kaldır"
-                                    onClick={() => handleRequestRemoveUnit(unit)}
+                                    title="Komple üründen kaldır"
+                                    onClick={() => handleRequestRemoveUnit(unit, "product")}
                                   >
                                     <em className="icon ni ni-trash" />
                                   </Button>
@@ -1658,7 +1698,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
         <UnitQuickAddModal
           isOpen={unitModalOpen}
           onClose={() => setUnitModalOpen(false)}
-          existingUnitDefinitionIds={productUnits.map((unit) => unit.unitDefinitionId).filter(Boolean)}
+          existingUnitDefinitionIds={activeSelectableProductUnits.map((unit) => unit.unitDefinitionId).filter(Boolean)}
           onUnitSelected={(definition) => void handleUnitCreated(definition)}
           adding={addingUnit}
         />
@@ -1677,15 +1717,19 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
       <ConfirmDialog
         open={Boolean(removeUnitTarget)}
-        title="Birim Üründen Kaldırılsın mı?"
+        title={removeUnitTarget?.mode === "plan" ? "Birim Bu Plandan Kaldırılsın mı?" : "Birim Üründen Kaldırılsın mı?"}
         message={
-          removeUnitTarget && isUnitUsedInOtherPlan(removeUnitTarget)
-            ? `"${getProductUnitLabel(removeUnitTarget)}" birimi başka bir satış planının fiyatlandırma kuralında kullanılıyor. Yine de üründen kaldırmak istiyor musunuz? Bu kurallardaki birim referansı geçersiz kalacaktır.`
-            : `"${removeUnitTarget ? getProductUnitLabel(removeUnitTarget) : ""}" birimi üründen kaldırılacak. Evrensel birim tanımı silinmez, sadece bu ürünle bağlantısı kesilir.`
+          removeUnitTarget
+            ? removeUnitTarget.mode === "plan"
+              ? `"${getProductUnitLabel(removeUnitTarget.unit)}" birimi sadece bu satış planından kaldırılacak; üründe ve diğer planlarda kalmaya devam edecek.`
+              : isUnitUsedInOtherPlan(removeUnitTarget.unit)
+                ? `"${getProductUnitLabel(removeUnitTarget.unit)}" birimi başka bir satış planının fiyatlandırma kuralında kullanılıyor. Yine de üründen kaldırmak istiyor musunuz? Bu kurallardaki birim referansı geçersiz kalacaktır.`
+                : `"${getProductUnitLabel(removeUnitTarget.unit)}" birimi üründen kaldırılacak. Evrensel birim tanımı silinmez, sadece bu ürünle bağlantısı kesilir.`
+            : ""
         }
         variant="danger"
         loading={removingUnit}
-        confirmLabel="Kaldır"
+        confirmLabel={removeUnitTarget?.mode === "plan" ? "Kaldır" : "Sil"}
         onCancel={() => setRemoveUnitTarget(null)}
         onConfirm={() => void handleConfirmRemoveUnit()}
       />

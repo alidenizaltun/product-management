@@ -5,7 +5,14 @@ import { Button } from "reactstrap";
 import { productsApi } from "@/modules/products/api/products.api";
 import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
 import { showApiError, showSuccess } from "@/modules/shared/components/NotificationAlert";
-import { addOrReuseProductUnit, invalidateAllPricingQueries, mapFormProductUnitsToDto, removeProductUnit } from "@/modules/products/utils/productUnitSync";
+import {
+    addOrReuseProductUnit,
+    assignProductUnitToOffering,
+    invalidateAllPricingQueries,
+    mapFormProductUnitsToDto,
+    removeProductUnit,
+    unassignProductUnitFromOffering,
+} from "@/modules/products/utils/productUnitSync";
 import { usePermission } from "@/modules/shared/hooks/usePermission";
 import type { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import type { ProductLicenseOfferingDto } from "@/shared/types/productOperations.types";
@@ -119,6 +126,8 @@ const SalesPlanManager: React.FC<SalesPlanManagerProps> = ({ productId }) => {
                                     autoRenew: Boolean(rulesOffering.autoRenew),
                                     isActive: Boolean(rulesOffering.isActive),
                                     sortOrder: rulesOffering.sortOrder ?? 0,
+                                    productUnitIds: rulesOffering.productUnitIds ?? [],
+                                    productUnitTempIds: rulesOffering.productUnitTempIds ?? [],
                                     createdAt: new Date().toISOString(),
                                 } satisfies ProductLicenseOfferingDto,
                             ]}
@@ -145,6 +154,14 @@ const SalesPlanManager: React.FC<SalesPlanManagerProps> = ({ productId }) => {
                                     queryClient,
                                 })
                             }
+                            onAssignProductUnitToPlan={(unit) => {
+                                if (rulesIndex == null) return Promise.resolve();
+                                return assignProductUnitToOffering({ productId, offeringIndex: rulesIndex, unit, getValues, setValue, queryClient });
+                            }}
+                            onRemoveProductUnitFromPlan={(unit) => {
+                                if (rulesIndex == null) return Promise.resolve();
+                                return unassignProductUnitFromOffering({ productId, offeringIndex: rulesIndex, unit, getValues, setValue, queryClient });
+                            }}
                         />
                     </div>
                 </div>

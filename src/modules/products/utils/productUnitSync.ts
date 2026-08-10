@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { UseFormGetValues, UseFormSetValue } from "react-hook-form";
 import { productsApi } from "@/modules/products/api/products.api";
 import { queryKeys } from "@/services/query/queryKeys";
+import { buildOfferingPayload } from "@/modules/products/components/pricing/LicenseOfferingFormFields";
 import type { ProductFormValues, ProductUnitForm } from "@/modules/products/types/productEditor.types";
 import type { CreateProductUnitRequestDto, ProductUnitDto, UnitRole } from "@/shared/types/productOperations.types";
 
@@ -133,6 +134,8 @@ interface AddOrReuseUnitParams {
 interface AddOrReuseUnitResult {
     productUnitId: string;
     reused: boolean;
+    /** true ise productUnitId gerçek bir id değil, henüz kaydedilmemiş satırın _tempId'sidir. */
+    isTemp: boolean;
 }
 
 /**
@@ -153,11 +156,11 @@ export const addOrReuseProductUnit = async ({
     const existing = productUnits.find((unit) => unit.unitDefinitionId === unitDefinitionId);
 
     if (existing?.id) {
-        return { productUnitId: existing.id, reused: true };
+        return { productUnitId: existing.id, reused: true, isTemp: false };
     }
 
     if (existing?._tempId) {
-        return { productUnitId: existing._tempId, reused: true };
+        return { productUnitId: existing._tempId, reused: true, isTemp: true };
     }
 
     const tempId = generateProductUnitTempId();
@@ -177,7 +180,7 @@ export const addOrReuseProductUnit = async ({
 
     const payload = buildProductUnitPayload(newUnit);
     if (!payload) {
-        return { productUnitId: tempId, reused: false };
+        return { productUnitId: tempId, reused: false, isTemp: true };
     }
 
     const created = await productsApi.createProductUnit(productId, payload);
@@ -186,7 +189,88 @@ export const addOrReuseProductUnit = async ({
     replaceProductUnitTempReferences(getValues, setValue, tempId, created.id);
     await invalidateAllPricingQueries(queryClient, productId);
 
-    return { productUnitId: created.id, reused: false };
+    return { productUnitId: created.id, reused: false, isTemp: false };
+};
+
+interface OfferingUnitScopeParams {
+    productId: string;
+    offeringIndex: number;
+    unit: { id?: string; _tempId?: string };
+    getValues: UseFormGetValues<ProductFormValues>;
+    setValue: UseFormSetValue<ProductFormValues>;
+    queryClient: QueryClient;
+}
+
+/**
+ * Bir satış planının productUnitIds değişikliğini backend'e kaydeder. Offering
+ * alanları form üzerinde setValue ile değiştirilse de, bu çağrı yapılmadan
+ * backend'e hiç ulaşmaz ve bir sonraki refetch'te sessizce kaybolur.
+ */
+const persistOfferingUnitScope = async (
+    productId: string,
+    offeringId: string | undefined,
+    offering: Parameters<typeof buildOfferingPayload>[0]
+) => {
+    if (!offeringId) return;
+    await productsApi.updateLicenseOffering(productId, offeringId, buildOfferingPayload(offering));
+};
+
+/**
+ * Bir ürün birimini belirli bir satış planının (license offering) kendi
+ * productUnitIds listesine ekler (zaten varsa dokunmaz) ve hemen backend'e kaydeder.
+ * Birim bu planın herhangi bir kuralında kullanıldığında çağrılmalıdır. Henüz
+ * kaydedilmemiş (_tempId'li) birimler backend'e gönderilmez, sadece form state'inde tutulur.
+ */
+export const assignProductUnitToOffering = async ({
+    productId,
+    offeringIndex,
+    unit,
+    getValues,
+    setValue,
+    queryClient,
+}: OfferingUnitScopeParams): Promise<void> => {
+    const offering = getValues(`licenseOfferings.${offeringIndex}`);
+    if (!offering) return;
+
+    if (unit.id) {
+        const ids = offering.productUnitIds ?? [];
+        if (ids.includes(unit.id)) return;
+        const nextIds = [...ids, unit.id];
+        setValue(`licenseOfferings.${offeringIndex}.productUnitIds`, nextIds, { shouldDirty: true });
+        await persistOfferingUnitScope(productId, offering.id, { ...offering, productUnitIds: nextIds });
+        await invalidateAllPricingQueries(queryClient, productId);
+        return;
+    }
+
+    if (unit._tempId) {
+        const tempIds = offering.productUnitTempIds ?? [];
+        if (tempIds.includes(unit._tempId)) return;
+        setValue(`licenseOfferings.${offeringIndex}.productUnitTempIds`, [...tempIds, unit._tempId], { shouldDirty: true });
+    }
+};
+
+/**
+ * Bir ürün birimini sadece belirli bir satış planının kapsamından çıkarır ve
+ * hemen backend'e kaydeder. ProductUnit satırı (ürün-birim bağlantısı)
+ * silinmez; birim üründe ve diğer planlarda kalmaya devam eder.
+ */
+export const unassignProductUnitFromOffering = async ({
+    productId,
+    offeringIndex,
+    unit,
+    getValues,
+    setValue,
+    queryClient,
+}: OfferingUnitScopeParams): Promise<void> => {
+    const offering = getValues(`licenseOfferings.${offeringIndex}`);
+    if (!offering) return;
+
+    const nextIds = (offering.productUnitIds ?? []).filter((id) => id !== unit.id);
+    const nextTempIds = (offering.productUnitTempIds ?? []).filter((tempId) => tempId !== unit._tempId);
+    setValue(`licenseOfferings.${offeringIndex}.productUnitIds`, nextIds, { shouldDirty: true });
+    setValue(`licenseOfferings.${offeringIndex}.productUnitTempIds`, nextTempIds, { shouldDirty: true });
+    await persistOfferingUnitScope(productId, offering.id, { ...offering, productUnitIds: nextIds });
+    await invalidateAllPricingQueries(queryClient, productId);
 };
 
 interface RemoveProductUnitParams {

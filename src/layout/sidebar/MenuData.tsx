@@ -1,5 +1,5 @@
 /**
- * Sol menü — sabit ve tek katmanlıdır.
+ * Sol menü — sabit yapıdadır.
  *
  * Menü, kullanıcının hangi sayfada olduğuna veya hangi ürünü seçtiğine göre
  * değişmez; ürüne özel dinamik bir grup içermez. Ürüne bağlı sayfalarda hangi
@@ -8,6 +8,13 @@
  * Ürüne bağlı sayfaların rota ve etiketleri
  * `@/modules/products/config/productSections` içindeki merkezi konfigürasyondan
  * üretilir; böylece menü, rota ve Ürün Seçici filtreleri birbirinden kopmaz.
+ *
+ * İki ana grup vardır:
+ * - "Fiyatlandırma": ürün tipinden bağımsız tek bir Ürün Fiyatlandırma sayfası
+ *   ile fiyat listeleri ve kampanya kuralları. Sayfanın içeriği seçili ürünün
+ *   tipine göre değişir.
+ * - "İşlemler": yalnızca belirli ürün tiplerinde anlamlı olan sayfalar, ürün
+ *   tipi başlıkları altında toplanır.
  */
 import { getProductSection } from "@/modules/products/config/productSections";
 
@@ -37,14 +44,27 @@ const menu = [
     ],
   },
   {
-    icon: "package",
-    text: "Fiziksel Ürün İşlemleri",
-    subMenu: [sectionItem("pricing"), sectionItem("variants"), sectionItem("inventory-supply")],
+    icon: "coins",
+    text: "Fiyatlandırma",
+    subMenu: [
+      sectionItem("pricing"),
+      { text: "Fiyat Listeleri", link: "/pricing/price-lists" },
+      { text: "Kampanya Kuralları", link: "/pricing/campaign-rules" },
+    ],
   },
   {
-    icon: "laptop",
-    text: "Yazılım ve Lisanslı Ürün İşlemleri",
-    subMenu: [sectionItem("software-pricing"), sectionItem("modules")],
+    icon: "layers",
+    text: "İşlemler",
+    subMenu: [
+      {
+        text: "Fiziksel Ürün",
+        subMenu: [sectionItem("variants"), sectionItem("inventory-supply")],
+      },
+      {
+        text: "Yazılım Ürünü",
+        subMenu: [sectionItem("modules")],
+      },
+    ],
   },
   {
     icon: "archive",
@@ -71,14 +91,6 @@ const menu = [
     icon: "cpu",
     text: "Yazılım Ürünü Tanımları",
     subMenu: [{ text: "Yazılım Birim Sözlüğü", link: "/definitions/software-units" }],
-  },
-  {
-    icon: "tag",
-    text: "Fiyat Yönetimi",
-    subMenu: [
-      { text: "Fiyat Listeleri", link: "/pricing/price-lists" },
-      { text: "Kampanya Kuralları", link: "/pricing/campaign-rules" },
-    ],
   },
   {
     icon: "truck",

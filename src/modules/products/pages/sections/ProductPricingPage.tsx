@@ -3,137 +3,103 @@ import { Link } from "react-router-dom";
 import ProductSectionPage from "@/modules/products/components/ProductSectionPage";
 import PriceMatrix from "@/modules/products/components/editor/PriceMatrix";
 import PriceListItemTab from "@/modules/products/components/editor/PriceListItemTab";
+import SalesPlanManager from "@/modules/products/components/pricing/SalesPlanManager";
 import { buildProductSectionLink, getProductSection } from "@/modules/products/config/productSections";
 import type { ProductDetailDto } from "@/shared/types/productOperations.types";
 
-interface SoftwareSummaryProps {
-    product: ProductDetailDto;
-}
-
-const isSoftwareProduct = (product: ProductDetailDto) => product.kind === 2;
+/** 1=Fiziksel, 2=Yazılım, 3=Hizmet, 4=Abonelik */
+const isPhysicalProduct = (product: ProductDetailDto) => product.kind === 1;
 
 /**
- * Yazılım/lisanslanabilir ürünlerde fiyatlandırma akışının diğer sayfalarına
- * (ürün önceden seçili şekilde) yönlendiren durum kartları.
+ * Fiziksel ürün fiyatlandırması: ürünün kendi fiyat tarifeleri ve dahil olduğu
+ * fiyat listesi kayıtları. Kaydetme sayfa seviyesindeki formdan yürür.
  */
-const SoftwarePricingSummary: React.FC<SoftwareSummaryProps> = ({ product }) => {
-    const cards = [
-        {
-            section: getProductSection("software-pricing"),
-            count: (product.licenseOfferings ?? []).filter((offering) => offering.isActive).length,
-            unit: "aktif plan",
-            visible: product.kind === 2 || product.kind === 3 || product.kind === 4,
-        },
-        {
-            section: getProductSection("modules"),
-            count: (product.modules ?? []).filter((module) => module.isActive).length,
-            unit: "aktif modül",
-            visible: product.kind === 2,
-        },
-    ].filter((card) => card.visible);
-
-    if (!cards.length) return null;
-
-    return (
+const PhysicalPricing: React.FC = () => (
+    <>
         <section className="card card-bordered mb-4">
             <div className="card-inner border-bottom">
-                <h5 className="title mb-1">Fiyatlandırma Akışı</h5>
+                <h5 className="title mb-1">Fiyat Tarifeleri</h5>
                 <p className="text-soft mb-0">
-                    Bu ürünün fiyatlandırması birden fazla sayfada yönetilir. Kartlar sizi ilgili sayfaya bu ürün seçili
-                    şekilde götürür.
+                    Temel fiyatı bir kartla başlatın; kampanya, bayi veya kanal fiyatlarını ayrı tarifeler olarak
+                    ekleyin.
                 </p>
             </div>
             <div className="card-inner">
-                <div className="row g-3">
-                    {cards.map(({ section, count, unit }) => (
-                        <div className="col-sm-6 col-xl-3" key={section.key}>
-                            <Link
-                                to={buildProductSectionLink(section.key, product.id)}
-                                className="card card-bordered h-100 text-decoration-none"
-                            >
-                                <div className="card-inner">
-                                    <div className="d-flex align-items-center gap-2 mb-2">
-                                        <em className={`icon ni ni-${section.icon} text-primary`} />
-                                        <span className="fw-medium">{section.label}</span>
-                                    </div>
-                                    <h6 className="title mb-0">
-                                        {count} <span className="text-soft fs-13px fw-normal">{unit}</span>
-                                    </h6>
-                                </div>
-                            </Link>
-                        </div>
-                    ))}
-                </div>
+                <PriceMatrix />
             </div>
         </section>
+
+        <section className="card card-bordered">
+            <div className="card-inner border-bottom d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                    <h5 className="title mb-1">Fiyat Listesi Kayıtları</h5>
+                    <p className="text-soft mb-0">Ürünün dahil olduğu fiyat listelerini ve liste fiyatlarını yönetin.</p>
+                </div>
+                <Link to="/pricing/price-lists" className="btn btn-outline-light btn-sm">
+                    <em className="icon ni ni-external me-1" />
+                    Fiyat Listeleri
+                </Link>
+            </div>
+            <div className="card-inner">
+                <PriceListItemTab />
+            </div>
+        </section>
+    </>
+);
+
+interface LicensedPricingProps {
+    product: ProductDetailDto;
+    productId: string;
+}
+
+/**
+ * Yazılım, hizmet ve abonelik ürünlerinde fiyat satış planlarından gelir; satış
+ * planları, fiyat birimleri ve fiyatlandırma kuralları tek akışta yönetilir.
+ * Kaydetme bu bileşenin kendi satır bazlı çağrılarıyla yapılır.
+ */
+const LicensedPricing: React.FC<LicensedPricingProps> = ({ product, productId }) => {
+    const modules = getProductSection("modules");
+    const showModulesLink = product.kind === 2;
+
+    return (
+        <>
+            <SalesPlanManager productId={productId} />
+
+            {showModulesLink && (
+                <section className="card card-bordered mt-4">
+                    <div className="card-inner d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        <div>
+                            <h6 className="title mb-1">{modules.label}</h6>
+                            <p className="text-soft mb-0 fs-13px">
+                                Modül fiyatları satış planlarına bağlıdır; {(product.modules ?? []).filter((m) => m.isActive).length} aktif
+                                modül tanımlı.
+                            </p>
+                        </div>
+                        <Link to={buildProductSectionLink("modules", product.id)} className="btn btn-outline-light btn-sm">
+                            <em className={`icon ni ni-${modules.icon} me-1`} />
+                            {modules.label} sayfasına git
+                        </Link>
+                    </div>
+                </section>
+            )}
+        </>
     );
 };
 
 /**
- * Yazılım ürününde bu sayfada düzenlenecek bir alan yoktur: gerçek fiyat
- * Satış Planları'ndaki `basePrice`'tan gelir. Bu yüzden Fiyat Tarifeleri ve
- * Fiyat Listesi Kayıtları formları burada hiç render edilmez; yalnızca ilgili
- * sayfalara giden özet kartları gösterilir.
+ * Fiyatlandırma — tüm ürün tipleri için ortak sayfa.
+ * Seçili ürünün tipine göre içerik değişir: fiziksel üründe fiyat tarifeleri ve
+ * fiyat listesi kayıtları, yazılım/hizmet/abonelik ürünlerinde satış planları.
  */
-const SoftwarePricingNotice: React.FC = () => (
-    <div className="alert alert-light d-flex align-items-start gap-2 mb-4">
-        <em className="icon ni ni-info fs-4" />
-        <span className="fs-13px">
-            Yazılım ürünlerinde fiyat, Satış Planları'ndaki taban fiyattan gelir. Bu yüzden bu sayfada Fiyat Tarifeleri
-            veya Fiyat Listesi Kayıtları düzenlenmez — yukarıdaki kartlardan ilgili sayfaya gidebilirsiniz.
-        </span>
-    </div>
-);
-
-/** Fiyatlandırma (ürüne bağlı temel ve alternatif fiyatlar) */
 const ProductPricingPage: React.FC = () => (
-    <ProductSectionPage sectionKey="pricing" showSave={(product) => !isSoftwareProduct(product)}>
-        {({ product }) => {
-            const isSoftware = isSoftwareProduct(product);
-
-            return (
-                <>
-                    <SoftwarePricingSummary product={product} />
-
-                    {isSoftware ? (
-                        <SoftwarePricingNotice />
-                    ) : (
-                        <>
-                            <section className="card card-bordered mb-4">
-                                <div className="card-inner border-bottom">
-                                    <h5 className="title mb-1">Fiyat Tarifeleri</h5>
-                                    <p className="text-soft mb-0">
-                                        Temel fiyatı bir kartla başlatın; kampanya, bayi veya kanal fiyatlarını ayrı
-                                        tarifeler olarak ekleyin.
-                                    </p>
-                                </div>
-                                <div className="card-inner">
-                                    <PriceMatrix />
-                                </div>
-                            </section>
-
-                            <section className="card card-bordered">
-                                <div className="card-inner border-bottom d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                                    <div>
-                                        <h5 className="title mb-1">Fiyat Listesi Kayıtları</h5>
-                                        <p className="text-soft mb-0">
-                                            Ürünün dahil olduğu fiyat listelerini ve liste fiyatlarını yönetin.
-                                        </p>
-                                    </div>
-                                    <Link to="/pricing/price-lists" className="btn btn-outline-light btn-sm">
-                                        <em className="icon ni ni-external me-1" />
-                                        Fiyat Listeleri
-                                    </Link>
-                                </div>
-                                <div className="card-inner">
-                                    <PriceListItemTab />
-                                </div>
-                            </section>
-                        </>
-                    )}
-                </>
-            );
-        }}
+    <ProductSectionPage sectionKey="pricing" showSave={(product) => isPhysicalProduct(product)}>
+        {({ product, productId }) =>
+            isPhysicalProduct(product) ? (
+                <PhysicalPricing />
+            ) : (
+                <LicensedPricing product={product} productId={productId} />
+            )
+        }
     </ProductSectionPage>
 );
 

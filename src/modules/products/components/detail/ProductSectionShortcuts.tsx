@@ -29,9 +29,11 @@ const isSectionCompleted = (key: ProductSectionKey, product: ProductDetailDto): 
         case "inventory-supply":
             return (product.inventories ?? []).length > 0 || (product.supplierMaps ?? []).length > 0;
         case "pricing":
-            return (product.prices ?? []).length > 0 || (product.priceListItems ?? []).length > 0;
-        case "software-pricing":
-            return (product.licenseOfferings ?? []).length > 0;
+            // Fiyatlandırma tüm tiplerde ortak; fiziksel üründe tarifeler/liste
+            // kayıtları, lisanslı ürünlerde satış planları doldurulmuş sayılır.
+            return product.kind === 1
+                ? (product.prices ?? []).length > 0 || (product.priceListItems ?? []).length > 0
+                : (product.licenseOfferings ?? []).length > 0;
         case "modules":
             return (product.modules ?? []).length > 0;
         default:
@@ -89,7 +91,7 @@ const ProductSectionShortcuts: React.FC<ProductSectionShortcutsProps> = ({ produ
                                             />
                                         </div>
                                         <span className="text-soft fs-12px">{section.description}</span>
-                                        {section.key === "software-pricing" && (
+                                        {section.key === "pricing" && product.kind !== 1 && (
                                             <div className="d-flex gap-2 mt-2 fs-11px">
                                                 <span className={`badge ${(product.productUnits ?? []).length ? "bg-success" : "bg-outline-secondary"}`}>
                                                     Birim {(product.productUnits ?? []).length}

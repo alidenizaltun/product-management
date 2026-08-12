@@ -4,6 +4,11 @@
  * Sol menü, rota tanımları, Ürün Özeti kısayolları ve her sayfanın Ürün Seçici
  * filtresi bu listeden üretilir; böylece menü, rota ve tip filtreleri zamanla
  * birbirinden kopmaz.
+ *
+ * Gruplar menüdeki yerleşimi belirler:
+ * - `product-info` → "Ürün Bilgileri" menüsü (tüm ürün tipleri)
+ * - `pricing`      → "Fiyatlandırma" menüsü (tüm tipler için ortak sayfa)
+ * - `physical` / `software` → "İşlemler" menüsünde ürün tipi başlıkları
  */
 
 /** 1=Fiziksel, 2=Yazılım, 3=Hizmet, 4=Abonelik */
@@ -19,7 +24,6 @@ export type ProductSectionKey =
     | "variants"
     | "inventory-supply"
     | "pricing"
-    | "software-pricing"
     | "modules";
 
 export type ProductSectionGroup = "product-info" | "physical" | "software" | "pricing";
@@ -82,12 +86,12 @@ export const productSections: ProductSectionConfig[] = [
     },
     {
         key: "pricing",
-        label: "Fiyatlandırma",
+        label: "Ürün Fiyatlandırma",
         path: "/pricing/product-pricing",
         icon: "coins",
-        description: "Temel fiyat, alternatif tarifeler ve fiyat listesi kayıtları",
-        group: "physical",
-        allowedKinds: [1],
+        description: "Seçili ürünün fiyatlandırması; alanlar ürün tipine göre değişir.",
+        group: "pricing",
+        allowedKinds: ALL_PRODUCT_KINDS,
         permission: "product.pricing.edit",
     },
     {
@@ -109,16 +113,6 @@ export const productSections: ProductSectionConfig[] = [
         group: "physical",
         allowedKinds: [1],
         permission: "inventory.transaction",
-    },
-    {
-        key: "software-pricing",
-        label: "Fiyatlandırma",
-        path: "/software-products/pricing",
-        icon: "coins",
-        description: "Satış planlarını, fiyat birimlerini ve fiyatlandırma kurallarını tek bir yerden yönetin.",
-        group: "software",
-        allowedKinds: [2, 3, 4],
-        permission: "product.pricing.edit",
     },
     {
         key: "modules",

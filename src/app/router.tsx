@@ -30,7 +30,6 @@ import AdvancedSettingsPage from "@/modules/products/pages/sections/AdvancedSett
 import VariantsPage from "@/modules/products/pages/sections/VariantsPage";
 import InventorySupplyPage from "@/modules/products/pages/sections/InventorySupplyPage";
 import ProductPricingPage from "@/modules/products/pages/sections/ProductPricingPage";
-import PricingPage from "@/modules/products/pages/sections/PricingPage";
 import ModulesPage from "@/modules/products/pages/sections/ModulesPage";
 import CategoryListPage from "@/modules/catalog/pages/CategoryListPage";
 import CategoryFormPage from "@/modules/catalog/pages/CategoryFormPage";
@@ -122,9 +121,9 @@ const routeTree = createRoutesFromElements(
                 <Route path="physical-products/variants" element={<VariantsPage />} />
                 <Route path="physical-products/inventory-supply" element={<InventorySupplyPage />} />
 
-                <Route path="software-products/pricing" element={<PricingPage />} />
                 <Route path="software-products/modules" element={<ModulesPage />} />
 
+                {/* Fiyatlandırma tüm ürün tipleri için ortak tek sayfadır. */}
                 <Route path="pricing/product-pricing" element={<ProductPricingPage />} />
 
                 {/* ─── Stok İşlemleri ─────────────────────────────────────── */}
@@ -223,17 +222,22 @@ const routeTree = createRoutesFromElements(
                   path="pricing/pricelists/*"
                   element={<PrefixRedirect from="/pricing/pricelists" to="/pricing/price-lists" />}
                 />
+                {/* Yazılım fiyatlandırması ortak Fiyatlandırma sayfasında birleşti. */}
                 <Route
                   path="software-products/pricing-units/*"
-                  element={<PrefixRedirect from="/software-products/pricing-units" to="/software-products/pricing" />}
+                  element={<PrefixRedirect from="/software-products/pricing-units" to="/pricing/product-pricing" />}
                 />
                 <Route
                   path="software-products/sales-plans/*"
-                  element={<PrefixRedirect from="/software-products/sales-plans" to="/software-products/pricing" />}
+                  element={<PrefixRedirect from="/software-products/sales-plans" to="/pricing/product-pricing" />}
                 />
                 <Route
                   path="software-products/pricing-rules/*"
-                  element={<PrefixRedirect from="/software-products/pricing-rules" to="/software-products/pricing" />}
+                  element={<PrefixRedirect from="/software-products/pricing-rules" to="/pricing/product-pricing" />}
+                />
+                <Route
+                  path="software-products/pricing/*"
+                  element={<PrefixRedirect from="/software-products/pricing" to="/pricing/product-pricing" />}
                 />
 
                 <Route path="*" element={<Navigate to="/products" replace />} />

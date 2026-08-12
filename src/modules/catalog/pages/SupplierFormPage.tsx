@@ -62,7 +62,6 @@ const SupplierFormPage: React.FC = () => {
 
   const onSubmit = async (values: SupplierFormValues) => {
     const payload = {
-      supplierCode: values.supplierCode,
       name: values.name,
       taxNumber: values.taxNumber || undefined,
       email: values.email || undefined,
@@ -73,8 +72,9 @@ const SupplierFormPage: React.FC = () => {
 
     try {
       if (isEdit && id) {
-        await update.mutateAsync({ id, payload });
+        await update.mutateAsync({ id, payload: { ...payload, supplierCode: values.supplierCode } });
       } else {
+        // Yeni kayıtta kod gönderilmez; sistem üretir.
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Tedarikçi güncellendi." : "Tedarikçi oluşturuldu.");
@@ -95,6 +95,7 @@ const SupplierFormPage: React.FC = () => {
       <Content>
         <PageHeader
           title={title}
+          description={isEdit ? undefined : "Kod sistem tarafından üretilir."}
           actions={
             <div className="d-flex gap-2">
               <button
@@ -124,17 +125,18 @@ const SupplierFormPage: React.FC = () => {
             <div className="card card-bordered">
               <div className="card-inner">
                 <form id="supplier-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
-                  <div className="col-md-4">
-                    <TextInput
-                      label="Kod"
-                      required
-                      placeholder="SUP-001"
-                      error={errors.supplierCode?.message}
-                      {...register("supplierCode", { required: "Kod zorunludur" })}
-                    />
-                  </div>
+                  {isEdit && (
+                    <div className="col-md-4">
+                      <TextInput
+                        label="Kod"
+                        required
+                        error={errors.supplierCode?.message}
+                        {...register("supplierCode", { required: "Kod zorunludur" })}
+                      />
+                    </div>
+                  )}
 
-                  <div className="col-md-8">
+                  <div className={isEdit ? "col-md-8" : "col-md-12"}>
                     <TextInput
                       label="Ad"
                       required

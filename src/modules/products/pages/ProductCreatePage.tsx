@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import Content from "@/layout/content/Content";
@@ -19,7 +19,6 @@ import type { ProductFormValues } from "@/modules/products/types/productEditor.t
 interface ProductCreateFormValues {
     name: string;
     kind: number;
-    productCode: string;
     status: number;
     defaultCurrencyCode: string;
 }
@@ -30,28 +29,9 @@ const STATUS_OPTIONS = [
     { value: 2, label: "Pasif" },
 ];
 
-const slugify = (value: string) =>
-    value
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/ı/g, "i")
-        .replace(/ğ/g, "g")
-        .replace(/ü/g, "u")
-        .replace(/ş/g, "s")
-        .replace(/ö/g, "o")
-        .replace(/ç/g, "c")
-        .toUpperCase()
-        .replace(/[^A-Z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 20);
-
-const buildAutoCode = (name: string) => {
-    const base = slugify(name) || "URUN";
-    return `${base}-${Date.now().toString().slice(-5)}`;
-};
-
 /**
  * Yeni Ürün — yalnızca ürünün kimliğini oluşturan minimum alanlar.
+ * Ürün kodu sistem tarafından üretilir (PRD-000001); formda sorulmaz.
  * Kayıt sonrası kullanıcı Ürün Özeti sayfasına yönlendirilir; diğer bölümler
  * kendi sabit sayfalarından tamamlanır.
  */
@@ -64,7 +44,6 @@ const ProductCreatePage: React.FC = () => {
         defaultValues: {
             name: "",
             kind: 2,
-            productCode: "",
             status: 1,
             defaultCurrencyCode: DEFAULT_CURRENCY_CODE,
         },
@@ -87,7 +66,6 @@ const ProductCreatePage: React.FC = () => {
         const formValues: ProductFormValues = {
             ...buildDefaultValues(),
             name: values.name.trim(),
-            productCode: values.productCode.trim() || buildAutoCode(values.name),
             kind: Number(values.kind),
             status: Number(values.status),
             defaultCurrencyCode: values.defaultCurrencyCode,

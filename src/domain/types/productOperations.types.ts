@@ -35,7 +35,8 @@ export interface ProductFilterDto {
 }
 
 export interface CreateProductRequestDto {
-  productCode: string;
+  /** Gönderilmezse kod sistem tarafından üretilir (PRD-000001). */
+  productCode?: string;
   name: string;
   shortDescription?: string;
   description?: string;
@@ -125,7 +126,8 @@ export interface ProductCategoryDto {
 }
 
 export interface CreateProductCategoryRequestDto {
-  code: string;
+  /** Gönderilmezse kod sistem tarafından üretilir (CAT-000001). */
+  code?: string;
   name: string;
   description?: string;
   parentCategoryId?: Uuid;
@@ -163,7 +165,8 @@ export interface ProductSupplierDto {
 }
 
 export interface CreateProductSupplierRequestDto {
-  supplierCode: string;
+  /** Gönderilmezse kod sistem tarafından üretilir (SUP-000001). */
+  supplierCode?: string;
   name: string;
   taxNumber?: string;
   email?: string;
@@ -196,7 +199,8 @@ export interface WarehouseDto {
 }
 
 export interface CreateWarehouseRequestDto {
-  code: string;
+  /** Gönderilmezse kod sistem tarafından üretilir (WH-000001). */
+  code?: string;
   name: string;
   description?: string;
   address?: string;
@@ -357,7 +361,8 @@ export interface ProductPriceListDto {
 }
 
 export interface CreateProductPriceListRequestDto {
-  code: string;
+  /** Gönderilmezse kod sistem tarafından üretilir (PL-000001). */
+  code?: string;
   name: string;
   description?: string;
   currencyCode?: string;

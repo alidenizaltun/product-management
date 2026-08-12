@@ -437,7 +437,8 @@ export const buildFullProductPayload = (
 ) => {
     const isEdit = Boolean(productId);
     const productPayload = {
-        productCode: values.productCode,
+        // Yeni üründe kod boş gelir ve gönderilmez; sistem üretir.
+        productCode: values.productCode || undefined,
         name: values.name,
         shortDescription: values.shortDescription,
         description: values.description,

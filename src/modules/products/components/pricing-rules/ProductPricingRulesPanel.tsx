@@ -1,4 +1,4 @@
-import React, { useId, useMemo, useState } from "react";
+﻿import React, { useId, useMemo, useState } from "react";
 import { Button, Modal, ModalBody, ModalHeader, UncontrolledTooltip } from "reactstrap";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
@@ -84,7 +84,6 @@ interface AdjustmentFormState {
   type: string;
   value: string;
   operation: string;
-  applyOn: string;
   unitField: string;
   freeUnits: string;
   rounding: string;
@@ -98,11 +97,14 @@ interface AdjustmentFormState {
   conditions: ConditionFormState[];
 }
 
+/** Hesaplama bazı artık kullanıcıya sorulmuyor; tüm kurallar güncel fiyat üzerinden hesaplanır. */
+const APPLY_ON = "currentPrice";
+
 const defaultAdjustment: ProductPricingRuleAdjustmentDto = {
   mode: "",
   type: "",
   value: null,
-  applyOn: "",
+  applyOn: APPLY_ON,
   unit: {
     field: "",
     freeUnits: null,
@@ -125,12 +127,6 @@ const ADJUSTMENT_TYPES = [
   { value: "fixed", label: "Sabit tutar" },
   { value: "percentage", label: "Yüzde" },
   { value: "multiplier", label: "Çarpan" },
-];
-
-const APPLY_ON_OPTIONS = [
-  { value: "currentPrice", label: "Güncel fiyat" },
-  { value: "basePrice", label: "Taban fiyat" },
-  { value: "previousResult", label: "Önceki sonuç" },
 ];
 
 const CONDITION_OPERATORS = [
@@ -251,7 +247,6 @@ const adjustmentToForm = (adjustment: ProductPricingRuleAdjustmentDto): Adjustme
   type: adjustment.type ?? (adjustment.amount != null ? "fixed" : ""),
   value: numberToInput(adjustment.value ?? adjustment.amount),
   operation: adjustment.operation ?? adjustment.direction ?? "",
-  applyOn: adjustment.applyOn ?? "",
   unitField: adjustment.unit?.field ?? "",
   freeUnits: numberToInput(adjustment.unit?.freeUnits),
   rounding: adjustment.unit?.rounding ?? "",
@@ -282,7 +277,7 @@ const formToAdjustment = (adjustment: AdjustmentFormState): ProductPricingRuleAd
   const isUnitMode = adjustment.mode === "unit";
 
   if (!isUnitMode && adjustment.type) result.type = adjustment.type;
-  if (adjustment.applyOn) result.applyOn = adjustment.applyOn;
+  result.applyOn = APPLY_ON;
 
   if (!isUnitMode) {
     const value = toNumberOrUndefined(adjustment.value);
@@ -1111,25 +1106,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           <option value="add">Artır</option>
                         </select>
                       </div>
-                      <div className="col-md-2">
-                        <label className="form-label">
-                          <HelpLabel help="Bu değişimin hangi fiyat üzerinden hesaplanacağını seçer. Güncel fiyat mevcut fiyatı baz alır; taban fiyat ürünün temel fiyatından başlar; önceki sonuç ise daha önce çalışan bir kuralın sonucunu kullanır.">
-                            Hesaplama bazı
-                          </HelpLabel>
-                        </label>
-                        <select
-                          className="form-select"
-                          value={form.adjustment.applyOn || "currentPrice"}
-                          onChange={(event) => updateAdjustment("applyOn", event.target.value)}
-                        >
-                          {APPLY_ON_OPTIONS.map((item) => (
-                            <option key={item.value} value={item.value}>
-                              {item.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-md-2">
+                      <div className="col-md-3">
                         <label className="form-label">
                           <HelpLabel help="Fiyat değişiminin hangi yöntemle hesaplanacağını belirtir. Yüzdeyle seçerseniz değer alanı yüzde oranıdır; sabit tutarda doğrudan para tutarıdır; çarpanda fiyat belirlenen katsayıyla çarpılır.">
                             Değişim türü
@@ -1146,7 +1123,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           <option value="multiplier">Çarpanla</option>
                         </select>
                       </div>
-                      <div className="col-md-2">
+                      <div className="col-md-3">
                         <label className="form-label">
                           <HelpLabel help="Seçilen değişim türünün sayısal karşılığıdır. Yüzde indirimi için 10 yazmak yüzde 10 anlamına gelir; sabit tutar için para tutarı, çarpan için katsayı olarak yorumlanır.">
                             Değişim değeri
@@ -1162,6 +1139,103 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           onChange={(event) => updateAdjustment("value", event.target.value)}
                         />
                       </div>
+                      {isUnitMode && (
+                        <div className="col-12 border-top pt-3 mt-1">
+                          <div className="d-flex justify-content-between align-items-center mb-3">
+                            <h6 className="title mb-0">
+                              <HelpLabel help="Birim bazlı fiyatlandırmada farklı miktar aralıklarına farklı fiyat etkisi tanımlamak için kullanılır. Örneğin 1-10 kullanıcı için bir tutar, 11-50 kullanıcı için farklı bir tutar belirleyebilirsiniz.">
+                                Fiyat kademeleri
+                              </HelpLabel>
+                            </h6>
+                            <Button color="light" size="sm" type="button" onClick={addTier}>
+                              <em className="icon ni ni-plus me-1" />
+                              Kademe ekle
+                            </Button>
+                          </div>
+                          {form.adjustment.tiers.length ? (
+                            <div className="table-responsive">
+                              <table className="table table-middle mb-0">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>
+                                      <HelpLabel help="Bu kademenin hangi miktardan itibaren geçerli olacağını belirtir. Örneğin 1 yazarsanız kademe 1 birimden başlar.">
+                                        Aralık başlangıcı
+                                      </HelpLabel>
+                                    </th>
+                                    <th>
+                                      <HelpLabel help="Bu kademenin hangi miktara kadar geçerli olacağını belirtir. Boş bırakılırsa üst sınır olmadan devam eden son kademe olarak yorumlanabilir.">
+                                        Aralık bitişi
+                                      </HelpLabel>
+                                    </th>
+                                    <th>
+                                      <HelpLabel help="Bu kademede fiyat etkisinin yüzde, sabit tutar veya çarpan olarak mı uygulanacağını seçer.">
+                                        Kademe türü
+                                      </HelpLabel>
+                                    </th>
+                                    <th>
+                                      <HelpLabel help="Kademe türünün sayısal değeridir. Yüzde türünde oran, sabit tutarda para tutarı, çarpanda katsayı olarak kullanılır.">
+                                        Kademe değeri
+                                      </HelpLabel>
+                                    </th>
+                                    <th className="text-end">İşlem</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {form.adjustment.tiers.map((tier, index) => (
+                                    <tr key={index}>
+                                      <td>
+                                        <input
+                                          className="form-control"
+                                          type="number"
+                                          value={tier.from}
+                                          onChange={(event) => updateTier(index, "from", event.target.value)}
+                                        />
+                                      </td>
+                                      <td>
+                                        <input
+                                          className="form-control"
+                                          type="number"
+                                          value={tier.to}
+                                          onChange={(event) => updateTier(index, "to", event.target.value)}
+                                        />
+                                      </td>
+                                      <td>
+                                        <select
+                                          className="form-select"
+                                          value={tier.type}
+                                          onChange={(event) => updateTier(index, "type", event.target.value)}
+                                        >
+                                          {ADJUSTMENT_TYPES.map((item) => (
+                                            <option key={item.value} value={item.value}>
+                                              {item.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </td>
+                                      <td>
+                                        <input
+                                          className="form-control"
+                                          type="number"
+                                          step="0.0001"
+                                          value={tier.value}
+                                          onChange={(event) => updateTier(index, "value", event.target.value)}
+                                        />
+                                      </td>
+                                      <td className="text-end">
+                                        <Button color="danger" outline size="sm" type="button" onClick={() => removeTier(index)}>
+                                          Sil
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-soft fs-13px mb-0">Henüz kademe eklenmedi. Farklı miktar aralıkları tanımlamak için "Kademe ekle" butonunu kullanın.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1228,7 +1302,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                     <div className="card-inner">
                       <h6 className="overline-title text-primary mb-3">
                         <HelpLabel help="Bu alanlar kuralın teknik çalışma biçimini belirler. Çoğu standart indirim veya artırım için kapalı kalabilir; öncelik, ek koşul, birim bazlı kademe veya fiyat limitleri gerektiğinde kullanılır.">
-                          Gelişmiş motor ayarları
+                          Gelişmiş ayarlar
                         </HelpLabel>
                       </h6>
 
@@ -1316,104 +1390,6 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                             </div>
                           </div>
                         </div>
-
-                        {isUnitMode && (
-                          <div className="pricing-rule-section">
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                              <h6 className="title mb-0">
-                                <HelpLabel help="Birim bazlı fiyatlandırmada farklı miktar aralıklarına farklı fiyat etkisi tanımlamak için kullanılır. Örneğin 1-10 kullanıcı için bir tutar, 11-50 kullanıcı için farklı bir tutar belirleyebilirsiniz.">
-                                  Fiyat kademeleri
-                                </HelpLabel>
-                              </h6>
-                              <Button color="light" size="sm" type="button" onClick={addTier}>
-                                <em className="icon ni ni-plus me-1" />
-                                Kademe ekle
-                              </Button>
-                            </div>
-                            {form.adjustment.tiers.length ? (
-                              <div className="table-responsive">
-                                <table className="table table-middle mb-0">
-                                  <thead className="table-light">
-                                    <tr>
-                                      <th>
-                                        <HelpLabel help="Bu kademenin hangi miktardan itibaren geçerli olacağını belirtir. Örneğin 1 yazarsanız kademe 1 birimden başlar.">
-                                          Aralık başlangıcı
-                                        </HelpLabel>
-                                      </th>
-                                      <th>
-                                        <HelpLabel help="Bu kademenin hangi miktara kadar geçerli olacağını belirtir. Boş bırakılırsa üst sınır olmadan devam eden son kademe olarak yorumlanabilir.">
-                                          Aralık bitişi
-                                        </HelpLabel>
-                                      </th>
-                                      <th>
-                                        <HelpLabel help="Bu kademede fiyat etkisinin yüzde, sabit tutar veya çarpan olarak mı uygulanacağını seçer.">
-                                          Kademe türü
-                                        </HelpLabel>
-                                      </th>
-                                      <th>
-                                        <HelpLabel help="Kademe türünün sayısal değeridir. Yüzde türünde oran, sabit tutarda para tutarı, çarpanda katsayı olarak kullanılır.">
-                                          Kademe değeri
-                                        </HelpLabel>
-                                      </th>
-                                      <th className="text-end">İşlem</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {form.adjustment.tiers.map((tier, index) => (
-                                      <tr key={index}>
-                                        <td>
-                                          <input
-                                            className="form-control"
-                                            type="number"
-                                            value={tier.from}
-                                            onChange={(event) => updateTier(index, "from", event.target.value)}
-                                          />
-                                        </td>
-                                        <td>
-                                          <input
-                                            className="form-control"
-                                            type="number"
-                                            value={tier.to}
-                                            onChange={(event) => updateTier(index, "to", event.target.value)}
-                                          />
-                                        </td>
-                                        <td>
-                                          <select
-                                            className="form-select"
-                                            value={tier.type}
-                                            onChange={(event) => updateTier(index, "type", event.target.value)}
-                                          >
-                                            {ADJUSTMENT_TYPES.map((item) => (
-                                              <option key={item.value} value={item.value}>
-                                                {item.label}
-                                              </option>
-                                            ))}
-                                          </select>
-                                        </td>
-                                        <td>
-                                          <input
-                                            className="form-control"
-                                            type="number"
-                                            step="0.0001"
-                                            value={tier.value}
-                                            onChange={(event) => updateTier(index, "value", event.target.value)}
-                                          />
-                                        </td>
-                                        <td className="text-end">
-                                          <Button color="danger" outline size="sm" type="button" onClick={() => removeTier(index)}>
-                                            Sil
-                                          </Button>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ) : (
-                              <p className="text-soft fs-13px mb-0">Henüz kademe eklenmedi. Farklı miktar aralıkları tanımlamak için "Kademe ekle" butonunu kullanın.</p>
-                            )}
-                          </div>
-                        )}
 
                         <div className="pricing-rule-section">
                           <div className="d-flex justify-content-between align-items-center mb-3">

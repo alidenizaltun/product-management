@@ -56,7 +56,6 @@ const UnitDefinitionFormPage: React.FC = () => {
 
     const onSubmit = async (values: UnitDefinitionFormValues) => {
         const payload = {
-            code: values.code,
             name: values.name,
             description: values.description || undefined,
             isActive: values.isActive,
@@ -65,8 +64,9 @@ const UnitDefinitionFormPage: React.FC = () => {
 
         try {
             if (isEdit && id) {
-                await update.mutateAsync({ id, payload });
+                await update.mutateAsync({ id, payload: { ...payload, code: values.code } });
             } else {
+                // Yeni kayıtta kod gönderilmez; sistem üretir.
                 await create.mutateAsync(payload);
             }
             showSuccess(isEdit ? "Birim güncellendi." : "Birim tanımı oluşturuldu.");
@@ -87,7 +87,11 @@ const UnitDefinitionFormPage: React.FC = () => {
             <Content>
                 <PageHeader
                     title={title}
-                    description="Ürün ve fiyatlandırma birimlerini tanımlayın (Adet, Kullanıcı, Lisans, vb.)"
+                    description={
+                        isEdit
+                            ? "Ürün ve fiyatlandırma birimlerini tanımlayın (Adet, Kullanıcı, Lisans, vb.)"
+                            : "Ürün ve fiyatlandırma birimlerini tanımlayın (Adet, Kullanıcı, Lisans, vb.). Kod sistem tarafından üretilir."
+                    }
                     actions={
                         <div className="d-flex gap-2">
                             <button
@@ -117,19 +121,19 @@ const UnitDefinitionFormPage: React.FC = () => {
                         <div className="card card-bordered">
                             <div className="card-inner">
                                 <form id="unit-definition-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
-                                    <div className="col-md-4">
-                                        <TextInput
-                                            label="Kod"
-                                            required
-                                            className="text-uppercase"
-                                            placeholder="ADET"
-                                            hint="Kısa, benzersiz kod. Örn: ADET, KG, USER, LT"
-                                            error={errors.code?.message}
-                                            {...register("code", { required: "Kod zorunludur" })}
-                                        />
-                                    </div>
+                                    {isEdit && (
+                                        <div className="col-md-4">
+                                            <TextInput
+                                                label="Kod"
+                                                required
+                                                className="text-uppercase"
+                                                error={errors.code?.message}
+                                                {...register("code", { required: "Kod zorunludur" })}
+                                            />
+                                        </div>
+                                    )}
 
-                                    <div className="col-md-5">
+                                    <div className={isEdit ? "col-md-5" : "col-md-9"}>
                                         <TextInput
                                             label="Ad"
                                             required

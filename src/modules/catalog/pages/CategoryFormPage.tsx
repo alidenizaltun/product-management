@@ -49,7 +49,6 @@ const CategoryFormPage: React.FC = () => {
 
   const onSubmit = async (values: CategoryFormValues) => {
     const payload = {
-      code: values.code,
       name: values.name,
       description: values.description || undefined,
       parentCategoryId: values.parentCategoryId || undefined,
@@ -57,8 +56,9 @@ const CategoryFormPage: React.FC = () => {
 
     try {
       if (isEdit && id) {
-        await update.mutateAsync({ id, payload });
+        await update.mutateAsync({ id, payload: { ...payload, code: values.code } });
       } else {
+        // Yeni kayıtta kod gönderilmez; sistem üretir.
         await create.mutateAsync(payload);
       }
       showSuccess(isEdit ? "Kategori güncellendi." : "Kategori oluşturuldu.");
@@ -79,7 +79,9 @@ const CategoryFormPage: React.FC = () => {
       <Content>
         <PageHeader
           title={title}
-          description="Kategori bilgilerini girin."
+          description={
+            isEdit ? "Kategori bilgilerini girin." : "Kategori bilgilerini girin. Kod sistem tarafından üretilir."
+          }
           actions={
             <div className="d-flex gap-2">
               <button
@@ -115,17 +117,18 @@ const CategoryFormPage: React.FC = () => {
             <div className="card card-bordered">
               <div className="card-inner">
                 <form id="category-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
-                  <div className="col-md-4">
-                    <TextInput
-                      label="Kod"
-                      required
-                      placeholder="CAT-001"
-                      error={errors.code?.message}
-                      {...register("code", { required: "Kod zorunludur" })}
-                    />
-                  </div>
+                  {isEdit && (
+                    <div className="col-md-4">
+                      <TextInput
+                        label="Kod"
+                        required
+                        error={errors.code?.message}
+                        {...register("code", { required: "Kod zorunludur" })}
+                      />
+                    </div>
+                  )}
 
-                  <div className="col-md-8">
+                  <div className={isEdit ? "col-md-8" : "col-md-12"}>
                     <TextInput
                       label="Ad"
                       required

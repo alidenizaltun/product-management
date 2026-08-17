@@ -128,7 +128,7 @@ const CategoryFormPage: React.FC = () => {
                     </div>
                   )}
 
-                  <div className={isEdit ? "col-md-8" : "col-md-12"}>
+                  <div className={isEdit ? "col-md-4" : "col-md-6"}>
                     <TextInput
                       label="Ad"
                       required
@@ -138,7 +138,7 @@ const CategoryFormPage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="col-md-6">
+                  <div className={isEdit ? "col-md-4" : "col-md-6"}>
                     <FormField label="Üst Kategori" htmlFor="category-parent">
                       <select id="category-parent" className="form-control form-select" {...register("parentCategoryId")}>
                         <option value="">— Yok (Kök Kategori) —</option>

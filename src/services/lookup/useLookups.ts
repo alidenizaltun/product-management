@@ -40,6 +40,13 @@ export const useProductLookups = (includeInactive = false) =>
     staleTime: STALE_TIME,
   });
 
+export const useRegionLookups = (includeInactive = false) =>
+  useQuery<LookupItem[]>({
+    queryKey: ["lookups", "regions", includeInactive],
+    queryFn: () => lookupsApi.regions(includeInactive),
+    staleTime: STALE_TIME,
+  });
+
 // ─── bulk hook (fetches everything in one request) ────────────────────────────
 
 export const useAllLookups = (includeInactive = false) =>

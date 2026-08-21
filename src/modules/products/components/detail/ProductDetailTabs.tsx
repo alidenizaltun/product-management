@@ -14,6 +14,7 @@ import type {
   SoftwarePricingTierDto,
   ProductLicenseOfferingDto,
   ProductUnitDto,
+  ProductRegionDto,
 } from "@/shared/types/productOperations.types";
 import ModuleOfferingPricesPanel from "./ModuleOfferingPricesPanel";
 import ProductPricingRulesPanel from "@/modules/products/components/pricing-rules/ProductPricingRulesPanel";
@@ -257,6 +258,7 @@ export const PricesTab: React.FC<{ items: ProductPriceDto[] }> = ({ items }) => 
             <div className="card card-bordered h-100">
               <div className="card-inner text-center">
                 <span className={`badge bg-${pt?.color ?? "secondary"} mb-3`}>{pt?.label ?? p.priceType}</span>
+                <p className="text-soft fs-12 mb-2">{p.regionName ?? "Tüm bölgeler"}</p>
                 <div className="fs-1 fw-bold text-dark mb-1">{fmt(p.amount)}</div>
                 <span className="text-soft fs-12">{p.currencyCode}</span>
                 {p.compareAtAmount != null && (
@@ -269,6 +271,55 @@ export const PricesTab: React.FC<{ items: ProductPriceDto[] }> = ({ items }) => 
           </div>
         );
       })}
+    </div>
+  );
+};
+
+// ─── Regions Tab ──────────────────────────────────────────────────────────────
+
+export const RegionsTab: React.FC<{ items: ProductRegionDto[]; productTaxRate?: number }> = ({
+  items,
+  productTaxRate,
+}) => {
+  if (!items.length) {
+    return (
+      <TabEmpty
+        icon="map-pin"
+        title="Bölge yok"
+        description="Bu ürün henüz hiçbir satış bölgesine tanımlı değil."
+      />
+    );
+  }
+
+  return (
+    <div className="row g-3">
+      {items.map((region) => (
+        <div key={region.id} className="col-md-6 col-xl-4">
+          <div className={`card card-bordered h-100 ${region.isDefault ? "border-primary" : ""}`}>
+            <div className="card-inner">
+              <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <div className="min-w-0">
+                  <h6 className="title mb-0 text-truncate">{region.regionName ?? "Bölge"}</h6>
+                  <span className="text-soft fs-12 text-monospace">{region.regionCode}</span>
+                </div>
+                <div className="d-flex flex-column align-items-end gap-1">
+                  {region.isDefault && <span className="badge badge-dim bg-primary">Varsayılan</span>}
+                  <StatusBadge active={region.isActive} />
+                </div>
+              </div>
+              <DetailRow label="Fiyat Birimi" value={region.currencyCode} />
+              <DetailRow
+                label="KDV Oranı"
+                value={
+                  region.taxRate != null
+                    ? `%${region.taxRate}`
+                    : `%${productTaxRate ?? 0} (ürün oranı)`
+                }
+              />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
@@ -774,6 +825,12 @@ export const buildProductDetailTabs = (product: ProductDetailDto): TabItem[] => 
       label: "Medya",
       badge: product.mediaItems.length || undefined,
       content: <MediaTab items={product.mediaItems} />,
+    },
+    {
+      id: "regions",
+      label: "Bölgeler",
+      badge: (product.regions ?? []).length || undefined,
+      content: <RegionsTab items={product.regions ?? []} productTaxRate={product.taxRate} />,
     },
     {
       id: "prices",

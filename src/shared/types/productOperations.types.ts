@@ -30,6 +30,64 @@ export interface UpdateUnitDefinitionRequestDto {
   sortOrder: number;
 }
 
+// ─── Region (Bölge) ───────────────────────────────────────────────────────────
+
+export interface RegionDto {
+  id: Uuid;
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateRegionRequestDto {
+  /** Gönderilmezse kod sistem tarafından üretilir (REG-000001). */
+  code?: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface UpdateRegionRequestDto {
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+/** Ürünün bir bölgedeki satış koşulları: bölgeye özel para birimi ve KDV oranı. */
+export interface ProductRegionDto {
+  id: Uuid;
+  productId: Uuid;
+  regionId: Uuid;
+  regionCode?: string | null;
+  regionName?: string | null;
+  currencyCode: string;
+  /** Boşsa ürünün kendi KDV oranı geçerlidir. */
+  taxRate?: number | null;
+  isDefault: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CreateProductRegionRequestDto {
+  regionId: Uuid;
+  currencyCode: string;
+  taxRate?: number | null;
+  isDefault: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export type UpdateProductRegionRequestDto = CreateProductRegionRequestDto;
+
 export interface ProductDto {
   id: Uuid;
   productCode: string;
@@ -117,6 +175,9 @@ export interface ProductPriceDto {
   id: Uuid;
   productId: Uuid;
   productVariantId?: Uuid;
+  /** Boşsa fiyat tüm bölgelerde geçerlidir. */
+  regionId?: Uuid | null;
+  regionName?: string | null;
   priceType: number;
   amount: number;
   compareAtAmount?: number;
@@ -541,6 +602,7 @@ export interface ProductDetailDto extends ProductDto {
   pricingRules?: ProductPricingRuleDto[];
   licenseOfferings?: ProductLicenseOfferingDto[];
   productUnits?: ProductUnitDto[];
+  regions?: ProductRegionDto[];
   unitConversions?: ProductUnitConversionDto[];
   inventoryTransactions?: InventoryTransactionDto[];
   inventoryReservations?: InventoryReservationDto[];
@@ -940,6 +1002,7 @@ export interface UpdateProductPriceListItemRequestDto {
 export interface CreateFullProductRequestDto {
   product: CreateProductRequestDto;
   productUnits?: CreateProductUnitRequestDto[];
+  regions?: CreateProductRegionRequestDto[];
   attributeValues?: Array<{
     attributeDefinitionId: Uuid;
     valueText: string;
@@ -953,6 +1016,7 @@ export interface CreateFullProductRequestDto {
     isActive?: boolean;
   }>;
   prices?: Array<{
+    regionId?: Uuid | null;
     priceType?: number;
     amount: number;
     compareAtAmount?: number;

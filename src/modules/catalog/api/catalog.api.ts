@@ -8,11 +8,15 @@ import {
   WarehouseDto,
   CreateWarehouseRequestDto,
   UpdateWarehouseRequestDto,
+  RegionDto,
+  CreateRegionRequestDto,
+  UpdateRegionRequestDto,
 } from "@/shared/types/productOperations.types";
 import { apiClient } from "@/shared/api/apiClient";
 import { apiEndpoints } from "@/shared/config/apiEndpoints";
 
 const cat = apiEndpoints.catalog;
+const reg = apiEndpoints.regions;
 
 export const categoriesApi = {
   list: () => apiClient.get<ProductCategoryDto[]>(cat.categories),
@@ -42,4 +46,13 @@ export const warehousesApi = {
   update: (id: string, payload: UpdateWarehouseRequestDto) =>
     apiClient.put<void>(cat.warehouseById(id), payload),
   delete: (id: string) => apiClient.delete<void>(cat.warehouseById(id)),
+};
+
+export const regionsApi = {
+  list: (includeInactive = false) =>
+    apiClient.get<RegionDto[]>(`${reg.list}${includeInactive ? "?includeInactive=true" : ""}`),
+  byId: (id: string) => apiClient.get<RegionDto>(reg.byId(id)),
+  create: (payload: CreateRegionRequestDto) => apiClient.post<RegionDto>(reg.list, payload),
+  update: (id: string, payload: UpdateRegionRequestDto) => apiClient.put<void>(reg.byId(id), payload),
+  delete: (id: string) => apiClient.delete<void>(reg.byId(id)),
 };

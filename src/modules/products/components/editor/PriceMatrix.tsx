@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
+import { useRegionLookups } from "@/services/lookup/useLookups";
 import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
 
 const PRICE_TYPES = [
@@ -30,6 +31,7 @@ const defaultValidity = () => {
 };
 
 const emptyPrice = (overrides: Partial<ProductFormValues["prices"][number]> = {}) => ({
+  regionId: "",
   priceType: 1,
   amount: undefined as number | undefined,
   compareAtAmount: undefined as number | undefined,
@@ -87,7 +89,31 @@ const PriceMatrix: React.FC = () => {
   } = useFormContext<ProductFormValues>();
   const { fields, append, remove, swap } = useFieldArray({ control, name: "prices" });
   const prices = useWatch({ control, name: "prices" }) ?? [];
+  const productRegions = useWatch({ control, name: "regions" }) ?? [];
+  const { data: regionLookups = [] } = useRegionLookups(true);
   const [openAdvanced, setOpenAdvanced] = useState<Record<string, boolean>>({});
+
+  const regionNameById = useMemo(
+    () => new Map(regionLookups.map((region) => [region.id, region.name])),
+    [regionLookups]
+  );
+
+  /** Ürüne tanımlı bölgeler; fiyat satırında yalnızca bunlar seçilebilir. */
+  const availableRegions = useMemo(
+    () =>
+      productRegions
+        .filter((region) => region?.regionId && region.isActive !== false)
+        .map((region) => ({
+          id: region.regionId,
+          name: regionNameById.get(region.regionId) ?? "Bölge",
+          currencyCode: region.currencyCode || DEFAULT_CURRENCY_CODE,
+        })),
+    [productRegions, regionNameById]
+  );
+
+  /** Bölgeli fiyat bölgenin para birimini, bölgesiz fiyat ürünün para birimini kullanır. */
+  const resolveCurrency = (regionId?: string) =>
+    availableRegions.find((region) => region.id === regionId)?.currencyCode ?? DEFAULT_CURRENCY_CODE;
 
   const primaryPrice = useMemo(
     () => prices.find((price) => Number(price?.priceType) === 1 && Number(price?.amount) > 0),
@@ -107,7 +133,11 @@ const PriceMatrix: React.FC = () => {
         </div>
         <div className="text-end">
           <span className="text-soft fs-12px d-block">Canlı sonuç</span>
-          <strong>{primaryPrice ? formatMoney(primaryPrice.amount, primaryPrice.currencyCode) : "Fiyat bekleniyor"}</strong>
+          <strong>
+            {primaryPrice
+              ? formatMoney(primaryPrice.amount, resolveCurrency(primaryPrice.regionId))
+              : "Fiyat bekleniyor"}
+          </strong>
         </div>
       </div>
 
@@ -157,6 +187,8 @@ const PriceMatrix: React.FC = () => {
                       <span className={`badge badge-dim bg-${meta.color} mb-1`}>{meta.label}</span>
                       <h6 className="title mb-0">Fiyat #{index + 1}</h6>
                       <p className="text-soft fs-12px mb-0">
+                        {price?.regionId ? regionNameById.get(price.regionId) ?? "Bölge" : "Tüm bölgeler"}
+                        {" · "}
                         {price?.customerGroupCode ? `${price.customerGroupCode} grubu` : "Tüm müşteriler"}
                         {price?.salesChannel ? ` · ${price.salesChannel}` : ""}
                       </p>
@@ -194,7 +226,7 @@ const PriceMatrix: React.FC = () => {
                 </div>
 
                 <div className="row g-3 align-items-end">
-                  <div className="col-lg-4">
+                  <div className="col-lg-3">
                     <label className="form-label">Fiyat tipi</label>
                     <select
                       className="form-control form-select"
@@ -206,7 +238,35 @@ const PriceMatrix: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className="col-lg-5">
+                  <div className="col-lg-3">
+                    <label className="form-label">Bölge</label>
+                    <select
+                      className="form-control form-select"
+                      {...register(`prices.${index}.regionId`, {
+                        // Bölge seçildiğinde fiyatın para birimi bölgeninkiyle eşitlenir.
+                        onChange: (event) =>
+                          setValue(
+                            `prices.${index}.currencyCode`,
+                            resolveCurrency(event.target.value || undefined),
+                            { shouldDirty: true }
+                          ),
+                      })}
+                    >
+                      <option value="">Tüm bölgeler</option>
+                      {availableRegions.map((region) => (
+                        <option key={region.id} value={region.id}>
+                          {region.name} ({region.currencyCode})
+                        </option>
+                      ))}
+                    </select>
+                    {availableRegions.length === 0 && (
+                      <div className="text-soft fs-12px mt-1">
+                        Bölgeye özel fiyat için önce Bölgeler sayfasından bölge ekleyin.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="col-lg-4">
                     <label className="form-label">
                       Tutar <span className="text-danger">*</span>
                     </label>
@@ -223,12 +283,12 @@ const PriceMatrix: React.FC = () => {
                         })}
                       />
                       <input type="hidden" {...register(`prices.${index}.currencyCode`)} />
-                      <span className="input-group-text">{DEFAULT_CURRENCY_CODE}</span>
+                      <span className="input-group-text">{resolveCurrency(price?.regionId)}</span>
                     </div>
                     {amountError && <div className="invalid-feedback d-block">{amountError.message}</div>}
                   </div>
 
-                  <div className="col-lg-3">
+                  <div className="col-lg-2">
                     <button
                       type="button"
                       className="btn btn-outline-light w-100"

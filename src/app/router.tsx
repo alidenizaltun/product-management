@@ -25,6 +25,7 @@ import ProductCreatePage from "@/modules/products/pages/ProductCreatePage";
 import ProductDetailPage from "@/modules/products/pages/ProductDetailPage";
 import GeneralInfoPage from "@/modules/products/pages/sections/GeneralInfoPage";
 import ClassificationPage from "@/modules/products/pages/sections/ClassificationPage";
+import RegionsPage from "@/modules/products/pages/sections/RegionsPage";
 import MediaPage from "@/modules/products/pages/sections/MediaPage";
 import AdvancedSettingsPage from "@/modules/products/pages/sections/AdvancedSettingsPage";
 import VariantsPage from "@/modules/products/pages/sections/VariantsPage";
@@ -72,6 +73,8 @@ import SystemSettingsPage from "@/modules/system/pages/SystemSettingsPage";
 import SystemIntegrationsPage from "@/modules/system/pages/SystemIntegrationsPage";
 import UnitDefinitionListPage from "@/modules/catalog/pages/UnitDefinitionListPage";
 import UnitDefinitionFormPage from "@/modules/catalog/pages/UnitDefinitionFormPage";
+import RegionListPage from "@/modules/catalog/pages/RegionListPage";
+import RegionFormPage from "@/modules/catalog/pages/RegionFormPage";
 import { getProductSection } from "@/modules/products/config/productSections";
 
 const ScrollToTop: React.FC = () => {
@@ -115,6 +118,7 @@ const routeTree = createRoutesFromElements(
 
                 <Route path="product-info/general" element={<GeneralInfoPage />} />
                 <Route path="product-info/classification" element={<ClassificationPage />} />
+                <Route path="product-info/regions" element={<RegionsPage />} />
                 <Route path="product-info/media" element={<MediaPage />} />
                 <Route path="product-info/advanced" element={<AdvancedSettingsPage />} />
 
@@ -155,6 +159,10 @@ const routeTree = createRoutesFromElements(
                 <Route path="definitions/software-units" element={<UnitDefinitionListPage />} />
                 <Route path="definitions/software-units/new" element={<UnitDefinitionFormPage />} />
                 <Route path="definitions/software-units/:id/edit" element={<UnitDefinitionFormPage />} />
+
+                <Route path="definitions/regions" element={<RegionListPage />} />
+                <Route path="definitions/regions/new" element={<RegionFormPage />} />
+                <Route path="definitions/regions/:id/edit" element={<RegionFormPage />} />
 
                 <Route path="definitions/suppliers" element={<SupplierListPage />} />
                 <Route path="definitions/suppliers/new" element={<SupplierFormPage />} />

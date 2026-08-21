@@ -12,7 +12,7 @@ src/
   modules/
     auth/             Auth pages, API, hooks, schemas, store, and types
     products/         Product pages, editor/detail components, API, hooks, tests, and types
-    catalog/          Categories, suppliers, warehouses, and unit definitions
+    catalog/          Categories, regions, suppliers, warehouses, and unit definitions
     attributes/       Attribute definitions and attribute sets
     inventory/        Stock, transactions, reservations, and warehouse stock
     pricing/          Price lists and campaign rules

@@ -39,6 +39,7 @@ const menu = [
     subMenu: [
       sectionItem("general"),
       sectionItem("classification"),
+      sectionItem("regions"),
       sectionItem("media"),
       sectionItem("advanced"),
     ],
@@ -83,6 +84,7 @@ const menu = [
     text: "Katalog Tanımları",
     subMenu: [
       { text: "Kategori Tanımları", link: "/definitions/categories" },
+      { text: "Bölge Tanımları", link: "/definitions/regions" },
       { text: "Özellik Tanımları", link: "/definitions/attributes" },
       { text: "Özellik Setleri", link: "/definitions/attribute-sets" },
     ],

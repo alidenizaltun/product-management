@@ -8,6 +8,7 @@ export const queryKeys = {
     pricingRules: (id: string) => ["products", id, "pricing-rules"] as const,
     pricingRule: (id: string) => ["products", "pricing-rules", id] as const,
     units: (id: string) => ["products", id, "units"] as const,
+    regions: (id: string) => ["products", id, "regions"] as const,
     unit: (id: string) => ["products", "units", id] as const,
     media: (id: string) => ["products", id, "media"] as const,
     profile: (id: string) => ["products", id, "profile"] as const,
@@ -20,6 +21,8 @@ export const queryKeys = {
     warehouses: ["catalog", "warehouses"] as const,
     unitDefinitions: ["catalog", "unitDefinitions"] as const,
     unitDefinition: (id: string) => ["catalog", "unitDefinitions", id] as const,
+    regions: ["catalog", "regions"] as const,
+    region: (id: string) => ["catalog", "regions", id] as const,
   },
   identity: {
     users: (params?: Record<string, unknown>) => ["identity", "users", params ?? {}] as const,

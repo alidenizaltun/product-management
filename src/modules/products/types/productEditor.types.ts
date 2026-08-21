@@ -16,7 +16,21 @@ export interface VariantForm {
   isActive: boolean;
 }
 
+/** Ürünün bir bölgedeki satış koşulları: bölgeye özel para birimi ve KDV oranı. */
+export interface ProductRegionForm {
+  id?: string;
+  regionId: string;
+  currencyCode: string;
+  /** Boş bırakılırsa ürünün kendi KDV oranı geçerlidir. */
+  taxRate?: number;
+  isDefault: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
 export interface PriceItemForm {
+  /** Fiyatın geçerli olduğu bölge; boşsa tüm bölgelerde geçerlidir. */
+  regionId?: string;
   priceType: number;
   amount?: number;
   compareAtAmount?: number;
@@ -259,6 +273,7 @@ export interface ProductFormValues {
 
   attributeValues: AttributeValueForm[];
   variants: VariantForm[];
+  regions: ProductRegionForm[];
   prices: PriceItemForm[];
   inventories: InventoryForm[];
   mediaItems: MediaItemForm[];

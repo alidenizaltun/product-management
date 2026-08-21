@@ -13,6 +13,7 @@ export interface AllLookupsDto {
   suppliers: LookupItem[];
   priceLists: LookupItem[];
   unitDefinitions: LookupItem[];
+  regions: LookupItem[];
 }
 
 const lk = apiEndpoints.lookups;
@@ -49,5 +50,10 @@ export const lookupsApi = {
   unitDefinitions: (includeInactive = false): Promise<LookupItem[]> => {
     const q = includeInactive ? "?includeInactive=true" : "";
     return apiClient.get<LookupItem[]>(`${lk.unitDefinitions}${q}`);
+  },
+
+  regions: (includeInactive = false): Promise<LookupItem[]> => {
+    const q = includeInactive ? "?includeInactive=true" : "";
+    return apiClient.get<LookupItem[]>(`${lk.regions}${q}`);
   },
 };

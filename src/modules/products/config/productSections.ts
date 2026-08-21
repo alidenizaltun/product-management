@@ -19,6 +19,7 @@ export const ALL_PRODUCT_KINDS: ProductKind[] = [1, 2, 3, 4];
 export type ProductSectionKey =
     | "general"
     | "classification"
+    | "regions"
     | "media"
     | "advanced"
     | "variants"
@@ -63,6 +64,16 @@ export const productSections: ProductSectionConfig[] = [
         group: "product-info",
         allowedKinds: ALL_PRODUCT_KINDS,
         permission: "product.classification.edit",
+    },
+    {
+        key: "regions",
+        label: "Bölgeler",
+        path: "/product-info/regions",
+        icon: "map-pin",
+        description: "Ürünün satıldığı bölgeler; bölge bazlı para birimi ve KDV oranı",
+        group: "product-info",
+        allowedKinds: ALL_PRODUCT_KINDS,
+        permission: "product.basic.edit",
     },
     {
         key: "media",

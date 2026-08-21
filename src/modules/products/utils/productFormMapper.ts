@@ -126,6 +126,7 @@ export const buildDefaultValues = (): ProductFormValues => ({
 
     attributeValues: [],
     variants: [],
+    regions: [],
     prices: [],
     inventories: [],
     mediaItems: [],
@@ -190,7 +191,18 @@ export const mapProductToForm = (product: ProductDetailDto): ProductFormValues =
             isActive: v.isActive,
         })),
 
+        regions: (product.regions ?? []).map((r) => ({
+            id: r.id,
+            regionId: r.regionId,
+            currencyCode: r.currencyCode || DEFAULT_CURRENCY_CODE,
+            taxRate: r.taxRate ?? undefined,
+            isDefault: r.isDefault,
+            isActive: r.isActive,
+            sortOrder: r.sortOrder,
+        })),
+
         prices: (product.prices ?? []).map((p) => ({
+            regionId: p.regionId ?? undefined,
             priceType: p.priceType,
             amount: p.amount,
             compareAtAmount: p.compareAtAmount,
@@ -481,8 +493,26 @@ export const buildFullProductPayload = (
         product: productPayload,
         attributeValues: values.attributeValues?.length ? values.attributeValues : isEdit ? [] : undefined,
         variants: values.variants?.length ? values.variants : isEdit ? [] : undefined,
+        regions: values.regions?.length
+            ? values.regions
+                .filter((region) => Boolean(region.regionId))
+                .map((region) => ({
+                    regionId: region.regionId,
+                    currencyCode: region.currencyCode || DEFAULT_CURRENCY_CODE,
+                    taxRate: Number.isFinite(region.taxRate) ? region.taxRate : null,
+                    isDefault: Boolean(region.isDefault),
+                    isActive: Boolean(region.isActive),
+                    sortOrder: Number.isFinite(region.sortOrder) ? region.sortOrder : 0,
+                }))
+            : isEdit
+                ? []
+                : undefined,
         prices: values.prices?.length
-            ? values.prices.map((p) => ({ ...p, amount: p.amount ?? 0 }))
+            ? values.prices.map((p) => ({
+                ...p,
+                amount: p.amount ?? 0,
+                regionId: p.regionId || null,
+            }))
             : isEdit
                 ? []
                 : undefined,

@@ -19,10 +19,15 @@ export const apiEndpoints = {
     suppliers: "/api/lookups/suppliers",
     priceLists: "/api/lookups/price-lists",
     unitDefinitions: "/api/lookups/unit-definitions",
+    regions: "/api/lookups/regions",
   },
   unitDefinitions: {
     list: "/api/unit-definitions",
     byId: (id: string) => `/api/unit-definitions/${id}`,
+  },
+  regions: {
+    list: "/api/regions",
+    byId: (id: string) => `/api/regions/${id}`,
   },
   identity: {
     users: "/api/users",
@@ -52,6 +57,8 @@ export const apiEndpoints = {
     pricingRules: (id: string) => `/api/products/${id}/pricing-rules`,
     pricingRuleById: (pricingRuleId: string) => `/api/products/pricing-rules/${pricingRuleId}`,
     reorderPricingRules: (id: string) => `/api/products/${id}/pricing-rules/reorder`,
+    regions: (productId: string) => `/api/products/${productId}/regions`,
+    regionById: (productRegionId: string) => `/api/products/regions/${productRegionId}`,
     productUnits: (productId: string) => `/api/products/${productId}/units`,
     productUnitById: (productUnitId: string) => `/api/products/units/${productUnitId}`,
     licenseOfferings: (id: string) => `/api/products/${id}/license-offerings`,

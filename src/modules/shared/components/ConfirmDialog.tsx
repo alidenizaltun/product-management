@@ -5,7 +5,8 @@ import Icon from "@/components/icon/Icon";
 interface ConfirmDialogProps {
   open: boolean;
   title?: string;
-  message: string;
+  /** Düz metin ya da form içeren bir düğüm olabilir (ör. ret gerekçesi girdisi). */
+  message: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "primary" | "danger" | "warning";
@@ -42,7 +43,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         />
         <h4 className="nk-modal-title mt-3">{title}</h4>
         <div className="nk-modal-text">
-          <p className="lead">{message}</p>
+          {typeof message === "string" ? <p className="lead">{message}</p> : message}
         </div>
       </div>
     </div>

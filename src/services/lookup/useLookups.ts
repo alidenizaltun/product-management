@@ -47,6 +47,13 @@ export const useRegionLookups = (includeInactive = false) =>
     staleTime: STALE_TIME,
   });
 
+export const useUnitDefinitionLookups = (includeInactive = false) =>
+  useQuery<LookupItem[]>({
+    queryKey: ["lookups", "unitDefinitions", includeInactive],
+    queryFn: () => lookupsApi.unitDefinitions(includeInactive),
+    staleTime: STALE_TIME,
+  });
+
 // ─── bulk hook (fetches everything in one request) ────────────────────────────
 
 export const useAllLookups = (includeInactive = false) =>

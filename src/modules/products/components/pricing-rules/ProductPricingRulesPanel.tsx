@@ -14,6 +14,34 @@ import ConfirmDialog from "@/modules/shared/components/ConfirmDialog";
 import { showApiError, showSuccess, showWarning } from "@/modules/shared/components/NotificationAlert";
 import { useProductPricingRuleMutations, useProductPricingRules } from "@/modules/products/hooks/useProductPricingRules";
 import UnitQuickAddModal from "@/modules/products/components/pricing/UnitQuickAddModal";
+import {
+  ApplyTemplateModal,
+  SaveAsTemplateModal,
+  TemplateOriginBadge,
+} from "@/modules/products/components/pricing/PricingTemplateActions";
+import {
+  ADJUSTMENT_TYPES,
+  APPLY_ON,
+  CONDITION_OPERATORS,
+  adjustmentToForm,
+  collectAdjustmentFields,
+  defaultAdjustment,
+  emptyCondition,
+  emptyTier,
+  formToAdjustment,
+  formatFieldLabel,
+  getAdjustment,
+  numberToInput,
+  parseConditionValue,
+  toNumberOrNull,
+  toNumberOrUndefined,
+  valueToInput,
+} from "@/modules/pricing/adjustment/adjustmentForm";
+import type {
+  AdjustmentFormState,
+  ConditionFormState,
+  TierFormState,
+} from "@/modules/pricing/adjustment/adjustmentForm";
 import type {
   ProductLicenseOfferingDto,
   ProductPricingRuleAdjustmentDto,
@@ -66,80 +94,6 @@ interface RuleFormState {
   adjustment: AdjustmentFormState;
 }
 
-interface TierFormState {
-  from: string;
-  to: string;
-  type: string;
-  value: string;
-}
-
-interface ConditionFormState {
-  field: string;
-  operator: string;
-  value: string;
-}
-
-interface AdjustmentFormState {
-  mode: string;
-  type: string;
-  value: string;
-  operation: string;
-  unitField: string;
-  freeUnits: string;
-  rounding: string;
-  tiers: TierFormState[];
-  /** Girdi olarak artık gösterilmiyor; var olan kurallardaki değeri kaybetmemek için okunup geri yazılıyor. */
-  minAdjustment: string;
-  maxAdjustment: string;
-  minFinalPrice: string;
-  maxFinalPrice: string;
-  conditionsOperator: "all" | "any";
-  conditions: ConditionFormState[];
-}
-
-/** Hesaplama bazı artık kullanıcıya sorulmuyor; tüm kurallar güncel fiyat üzerinden hesaplanır. */
-const APPLY_ON = "currentPrice";
-
-const defaultAdjustment: ProductPricingRuleAdjustmentDto = {
-  mode: "",
-  type: "",
-  value: null,
-  applyOn: APPLY_ON,
-  unit: {
-    field: "",
-    freeUnits: null,
-    rounding: "",
-  },
-  tiers: [],
-  limits: {
-    minAdjustment: null,
-    maxAdjustment: null,
-    minFinalPrice: null,
-    maxFinalPrice: null,
-  },
-  conditions: {
-    operator: "all",
-    items: [],
-  },
-};
-
-const ADJUSTMENT_TYPES = [
-  { value: "fixed", label: "Sabit tutar" },
-  { value: "percentage", label: "Yüzde" },
-  { value: "multiplier", label: "Çarpan" },
-];
-
-const CONDITION_OPERATORS = [
-  { value: "eq", label: "Eşittir" },
-  { value: "neq", label: "Eşit değildir" },
-  { value: "gt", label: "Büyüktür" },
-  { value: "gte", label: "Büyük veya eşittir" },
-  { value: "lt", label: "Küçüktür" },
-  { value: "lte", label: "Küçük veya eşittir" },
-  { value: "contains", label: "İçerir" },
-  { value: "in", label: "Listeden biri" },
-  { value: "exists", label: "Değer var" },
-];
 
 interface HelpLabelProps {
   children: React.ReactNode;
@@ -169,65 +123,7 @@ const HelpLabel: React.FC<HelpLabelProps> = ({ children, help }) => {
   );
 };
 
-const emptyTier = (): TierFormState => ({
-  from: "",
-  to: "",
-  type: "",
-  value: "",
-});
 
-const emptyCondition = (): ConditionFormState => ({
-  field: "",
-  operator: "",
-  value: "",
-});
-
-const numberToInput = (value: unknown) =>
-  typeof value === "number" && Number.isFinite(value) ? String(value) : "";
-
-const toNumberOrNull = (value: string) => {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const numberValue = Number(trimmed);
-  return Number.isFinite(numberValue) ? numberValue : null;
-};
-
-const toNumberOrUndefined = (value: string) => {
-  const numberValue = toNumberOrNull(value);
-  return numberValue == null ? undefined : numberValue;
-};
-
-const parseConditionValue = (operator: string, value: string) => {
-  if (operator === "exists") return undefined;
-  if (operator === "in") {
-    return value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .map((item) => {
-        const numberValue = Number(item);
-        return Number.isFinite(numberValue) && item !== "" ? numberValue : item;
-      });
-  }
-
-  const trimmed = value.trim();
-  if (trimmed === "true") return true;
-  if (trimmed === "false") return false;
-  const numberValue = Number(trimmed);
-  return Number.isFinite(numberValue) && trimmed !== "" ? numberValue : trimmed;
-};
-
-const valueToInput = (value: unknown) => {
-  if (Array.isArray(value)) return value.join(", ");
-  if (value == null) return "";
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
-};
-
-const formatFieldLabel = (field: string) => {
-  if (field.startsWith("feature.")) return `Özellik: ${field.replace("feature.", "")}`;
-  return field;
-};
 
 const getProductUnitScopeValue = (unit: ScopedProductUnitOption) =>
   unit.id ? `id:${unit.id}` : unit._tempId ? `temp:${unit._tempId}` : "";
@@ -235,105 +131,7 @@ const getProductUnitScopeValue = (unit: ScopedProductUnitOption) =>
 const getProductUnitLabel = (unit: ScopedProductUnitOption) =>
   unit.name?.trim() || unit.code?.trim() || unit.unitDefinitionName?.trim() || "Adsız birim";
 
-const collectAdjustmentFields = (adjustment: ProductPricingRuleAdjustmentDto, target: Set<string>) => {
-  if (adjustment.unit?.field) target.add(adjustment.unit.field);
-  adjustment.conditions?.items?.forEach((item) => {
-    if (item.field) target.add(item.field);
-  });
-};
 
-const adjustmentToForm = (adjustment: ProductPricingRuleAdjustmentDto): AdjustmentFormState => ({
-  mode: adjustment.mode === "unit" ? "unit" : "",
-  type: adjustment.type ?? (adjustment.amount != null ? "fixed" : ""),
-  value: numberToInput(adjustment.value ?? adjustment.amount),
-  operation: adjustment.operation ?? adjustment.direction ?? "",
-  unitField: adjustment.unit?.field ?? "",
-  freeUnits: numberToInput(adjustment.unit?.freeUnits),
-  rounding: adjustment.unit?.rounding ?? "",
-  tiers: adjustment.tiers?.length
-    ? adjustment.tiers.map((tier) => ({
-      from: numberToInput(tier.from),
-      to: numberToInput(tier.to),
-      type: tier.type ?? "fixed",
-      value: numberToInput(tier.value),
-    }))
-    : [],
-  minAdjustment: numberToInput(adjustment.limits?.minAdjustment),
-  maxAdjustment: numberToInput(adjustment.limits?.maxAdjustment),
-  minFinalPrice: numberToInput(adjustment.limits?.minFinalPrice),
-  maxFinalPrice: numberToInput(adjustment.limits?.maxFinalPrice),
-  conditionsOperator: adjustment.conditions?.operator === "any" ? "any" : "all",
-  conditions: adjustment.conditions?.items?.length
-    ? adjustment.conditions.items.map((item) => ({
-      field: item.field,
-      operator: item.operator,
-      value: valueToInput(item.value),
-    }))
-    : [],
-});
-
-const formToAdjustment = (adjustment: AdjustmentFormState): ProductPricingRuleAdjustmentDto => {
-  const result: ProductPricingRuleAdjustmentDto = {};
-  const isUnitMode = adjustment.mode === "unit";
-
-  if (!isUnitMode && adjustment.type) result.type = adjustment.type;
-  result.applyOn = APPLY_ON;
-
-  if (!isUnitMode) {
-    const value = toNumberOrUndefined(adjustment.value);
-    if (value != null) result.value = value;
-  }
-  if (adjustment.operation) result.operation = adjustment.operation;
-
-  if (isUnitMode) {
-    const unitField = adjustment.unitField.trim();
-    result.mode = "unit";
-    result.unit = {
-      freeUnits: toNumberOrNull(adjustment.freeUnits),
-      rounding: adjustment.rounding,
-    };
-    if (unitField) result.unit.field = unitField;
-    result.tiers = adjustment.tiers
-      .filter((tier) => tier.from.trim() || tier.to.trim() || tier.value.trim())
-      .map((tier) => ({
-        from: toNumberOrNull(tier.from),
-        to: toNumberOrNull(tier.to),
-        type: tier.type || undefined,
-        value: toNumberOrNull(tier.value),
-      }));
-  }
-
-  result.limits = {
-    minAdjustment: toNumberOrNull(adjustment.minAdjustment),
-    maxAdjustment: toNumberOrNull(adjustment.maxAdjustment),
-    minFinalPrice: toNumberOrNull(adjustment.minFinalPrice),
-    maxFinalPrice: toNumberOrNull(adjustment.maxFinalPrice),
-  };
-
-  result.conditions = {
-    operator: adjustment.conditionsOperator,
-    items: adjustment.conditions
-      .filter((item) => item.field.trim() && item.operator)
-      .map((item) => ({
-        field: item.field.trim(),
-        operator: item.operator,
-        value: parseConditionValue(item.operator, item.value),
-      })),
-  };
-
-  return result;
-};
-
-const getAdjustment = (rule: ProductPricingRuleDto): ProductPricingRuleAdjustmentDto => {
-  if (rule.priceAdjustment) return rule.priceAdjustment;
-  if (!rule.priceAdjustmentJson) return defaultAdjustment;
-
-  try {
-    return JSON.parse(rule.priceAdjustmentJson) as ProductPricingRuleAdjustmentDto;
-  } catch {
-    return defaultAdjustment;
-  }
-};
 
 const emptyForm = (lockedOfferingId?: string, lockedOfferingTempId?: string, defaultPriority?: number): RuleFormState => ({
   code: "",
@@ -510,6 +308,8 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   const [engineOpen, setEngineOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [unitModalOpen, setUnitModalOpen] = useState(false);
+  const [applyTemplateOpen, setApplyTemplateOpen] = useState(false);
+  const [templateSourceRule, setTemplateSourceRule] = useState<ProductPricingRuleDto | undefined>();
   const [addingUnit, setAddingUnit] = useState(false);
   const [removeUnitTarget, setRemoveUnitTarget] = useState<{ unit: ScopedProductUnitOption; mode: "product" | "plan" } | null>(null);
   const [removingUnit, setRemovingUnit] = useState(false);
@@ -1508,6 +1308,20 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
         </Modal>
       )}
 
+      <ApplyTemplateModal
+        open={applyTemplateOpen}
+        productId={productId}
+        licenseOfferingId={lockedLicenseOfferingId}
+        onClose={() => setApplyTemplateOpen(false)}
+        onApplied={() => refetch()}
+      />
+
+      <SaveAsTemplateModal
+        open={Boolean(templateSourceRule)}
+        rule={templateSourceRule}
+        onClose={() => setTemplateSourceRule(undefined)}
+      />
+
       <div className="col-12">
         <div className="card card-bordered">
           <div className="card-inner border-bottom py-3 d-flex justify-content-between align-items-center">
@@ -1526,6 +1340,12 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                 >
                   <em className="icon ni ni-plus me-1" />
                   Yeni Kural
+                </Button>
+              )}
+              {editable && productId && (
+                <Button color="light" size="sm" type="button" onClick={() => setApplyTemplateOpen(true)}>
+                  <em className="icon ni ni-tag me-1" />
+                  Şablondan Ekle
                 </Button>
               )}
               {isError && (
@@ -1611,7 +1431,10 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                   </button>
                                 )}
                                 <div style={{ minWidth: 160 }}>
-                                  <div className="fw-medium">{rule.name}</div>
+                                  <div className="fw-medium">
+                                    {rule.name}
+                                    <TemplateOriginBadge rule={rule} />
+                                  </div>
                                   <code className="fs-12">{rule.code}</code>
                                 </div>
                                 <div className="fs-13px">{shortJsonSummary(rule)}</div>
@@ -1645,6 +1468,18 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                                       <em className="icon ni ni-edit me-1" />
                                       Düzenle
                                     </Button>
+                                    {rule.id && (
+                                      <Button
+                                        color="light"
+                                        size="sm"
+                                        type="button"
+                                        title="Bu kuralı başka ürünlerde de kullanmak üzere şablona al"
+                                        onClick={() => setTemplateSourceRule(rule)}
+                                      >
+                                        <em className="icon ni ni-tag me-1" />
+                                        Şablona Al
+                                      </Button>
+                                    )}
                                     <Button
                                       color="danger"
                                       outline

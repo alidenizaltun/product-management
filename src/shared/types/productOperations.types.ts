@@ -429,6 +429,13 @@ export interface ProductPricingRuleDto {
   validTo?: string | null;
   priceAdjustment?: ProductPricingRuleAdjustmentDto | null;
   priceAdjustmentJson?: string | null;
+  /** Kural bir fiyat şablonundan kopyalandıysa kaynağın izi. */
+  sourceTemplateId?: Uuid | null;
+  sourceTemplateCode?: string | null;
+  sourceTemplateName?: string | null;
+  sourceTemplateVersion?: number | null;
+  /** Şablonun güncel sürümü; sourceTemplateVersion'dan büyükse kural geride kalmıştır. */
+  templateCurrentVersion?: number | null;
   createdAt?: string;
   updatedAt?: string | null;
 }
@@ -1203,4 +1210,299 @@ export interface CreateFullProductRequestDto {
 
 export interface UpdateFullProductRequestDto extends Omit<CreateFullProductRequestDto, "product"> {
   product: UpdateProductRequestDto;
+}
+
+// ─── Fiyat şablonları ────────────────────────────────────────────────────────
+
+export const PRICING_TEMPLATE_KIND = {
+  PricingRule: 1,
+  LicenseOffering: 2,
+  ModulePrice: 3,
+  ProductPrice: 4,
+  PriceListItem: 5,
+} as const;
+
+export interface PricingTemplateDto {
+  id: Uuid;
+  code: string;
+  name: string;
+  description?: string | null;
+  templateKind: number;
+  unitDefinitionId?: Uuid | null;
+  unitDefinitionCode?: string | null;
+  unitDefinitionName?: string | null;
+  currencyCode: string;
+  payloadJson: string;
+  version: number;
+  isActive: boolean;
+  sortOrder: number;
+  usageCount: number;
+  createdAt?: string;
+  updatedAt?: string | null;
+}
+
+export interface CreatePricingTemplateRequestDto {
+  code?: string | null;
+  name: string;
+  description?: string | null;
+  templateKind: number;
+  unitDefinitionId?: Uuid | null;
+  currencyCode: string;
+  payloadJson?: string | null;
+  payload?: ProductPricingRuleAdjustmentDto | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface UpdatePricingTemplateRequestDto {
+  code: string;
+  name: string;
+  description?: string | null;
+  unitDefinitionId?: Uuid | null;
+  currencyCode: string;
+  payloadJson?: string | null;
+  payload?: ProductPricingRuleAdjustmentDto | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface ApplyPricingTemplateRequestDto {
+  productId: Uuid;
+  licenseOfferingId?: Uuid | null;
+  productVariantId?: Uuid | null;
+  priority: number;
+  isActive: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
+  overrideValue?: number | null;
+}
+
+export interface ApplyPricingTemplateBulkRequestDto {
+  productIds: Uuid[];
+  priority: number;
+  isActive: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
+  overrideValue?: number | null;
+}
+
+export interface ApplyPricingTemplateResultDto {
+  productId: Uuid;
+  productName: string;
+  succeeded: boolean;
+  pricingRuleId?: Uuid | null;
+  pricingRuleCode?: string | null;
+  createdProductUnitId?: Uuid | null;
+  /** Kurala ait ürün birimi (yeni oluşturulmuş ya da mevcut). */
+  linkedProductUnitId?: Uuid | null;
+  /** Birimin bağlandığı satış planı sayısı. */
+  linkedOfferingCount: number;
+  message?: string | null;
+}
+
+export interface SavePricingRuleAsTemplateRequestDto {
+  name?: string | null;
+  description?: string | null;
+  code?: string | null;
+  isActive: boolean;
+}
+
+export interface PricingTemplateUsageDto {
+  pricingRuleId: Uuid;
+  pricingRuleCode: string;
+  pricingRuleName: string;
+  productId: Uuid;
+  productCode: string;
+  productName: string;
+  productLicenseOfferingId?: Uuid | null;
+  licenseOfferingName?: string | null;
+  sourceTemplateVersion?: number | null;
+  templateVersion: number;
+  isOutdated: boolean;
+  isActive: boolean;
+}
+
+// ─── Zam revizyonları ────────────────────────────────────────────────────────
+
+export const PRICE_REVISION_STATUS = {
+  Draft: 1,
+  Previewed: 2,
+  PendingApproval: 3,
+  Approved: 4,
+  Applied: 5,
+  RolledBack: 6,
+  Rejected: 7,
+  Cancelled: 8,
+} as const;
+
+export const PRICE_ADJUSTMENT_TYPE = {
+  Percent: 1,
+  Amount: 2,
+  SetValue: 3,
+  Multiplier: 4,
+} as const;
+
+export const PRICE_ROUNDING_MODE = {
+  None: 1,
+  Round: 2,
+  Ceiling: 3,
+  Floor: 4,
+} as const;
+
+export const PRICE_REVISION_SCOPE_TYPE = {
+  Product: 1,
+  Category: 2,
+  PricingTemplate: 3,
+  UnitDefinition: 4,
+  LicenseOffering: 5,
+  PriceList: 6,
+  ProductKind: 7,
+  Region: 8,
+} as const;
+
+export const PRICE_REVISION_TARGET_TYPE = {
+  LicenseOfferingBasePrice: 1,
+  ModuleOfferingPrice: 2,
+  PricingRuleValue: 3,
+  PricingRuleTier: 4,
+  ProductPrice: 5,
+  PriceListItem: 6,
+} as const;
+
+export interface PriceRevisionScopeDto {
+  id: Uuid;
+  priceRevisionId: Uuid;
+  scopeType: number;
+  targetId?: Uuid | null;
+  targetValue?: string | null;
+  targetName?: string | null;
+  isExclude: boolean;
+}
+
+export interface CreatePriceRevisionScopeRequestDto {
+  scopeType: number;
+  targetId?: Uuid | null;
+  targetValue?: string | null;
+  isExclude: boolean;
+}
+
+export interface PriceRevisionTargetBreakdownDto {
+  targetType: number;
+  lineCount: number;
+  totalOldValue: number;
+  totalNewValue: number;
+}
+
+export interface PriceRevisionSkippedRuleDto {
+  pricingRuleId: Uuid;
+  productId: Uuid;
+  productName: string;
+  pricingRuleName: string;
+  reason: string;
+}
+
+export interface PriceRevisionSummaryDto {
+  lineCount: number;
+  excludedLineCount: number;
+  productCount: number;
+  totalOldValue: number;
+  totalNewValue: number;
+  totalDifference: number;
+  breakdown: PriceRevisionTargetBreakdownDto[];
+  skippedRules: PriceRevisionSkippedRuleDto[];
+}
+
+export interface PriceRevisionDto {
+  id: Uuid;
+  code: string;
+  name: string;
+  description?: string | null;
+  adjustmentType: number;
+  value: number;
+  roundingMode: number;
+  roundingStep?: number | null;
+  currencyCode?: string | null;
+  status: number;
+  effectiveDate?: string | null;
+  submittedAt?: string | null;
+  submittedByUserId?: Uuid | null;
+  approvedAt?: string | null;
+  approvedByUserId?: Uuid | null;
+  approvalNote?: string | null;
+  appliedAt?: string | null;
+  appliedByUserId?: Uuid | null;
+  rolledBackAt?: string | null;
+  rolledBackByUserId?: Uuid | null;
+  scopes: PriceRevisionScopeDto[];
+  summary?: PriceRevisionSummaryDto | null;
+  createdAt?: string;
+  updatedAt?: string | null;
+}
+
+export interface CreatePriceRevisionRequestDto {
+  code?: string | null;
+  name: string;
+  description?: string | null;
+  adjustmentType: number;
+  value: number;
+  roundingMode: number;
+  roundingStep?: number | null;
+  currencyCode?: string | null;
+  effectiveDate?: string | null;
+}
+
+export interface UpdatePriceRevisionRequestDto {
+  code: string;
+  name: string;
+  description?: string | null;
+  adjustmentType: number;
+  value: number;
+  roundingMode: number;
+  roundingStep?: number | null;
+  currencyCode?: string | null;
+  effectiveDate?: string | null;
+}
+
+export interface PriceRevisionLineDto {
+  id: Uuid;
+  priceRevisionId: Uuid;
+  targetType: number;
+  targetId: Uuid;
+  targetPath: string;
+  productId: Uuid;
+  productName: string;
+  targetLabel: string;
+  currencyCode: string;
+  oldValue: number;
+  newValue: number;
+  difference: number;
+  isExcluded: boolean;
+  isApplied: boolean;
+  skipReason?: string | null;
+}
+
+export interface PriceRevisionLineFilterDto {
+  targetType?: number | null;
+  productId?: Uuid | null;
+  isExcluded?: boolean | null;
+  skip?: number;
+  take?: number;
+}
+
+export interface PriceRevisionLinePageDto {
+  items: PriceRevisionLineDto[];
+  totalCount: number;
+}
+
+export interface UpdatePriceRevisionLineRequestDto {
+  isExcluded?: boolean | null;
+  newValue?: number | null;
+}
+
+export interface PriceRevisionExecutionResultDto {
+  priceRevisionId: Uuid;
+  status: number;
+  affectedLineCount: number;
+  skippedLineCount: number;
+  skippedLines: PriceRevisionLineDto[];
 }

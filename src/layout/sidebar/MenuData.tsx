@@ -50,6 +50,8 @@ const menu = [
     subMenu: [
       sectionItem("pricing"),
       { text: "Fiyat Listeleri", link: "/pricing/price-lists" },
+      { text: "Fiyat Şablonları", link: "/pricing/templates" },
+      { text: "Zam Yönetimi", link: "/pricing/revisions" },
       { text: "Kampanya Kuralları", link: "/pricing/campaign-rules" },
     ],
   },

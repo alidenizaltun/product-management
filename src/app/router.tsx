@@ -53,6 +53,12 @@ import PriceListListPage from "@/modules/pricing/pages/PriceListListPage";
 import PriceListFormPage from "@/modules/pricing/pages/PriceListFormPage";
 import PriceListDetailPage from "@/modules/pricing/pages/PriceListDetailPage";
 import CampaignRulesPage from "@/modules/pricing/pages/CampaignRulesPage";
+import PricingTemplateListPage from "@/modules/pricing/pages/PricingTemplateListPage";
+import PricingTemplateFormPage from "@/modules/pricing/pages/PricingTemplateFormPage";
+import PricingTemplateDetailPage from "@/modules/pricing/pages/PricingTemplateDetailPage";
+import PriceRevisionListPage from "@/modules/pricing/pages/PriceRevisionListPage";
+import PriceRevisionFormPage from "@/modules/pricing/pages/PriceRevisionFormPage";
+import PriceRevisionDetailPage from "@/modules/pricing/pages/PriceRevisionDetailPage";
 import StockListPage from "@/modules/inventory/pages/StockListPage";
 import StockTransactionListPage from "@/modules/inventory/pages/StockTransactionListPage";
 import StockTransactionFormPage from "@/modules/inventory/pages/StockTransactionFormPage";
@@ -178,6 +184,14 @@ const routeTree = createRoutesFromElements(
                 <Route path="pricing/price-lists/new" element={<PriceListFormPage />} />
                 <Route path="pricing/price-lists/:id/edit" element={<PriceListFormPage />} />
                 <Route path="pricing/price-lists/:id" element={<PriceListDetailPage />} />
+                <Route path="pricing/templates" element={<PricingTemplateListPage />} />
+                <Route path="pricing/templates/new" element={<PricingTemplateFormPage />} />
+                <Route path="pricing/templates/:id" element={<PricingTemplateDetailPage />} />
+                <Route path="pricing/templates/:id/edit" element={<PricingTemplateFormPage />} />
+                <Route path="pricing/revisions" element={<PriceRevisionListPage />} />
+                <Route path="pricing/revisions/new" element={<PriceRevisionFormPage />} />
+                <Route path="pricing/revisions/:id" element={<PriceRevisionDetailPage />} />
+                <Route path="pricing/revisions/:id/edit" element={<PriceRevisionFormPage />} />
                 <Route path="pricing/campaign-rules" element={<CampaignRulesPage />} />
 
                 <Route path="identity/users" element={<UserListPage />} />

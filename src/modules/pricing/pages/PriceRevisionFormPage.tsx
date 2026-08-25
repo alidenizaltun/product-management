@@ -166,7 +166,7 @@ const PriceRevisionFormPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="col-md-4">
+                {/* <div className="col-md-4">
                   <label className="form-label">
                     Para birimi {currencyRequired && <span className="text-danger">*</span>}
                   </label>
@@ -182,7 +182,7 @@ const PriceRevisionFormPage: React.FC = () => {
                       ? "Tutar bazlı zam yalnızca tek bir para birimine uygulanabilir."
                       : "Boş bırakılırsa tüm para birimleri kapsama girer."}
                   </div>
-                </div>
+                </div> */}
 
                 <div className="col-md-4">
                   <label className="form-label">Yuvarlama</label>

@@ -316,20 +316,31 @@
             display: flex;
             align-items: center;
             flex-shrink: 0;
+            padding-top: 0.625rem;
+            padding-bottom: 0.625rem;
         }
         &-logo{
             flex-shrink: 0;
-            width: 32px;
-            height: 32px;
+            height: 48px;
             margin-right: 0.75rem;
+            display: flex;
+            align-items: center;
+            .logo-link{
+                display: flex;
+                align-items: center;
+            }
+            .logo-img{
+                max-height: 48px;
+                width: auto;
+            }
             .icon{
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                width: 32px;
-                height: 32px;
+                width: 48px;
+                height: 48px;
                 border-radius: 50%;
-                font-size: 20px;
+                font-size: 24px;
                 color: $accent-color;
                 background: rgba($accent-color, .3);
             }

@@ -1,8 +1,9 @@
 import React from "react";
 import classNames from "classnames";
+import { Link } from "react-router-dom";
+import LogoSvg from "@/images/logo.svg";
 import Toggle from "../sidebar/Toggle";
 import User from "./dropdown/user/User";
-import { Icon } from "@/components/Component";
 import { APP_COMPANY, APP_NAME } from "@/shared/config/branding";
 import { useTheme, useThemeUpdate } from "@/layout/provider/Theme";
 
@@ -26,7 +27,9 @@ const Header = ({ fixed, className }) => {
           </div>
           <div className="nk-header-app-name">
             <div className="nk-header-app-logo">
-              <Icon name="box" className="bg-purple-dim"></Icon>
+              <Link to="/" className="logo-link">
+                <img className="logo-img" src={LogoSvg} alt="logo" />
+              </Link>
             </div>
             <div className="nk-header-app-info">
               <span className="sub-text">{APP_COMPANY}</span>

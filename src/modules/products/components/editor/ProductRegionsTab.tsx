@@ -30,8 +30,6 @@ const ProductRegionsTab: React.FC = () => {
   } = useFormContext<ProductFormValues>();
   const { fields, append, remove } = useFieldArray({ control, name: "regions" });
   const regions = useWatch({ control, name: "regions" }) ?? [];
-  const productTaxRate = useWatch({ control, name: "taxRate" });
-
   /** Varsayılan bölge tektir; biri işaretlendiğinde diğerleri temizlenir. */
   const markAsDefault = (index: number) => {
     fields.forEach((_, i) => {
@@ -47,8 +45,7 @@ const ProductRegionsTab: React.FC = () => {
         <div>
           <h6 className="overline-title text-primary mb-0">Satış Bölgeleri</h6>
           <p className="text-soft fs-13px mb-0">
-            Ürünün satıldığı her bölge için para birimi ve KDV oranı belirleyin. KDV boş bırakılırsa ürünün genel
-            oranı (%{Number.isFinite(productTaxRate) ? productTaxRate : 0}) uygulanır.
+            Ürünün satıldığı her bölge için para birimi ve KDV oranı belirleyin.
           </p>
         </div>
         <button
@@ -145,7 +142,7 @@ const ProductRegionsTab: React.FC = () => {
                         min="0"
                         max="100"
                         className="form-control"
-                        placeholder={`Ürün oranı (%${Number.isFinite(productTaxRate) ? productTaxRate : 0})`}
+                        placeholder="0"
                         {...register(`regions.${index}.taxRate`, {
                           setValueAs: (value) => (value === "" || value === null ? undefined : Number(value)),
                           min: { value: 0, message: "KDV oranı 0'dan küçük olamaz" },

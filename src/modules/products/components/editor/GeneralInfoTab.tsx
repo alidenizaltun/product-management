@@ -2,24 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { ProductFormValues } from "@/modules/products/types/productEditor.types";
 import JsonFieldEditor from "@/modules/shared/components/JsonFieldEditor";
-import { TextInput, NumberInput, Textarea, Checkbox, FormField } from "@/modules/shared/components";
+import { TextInput, Textarea, Checkbox, FormField } from "@/modules/shared/components";
 import { unitDefinitionsApi } from "@/services/unitDefinitions/unitDefinitions.api";
 import type { LookupItem } from "@/services/lookup/lookups.api";
 
-interface GeneralInfoTabProps {
-    isEdit?: boolean;
-}
-
-const coerceTaxRate = (value: unknown) => {
-    if (value === "" || value == null) {
-        return 0;
-    }
-
-    const numericValue = Number(value);
-    return Number.isFinite(numericValue) ? numericValue : 0;
-};
-
-const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
+const GeneralInfoTab: React.FC = () => {
     const {
         register,
         setValue,
@@ -32,7 +19,6 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
     const name = watch("name");
     const productCode = watch("productCode");
     const kind = watch("kind");
-    const taxRate = watch("taxRate");
     const isPhysicalProduct = Number(kind ?? 1) === 1;
     const isSoftwareProduct = Number(kind ?? 1) === 2;
 
@@ -193,41 +179,6 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ isEdit = false }) => {
                             <TextInput label="Barkod" placeholder="EAN / UPC barkod" {...register("barcode")} />
                         </div>
                     )}
-
-                    <div className="col-md-6">
-                        {isEdit ? (
-                            <>
-                                <input
-                                    type="hidden"
-                                    value={coerceTaxRate(taxRate)}
-                                    {...register("taxRate", { setValueAs: coerceTaxRate })}
-                                />
-                                <NumberInput
-                                    label="Vergi Oranı (%)"
-                                    step="0.01"
-                                    min={0}
-                                    max={100}
-                                    value={coerceTaxRate(taxRate)}
-                                    disabled
-                                    readOnly
-                                    onChange={() => {}}
-                                />
-                            </>
-                        ) : (
-                            <NumberInput
-                                label="Vergi Oranı (%)"
-                                step="0.01"
-                                min={0}
-                                max={100}
-                                placeholder="0"
-                                {...register("taxRate", { setValueAs: coerceTaxRate })}
-                            />
-                        )}
-                    </div>
-
-                    <div className="col-md-6">
-                        <TextInput label="Vergi Kodu" placeholder="KDV18" {...register("taxCode")} />
-                    </div>
 
                     <div className="col-md-6">
                         <TextInput label="Etiketler" placeholder="etiket1, etiket2, etiket3" {...register("tags")} />

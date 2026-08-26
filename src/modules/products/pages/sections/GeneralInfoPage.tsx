@@ -17,7 +17,7 @@ const GeneralInfoPage: React.FC = () => (
                     </p>
                 </div>
                 <div className="card-inner">
-                    <GeneralInfoTab isEdit />
+                    <GeneralInfoTab />
                 </div>
             </section>
         )}

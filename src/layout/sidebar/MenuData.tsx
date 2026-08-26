@@ -49,10 +49,10 @@ const menu = [
     text: "Fiyatlandırma",
     subMenu: [
       sectionItem("pricing"),
-      { text: "Fiyat Listeleri", link: "/pricing/price-lists" },
       { text: "Fiyat Şablonları", link: "/pricing/templates" },
+      { text: "Fiyat Listeleri", link: "/pricing/price-lists" },
       { text: "Zam Yönetimi", link: "/pricing/revisions" },
-      { text: "Kampanya Kuralları", link: "/pricing/campaign-rules" },
+      // { text: "Kampanya Kuralları", link: "/pricing/campaign-rules" },
     ],
   },
   {

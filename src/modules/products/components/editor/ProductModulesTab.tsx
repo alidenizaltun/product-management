@@ -328,7 +328,7 @@ const ProductModulesTab: React.FC = () => {
                                                 <input type="hidden" {...register(`modules.${index}.sortOrder`, { valueAsNumber: true })} />
 
                                                 <div className="row g-3">
-                                                    <div className="col-12">
+                                                    <div className="col-6">
                                                         <label className="form-label">
                                                             Modül Adı <span className="text-danger">*</span>
                                                         </label>
@@ -349,7 +349,7 @@ const ProductModulesTab: React.FC = () => {
                                                         )}
                                                     </div>
                                                     <input type="hidden" {...register(`modules.${index}.currencyCode`)} />
-                                                    <div className="col-12">
+                                                    <div className="col-6">
                                                         <label className="form-label">Açıklama</label>
                                                         <input
                                                             className="form-control"

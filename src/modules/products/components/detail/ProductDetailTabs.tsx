@@ -64,15 +64,6 @@ export const GeneralTab: React.FC<{ product: ProductDetailDto }> = ({ product })
     <div className="col-lg-6">
       <DetailCard title="Vergi & Durum" icon="coins" fullHeight={false}>
         <InfoRow
-          label="Vergi Oranı"
-          value={
-            product.taxRate != null ? (
-              <span className="badge bg-outline-info">%{product.taxRate}</span>
-            ) : undefined
-          }
-        />
-        <InfoRow label="Vergi Kodu" value={product.taxCode} />
-        <InfoRow
           label="Tür"
           value={
             KIND_LABELS[product.kind] ? (
@@ -277,10 +268,7 @@ export const PricesTab: React.FC<{ items: ProductPriceDto[] }> = ({ items }) => 
 
 // ─── Regions Tab ──────────────────────────────────────────────────────────────
 
-export const RegionsTab: React.FC<{ items: ProductRegionDto[]; productTaxRate?: number }> = ({
-  items,
-  productTaxRate,
-}) => {
+export const RegionsTab: React.FC<{ items: ProductRegionDto[] }> = ({ items }) => {
   if (!items.length) {
     return (
       <TabEmpty
@@ -310,11 +298,7 @@ export const RegionsTab: React.FC<{ items: ProductRegionDto[]; productTaxRate?: 
               <DetailRow label="Fiyat Birimi" value={region.currencyCode} />
               <DetailRow
                 label="KDV Oranı"
-                value={
-                  region.taxRate != null
-                    ? `%${region.taxRate}`
-                    : `%${productTaxRate ?? 0} (ürün oranı)`
-                }
+                value={region.taxRate != null ? `%${region.taxRate}` : undefined}
               />
             </div>
           </div>
@@ -830,7 +814,7 @@ export const buildProductDetailTabs = (product: ProductDetailDto): TabItem[] => 
       id: "regions",
       label: "Bölgeler",
       badge: (product.regions ?? []).length || undefined,
-      content: <RegionsTab items={product.regions ?? []} productTaxRate={product.taxRate} />,
+      content: <RegionsTab items={product.regions ?? []} />,
     },
     {
       id: "prices",

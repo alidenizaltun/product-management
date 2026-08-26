@@ -121,15 +121,15 @@ const menu = [
     text: "Genel Bakış",
     link: "/analytics",
   },
-  {
-    icon: "reports",
-    text: "Denetim ve Sistem Kayıtları",
-    subMenu: [
-      { text: "İşlem Geçmişi", link: "/system/audit" },
-      { text: "Oturum Kayıtları", link: "/identity/login-audit" },
-      { text: "Sistem Logları", link: "/system/logs" },
-    ],
-  },
+  // {
+  //   icon: "reports",
+  //   text: "Denetim ve Sistem Kayıtları",
+  //   subMenu: [
+  //     { text: "İşlem Geçmişi", link: "/system/audit" },
+  //     { text: "Oturum Kayıtları", link: "/identity/login-audit" },
+  //     { text: "Sistem Logları", link: "/system/logs" },
+  //   ],
+  // },
 ];
 
 export default menu;

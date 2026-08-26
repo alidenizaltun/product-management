@@ -18,7 +18,6 @@ const ThemeProvider = ({...props}) => {
   const defaultTheme = {
     main: "default", //other value can be passed "clean,shady,softy"
     sidebar: "white", //other value can be passed "light,dark,theme"
-    appbar: "theme", //other value can be passed "light,white,dark"
     sidebarVisibility: false,
     sidebarMobile: false,
     header: "white", //other value can be passed "light,dark,theme"
@@ -33,9 +32,6 @@ const ThemeProvider = ({...props}) => {
       sidebar : function(value){
         setTheme({...theme, sidebar : value})
       },
-      appbar : function(value){
-        setTheme({...theme, appbar : value})
-      },
       sidebarVisibility : function(e){
         setTheme({...theme, sidebarVisibility : !theme.sidebarVisibility})
       },
@@ -49,12 +45,13 @@ const ThemeProvider = ({...props}) => {
         setTheme({...theme, skin : value})
       },
       reset : function(e){
-        setTheme({...theme, main : defaultTheme.main, sidebar: defaultTheme.sidebar, appbar: defaultTheme.appbar, header: defaultTheme.header, skin: defaultTheme.skin })
+        setTheme({...theme, main : defaultTheme.main, sidebar: defaultTheme.sidebar, header: defaultTheme.header, skin: defaultTheme.skin })
       },
     }
 
     const bodyClass = classNames({
-      "nk-body has-apps-sidebar has-sidebar no-touch nk-nio-theme": true,
+      // `has-apps-sidebar` kaldırıldı: B2B/B2C ikon şeridi yok, sol menü artık kenara yaslanır
+      "nk-body has-sidebar no-touch nk-nio-theme": true,
     });
 
   useEffect(() => {

@@ -45,11 +45,11 @@ const Menu = ({ data }) => {
   let closeSiblings = function(elm){
       let parent = elm.parentElement;
       let siblings = parent.parentElement.children;
-      Array.from(siblings).forEach(item => {
+      Array.from(siblings).forEach((item: Element) => {
       if(item !== parent){
-          item.classList.remove('active');
-          if(item.classList.contains('has-sub')){
-          let subitem = item.querySelectorAll(`.nk-menu-wrap`);
+          (item as HTMLElement).classList.remove('active');
+          if((item as HTMLElement).classList.contains('has-sub')){
+          let subitem = (item as HTMLElement).querySelectorAll(`.nk-menu-wrap`);
           subitem.forEach(child => {
               child.parentElement.classList.remove('active');
               slideUp(child,400);
@@ -66,25 +66,27 @@ const Menu = ({ data }) => {
       closeSiblings(item);
   }
 
-  let routeChange = function(e){
+  let routeChange = function(){
       let selector = document.querySelectorAll(".nk-menu-link")
-      selector.forEach((item, index)=>{
+      selector.forEach((item)=>{
           if(item.classList.contains('active')){
               closeSiblings(item);
-              item.parentElement.classList.add("active");
+              (item.parentElement as HTMLElement).classList.add("active");
           }else{
-              item.parentElement.classList.remove("active");
+              (item.parentElement as HTMLElement).classList.remove("active");
               currentLink(`.nk-menu-link`);
           }
       })
   }
   
-  useLayoutEffect(() =>{
+  useLayoutEffect(()=>{
       routeChange();
-      themeUpdate.sidebarHide();
+      if (themeUpdate && typeof themeUpdate === 'object' && 'sidebarHide' in themeUpdate && typeof (themeUpdate as any).sidebarHide === 'function') {
+          (themeUpdate as any).sidebarHide();
+      }
   },[location.pathname])
 
-  useEffect(() =>{
+  useEffect(()=>{
       currentLink(`.nk-menu-link`);
       // eslint-disable-next-line
   },[null])

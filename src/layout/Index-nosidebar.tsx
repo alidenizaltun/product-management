@@ -1,21 +1,23 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Outlet } from "react-router-dom";
+import Head from "./head/Head";
 
-const LayoutNoSidebar = () => {
-  useEffect(() => {
-    const body = document.querySelector("body");
-    if (body) {
-      body.classList.remove("has-apps-sidebar", "has-sidebar");
-    }
-    return () => {
-      const body = document.querySelector("body");
-      if (body) {
-        body.classList.add("has-apps-sidebar", "has-sidebar");
-      }
-    };
-  }, []);
+interface LayoutProps {
+  title?: string;
+}
 
-  return <Outlet />;
+const Layout: React.FC<LayoutProps> = ({ title }) => {
+  return (
+    <>
+      <Head title={!title && 'Loading'} />
+      <div className="nk-app-root">
+        <div className="nk-wrap nk-wrap-nosidebar">
+          <div className="nk-content">
+            <Outlet />
+          </div>
+        </div>
+      </div>
+    </>
+  );
 };
-
-export default LayoutNoSidebar;
+export default Layout;

@@ -1,6 +1,5 @@
 import React, {useEffect} from "react";
 import { Outlet } from "react-router-dom";
-import Appbar from "./appbar/Appbar";
 import Sidebar from "./sidebar/Sidebar";
 import Head from "./head/Head";
 import AppHeader from "./header/AppHeader";
@@ -18,7 +17,6 @@ const Layout = ({title, app, ...props}) => {
       <FileManagerProvider>
         <Head title={!title && 'Loading'} />
         <AppRoot className="npc-apps apps-only">
-          <Appbar />
           <AppMain>
           {theme.sidebarMobile && <Sidebar fixed />}
             <AppWrap>

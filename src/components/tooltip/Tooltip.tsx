@@ -1,8 +1,30 @@
 import React from "react";
 import { UncontrolledTooltip } from "reactstrap";
 import Icon from "@/components/icon/Icon";
+import type { TaggableProps } from "@/components/component.types";
 
-const TooltipComponent = ({ iconClass, icon, id, direction, text, containerClassName, ...props }) => {
+type TooltipDirection = React.ComponentProps<typeof UncontrolledTooltip>["placement"];
+
+type TooltipComponentProps = TaggableProps & {
+  iconClass?: string;
+  /** Icon koşulsuz render edildiği için zorunlu. */
+  icon: string;
+  /** UncontrolledTooltip hedefi; benzersiz olmalı. */
+  id: string;
+  direction?: TooltipDirection;
+  text?: React.ReactNode;
+  containerClassName?: string;
+};
+
+const TooltipComponent = ({
+  iconClass,
+  icon,
+  id,
+  direction,
+  text,
+  containerClassName,
+  ...props
+}: TooltipComponentProps) => {
   return (
     <React.Fragment>
       {props.tag ? (

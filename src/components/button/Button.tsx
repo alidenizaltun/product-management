@@ -1,7 +1,15 @@
 import React from "react";
 import classNames from "classnames";
+import type { BaseComponentProps, SizeToken, ThemeToken } from "@/components/component.types";
 
-const Button = ({ color, size, className, outline, disabled, ...props }) => {
+type ButtonProps = BaseComponentProps & {
+  color?: ThemeToken;
+  size?: SizeToken;
+  outline?: boolean;
+  disabled?: boolean;
+};
+
+const Button = ({ color, size, className, outline, disabled, ...props }: ButtonProps) => {
   const buttonClass = classNames({
     btn: true,
     [`btn-${color}`]: !outline,

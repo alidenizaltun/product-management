@@ -1,7 +1,12 @@
 import React from "react";
 import classNames from "classnames";
+import type { TaggableProps } from "@/components/component.types";
 
-export const OverlineTitle = ({ className, alt, ...props }) => {
+type OverlineTitleProps = TaggableProps & {
+  alt?: boolean;
+};
+
+export const OverlineTitle = ({ className, alt, ...props }: OverlineTitleProps) => {
   const classes = classNames({
     "overline-title": true,
     [`${className}`]: className,

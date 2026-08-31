@@ -2,8 +2,19 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Icon from "@/components/icon/Icon";
 import classNames from "classnames";
+import type { TaggableProps } from "@/components/component.types";
 
-export const LinkItem = ({ ...props }) => {
+type LinkItemProps = TaggableProps & {
+  link?: string;
+  icon?: string;
+  text?: React.ReactNode;
+};
+
+type LinkListProps = TaggableProps & {
+  opt?: boolean;
+};
+
+export const LinkItem = ({ ...props }: LinkItemProps) => {
   return (
     <li>
       {props.tag !== "a" ? (
@@ -19,7 +30,7 @@ export const LinkItem = ({ ...props }) => {
   );
 };
 
-export const LinkList = ({ ...props }) => {
+export const LinkList = ({ ...props }: LinkListProps) => {
   const listClasses = classNames({
     "link-list": !props.opt,
     "link-list-opt": props.opt,

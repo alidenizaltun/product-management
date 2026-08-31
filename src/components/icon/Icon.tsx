@@ -1,7 +1,13 @@
 import classNames from "classnames";
 import React from "react";
+import type { BaseComponentProps, StyleProps } from "@/components/component.types";
 
-const Icon = ({ name, id, className, style, ...props }) => {
+type IconProps = BaseComponentProps &
+  StyleProps & {
+    name: string;
+  };
+
+const Icon = ({ name, id, className, style, ...props }: IconProps) => {
   const iconClass = classNames({
     [`${className}`]: className,
     icon: true,

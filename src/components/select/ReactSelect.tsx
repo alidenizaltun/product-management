@@ -1,5 +1,13 @@
 import React from "react";
 import Select from "react-select";
+import type { BaseComponentProps } from "@/components/component.types";
+
+type RSelectProps = BaseComponentProps & {
+  isLoading?: boolean;
+  placeholder?: React.ReactNode;
+  loadingMessage?: () => string;
+  noOptionsMessage?: () => string;
+};
 
 const RSelect = ({
   className,
@@ -8,7 +16,7 @@ const RSelect = ({
   loadingMessage,
   noOptionsMessage,
   ...props
-}) => {
+}: RSelectProps) => {
   return (
     <div className="form-control-select">
       <Select

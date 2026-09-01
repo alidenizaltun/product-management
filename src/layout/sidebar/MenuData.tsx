@@ -6,7 +6,7 @@
  * ürünle çalışılacağı sayfa içindeki Ürün Seçici ile belirlenir.
  *
  * Ürüne bağlı sayfaların rota ve etiketleri
- * `@/modules/products/config/productSections` içindeki merkezi konfigürasyondan
+ * `@/pages/products/config/productSections` içindeki merkezi konfigürasyondan
  * üretilir; böylece menü, rota ve Ürün Seçici filtreleri birbirinden kopmaz.
  *
  * İki ana grup vardır:
@@ -16,7 +16,7 @@
  * - "İşlemler": yalnızca belirli ürün tiplerinde anlamlı olan sayfalar, ürün
  *   tipi başlıkları altında toplanır.
  */
-import { getProductSection } from "@/modules/products/config/productSections";
+import { getProductSection } from "@/pages/products/config/productSections";
 
 const sectionItem = (key: Parameters<typeof getProductSection>[0]) => {
   const section = getProductSection(key);

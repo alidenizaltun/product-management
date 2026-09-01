@@ -1,32 +1,45 @@
-import { TokenResponse, User } from "@/domain";
-import { config } from "../config";
+import { config } from "../config/appConfig";
+
+export interface StoredUser {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string;
+  phoneNumber: string | null;
+  emailConfirmed: boolean;
+  isActive: boolean;
+  roles: string[];
+  createdAt: string;
+}
+
+export interface StoredTokens {
+  accessToken: string;
+  refreshToken: string;
+}
 
 class StorageService {
   private getStorage(persistent: boolean): Storage {
     return persistent ? localStorage : sessionStorage;
   }
 
-  storeAuthData(token: TokenResponse, user: User, rememberMe = true): void {
+  storeAuthData(tokens: StoredTokens, user: StoredUser, rememberMe = true): void {
     const storage = this.getStorage(rememberMe);
-
-    storage.setItem(config.auth.tokenKey, token.accessToken);
-    storage.setItem(config.auth.refreshTokenKey, token.refreshToken);
+    storage.setItem(config.auth.tokenKey, tokens.accessToken);
+    storage.setItem(config.auth.refreshTokenKey, tokens.refreshToken);
     storage.setItem(config.auth.userKey, JSON.stringify(user));
-
     if (rememberMe) {
       localStorage.setItem(config.auth.rememberMeKey, "true");
     }
   }
 
   clearAuthData(): void {
-    localStorage.removeItem(config.auth.tokenKey);
-    localStorage.removeItem(config.auth.refreshTokenKey);
-    localStorage.removeItem(config.auth.userKey);
+    [localStorage, sessionStorage].forEach((s) => {
+      s.removeItem(config.auth.tokenKey);
+      s.removeItem(config.auth.refreshTokenKey);
+      s.removeItem(config.auth.userKey);
+    });
     localStorage.removeItem(config.auth.rememberMeKey);
-
-    sessionStorage.removeItem(config.auth.tokenKey);
-    sessionStorage.removeItem(config.auth.refreshTokenKey);
-    sessionStorage.removeItem(config.auth.userKey);
   }
 
   getAccessToken(): string | null {
@@ -43,25 +56,21 @@ class StorageService {
     );
   }
 
-  getUser(): User | null {
-    const userStr =
+  getUser<T = StoredUser>(): T | null {
+    const raw =
       localStorage.getItem(config.auth.userKey) ||
       sessionStorage.getItem(config.auth.userKey);
-
-    if (!userStr) {
-      return null;
-    }
-
+    if (!raw) return null;
     try {
-      return JSON.parse(userStr) as User;
+      return JSON.parse(raw) as T;
     } catch {
       return null;
     }
   }
 
   updateTokens(accessToken: string, refreshToken: string): void {
-    const isRememberMe = localStorage.getItem(config.auth.rememberMeKey) === "true";
-    const storage = this.getStorage(isRememberMe);
+    const persistent = localStorage.getItem(config.auth.rememberMeKey) === "true";
+    const storage = this.getStorage(persistent);
     storage.setItem(config.auth.tokenKey, accessToken);
     storage.setItem(config.auth.refreshTokenKey, refreshToken);
   }

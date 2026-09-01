@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { config } from "@/shared/config/appConfig";
+import { config } from "@/infrastructure/config/appConfig";
 import { mockProductDto, mockProductDetailDto } from "./fixtures";
 
 const BASE = config.api.baseUrl.replace(/\/$/, "");

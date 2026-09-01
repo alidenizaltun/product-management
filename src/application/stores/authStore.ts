@@ -1,3 +1,8 @@
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+import { authRepository } from "@/infrastructure/api/repositories";
+import { storageService } from "@/infrastructure/storage/storageService";
+import { User } from "@/domain/entities/User";
 import {
   AuthResponse,
   ChangePasswordRequest,
@@ -5,12 +10,7 @@ import {
   LoginRequest,
   RegisterRequest,
   ResetPasswordRequest,
-  User,
-} from "@/domain";
-import { authRepository } from "@/infrastructure/api";
-import { create } from "zustand";
-import { devtools } from "zustand/middleware";
-import { AuthUseCases } from "../usecases";
+} from "@/domain/types/auth.types";
 
 interface AuthState {
   user: User | null;
@@ -31,21 +31,11 @@ interface AuthState {
   initialize: () => void;
 }
 
-const authUseCases = new AuthUseCases(authRepository);
-
-const getErrorMessage = (error: any, fallback: string): string => {
-  if (Array.isArray(error?.response?.data?.errors)) {
-    return error.response.data.errors.join(", ");
-  }
-
-  if (typeof error?.response?.data?.message === "string") {
-    return error.response.data.message;
-  }
-
-  if (typeof error?.message === "string") {
-    return error.message;
-  }
-
+const extractErrorMessage = (error: unknown, fallback: string): string => {
+  const err = error as { response?: { data?: { errors?: string[]; message?: string } }; message?: string };
+  if (Array.isArray(err?.response?.data?.errors)) return err.response!.data!.errors!.join(", ");
+  if (typeof err?.response?.data?.message === "string") return err.response!.data!.message!;
+  if (typeof err?.message === "string") return err.message;
   return fallback;
 };
 
@@ -57,58 +47,36 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
 
-      login: async (request: LoginRequest) => {
+      login: async (request) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await authUseCases.login(request);
-
-          if (response.succeeded && response.user) {
-            set({
-              user: response.user,
-              isAuthenticated: true,
-              isLoading: false,
-            });
+          const response = await authRepository.login(request);
+          if (response.succeeded && response.token && response.user) {
+            storageService.storeAuthData(response.token, response.user, request.rememberMe ?? true);
+            set({ user: response.user, isAuthenticated: true, isLoading: false });
           } else {
-            set({
-              isLoading: false,
-              error: response.errors?.join(", ") || "Giris basarisiz.",
-            });
+            set({ isLoading: false, error: response.errors?.join(", ") || "Giriş başarısız." });
           }
-
           return response;
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: getErrorMessage(error, "Giris basarisiz."),
-          });
+        } catch (error) {
+          set({ isLoading: false, error: extractErrorMessage(error, "Giriş başarısız.") });
           throw error;
         }
       },
 
-      register: async (request: RegisterRequest) => {
+      register: async (request) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await authUseCases.register(request);
-
-          if (response.succeeded && response.user) {
-            set({
-              user: response.user,
-              isAuthenticated: true,
-              isLoading: false,
-            });
+          const response = await authRepository.register(request);
+          if (response.succeeded && response.token && response.user) {
+            storageService.storeAuthData(response.token, response.user, false);
+            set({ user: response.user, isAuthenticated: true, isLoading: false });
           } else {
-            set({
-              isLoading: false,
-              error: response.errors?.join(", ") || "Kayit islemi basarisiz.",
-            });
+            set({ isLoading: false, error: response.errors?.join(", ") || "Kayıt işlemi başarısız." });
           }
-
           return response;
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: getErrorMessage(error, "Kayit islemi basarisiz."),
-          });
+        } catch (error) {
+          set({ isLoading: false, error: extractErrorMessage(error, "Kayıt işlemi başarısız.") });
           throw error;
         }
       },
@@ -116,109 +84,77 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         set({ isLoading: true, error: null });
         try {
-          await authUseCases.logout();
+          await authRepository.logout();
         } finally {
-          set({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
+          storageService.clearAuthData();
+          set({ user: null, isAuthenticated: false, isLoading: false });
         }
       },
 
       logoutAll: async () => {
         set({ isLoading: true, error: null });
         try {
-          await authUseCases.logoutAll();
+          await authRepository.logoutAll();
         } finally {
-          set({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
+          storageService.clearAuthData();
+          set({ user: null, isAuthenticated: false, isLoading: false });
         }
       },
 
       getCurrentUser: async () => {
         set({ isLoading: true, error: null });
         try {
-          const user = await authUseCases.getCurrentUser();
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-          });
+          const user = await authRepository.getCurrentUser();
+          set({ user, isAuthenticated: true, isLoading: false });
         } catch {
-          set({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
+          set({ user: null, isAuthenticated: false, isLoading: false });
         }
       },
 
-      changePassword: async (request: ChangePasswordRequest) => {
+      changePassword: async (request) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await authUseCases.changePassword(request);
-          set({
-            isLoading: false,
-            error: response.succeeded ? null : response.errors.join(", "),
-          });
+          const response = await authRepository.changePassword(request);
+          set({ isLoading: false, error: response.succeeded ? null : response.errors.join(", ") });
           return response;
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: getErrorMessage(error, "Sifre degistirme islemi basarisiz."),
-          });
+        } catch (error) {
+          set({ isLoading: false, error: extractErrorMessage(error, "Şifre değiştirme işlemi başarısız.") });
           throw error;
         }
       },
 
-      forgotPassword: async (request: ForgotPasswordRequest) => {
+      forgotPassword: async (request) => {
         set({ isLoading: true, error: null });
         try {
-          const result = await authUseCases.forgotPassword(request);
+          const result = await authRepository.forgotPassword(request);
           set({ isLoading: false });
           return result;
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: getErrorMessage(error, "Sifre sifirlama e-postasi gonderilemedi."),
-          });
+        } catch (error) {
+          set({ isLoading: false, error: extractErrorMessage(error, "Şifre sıfırlama e-postası gönderilemedi.") });
           throw error;
         }
       },
 
-      resetPassword: async (request: ResetPasswordRequest) => {
+      resetPassword: async (request) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await authUseCases.resetPassword(request);
-          set({
-            isLoading: false,
-            error: response.succeeded ? null : response.errors.join(", "),
-          });
+          const response = await authRepository.resetPassword(request);
+          set({ isLoading: false, error: response.succeeded ? null : response.errors.join(", ") });
           return response;
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: getErrorMessage(error, "Sifre sifirlama islemi basarisiz."),
-          });
+        } catch (error) {
+          set({ isLoading: false, error: extractErrorMessage(error, "Şifre sıfırlama işlemi başarısız.") });
           throw error;
         }
       },
 
-      confirmEmail: async (userId: string, token: string) => {
+      confirmEmail: async (userId, token) => {
         set({ isLoading: true, error: null });
         try {
-          const result = await authUseCases.confirmEmail(userId, token);
+          const result = await authRepository.confirmEmail(userId, token);
           set({ isLoading: false });
           return result;
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: getErrorMessage(error, "E-posta onay islemi basarisiz."),
-          });
+        } catch (error) {
+          set({ isLoading: false, error: extractErrorMessage(error, "E-posta onay işlemi başarısız.") });
           throw error;
         }
       },
@@ -226,16 +162,11 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null }),
 
       initialize: () => {
-        const user = authUseCases.getCurrentUserFromStorage();
-        const isAuthenticated = authUseCases.isAuthenticated();
+        const user = storageService.getUser<User>();
+        const isAuthenticated = storageService.hasTokens() && !!user;
         set({ user, isAuthenticated });
       },
     }),
     { name: "auth-store" }
   )
 );
-
-export const selectUser = (state: AuthState) => state.user;
-export const selectIsAuthenticated = (state: AuthState) => state.isAuthenticated;
-export const selectIsLoading = (state: AuthState) => state.isLoading;
-export const selectError = (state: AuthState) => state.error;

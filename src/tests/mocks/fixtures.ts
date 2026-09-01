@@ -1,4 +1,4 @@
-import type { ProductDto, ProductDetailDto } from "@/shared/types/productOperations.types";
+import type { ProductDto, ProductDetailDto } from "@/domain/types/productOperations.types";
 
 const NOW = "2025-01-01T00:00:00Z";
 

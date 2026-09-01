@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LoginRequest, RegisterRequest } from "@/domain";
-import { config } from "@/infrastructure/config";
-import { useAuthStore } from "../stores";
+import { config } from "@/infrastructure/config/appConfig";
+import { useAuthStore } from "../stores/authStore";
+import { LoginRequest, RegisterRequest } from "@/domain/types/auth.types";
 
 export const useAuth = () => {
   const navigate = useNavigate();

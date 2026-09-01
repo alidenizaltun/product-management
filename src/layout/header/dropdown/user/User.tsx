@@ -3,7 +3,7 @@ import { DropdownToggle, DropdownMenu, Dropdown } from "reactstrap";
 import { LinkList, LinkItem } from "@/components/links/Links";
 import UserAvatar from "@/components/user/UserAvatar";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "@/modules/auth/stores/authStore";
+import { useAuthStore } from "@/application/stores/authStore";
 import { useTheme, useThemeUpdate } from "@/layout/provider/Theme";
 import { findUpper } from "@/utils/Utils";
 

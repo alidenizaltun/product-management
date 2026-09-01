@@ -11,6 +11,5 @@ export const navigateTo = (path: string) => {
     navigateFunction(path);
     return;
   }
-
   window.location.href = path;
 };

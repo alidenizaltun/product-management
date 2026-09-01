@@ -1,6 +1,3 @@
-/**
- * User entity and token payload returned by authentication endpoints.
- */
 export interface User {
   id: string;
   email: string;
@@ -11,13 +8,6 @@ export interface User {
   emailConfirmed: boolean;
   isActive: boolean;
   roles: string[];
+  permissions: string[];
   createdAt: string;
-}
-
-export interface TokenResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  tokenType: string;
-  expiresAt: string;
 }

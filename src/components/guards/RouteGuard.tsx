@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Spinner } from "reactstrap";
-import { useAuthStore } from "@/modules/auth/stores/authStore";
-import { config } from "@/shared/config/appConfig";
+import { useAuthStore } from "@/application/stores/authStore";
+import { config } from "@/infrastructure/config/appConfig";
 
 interface RouteGuardProps {
   children?: React.ReactNode;

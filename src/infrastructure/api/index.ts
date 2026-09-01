@@ -1,3 +1,3 @@
 export { apiClient } from "./apiClient";
-export { AuthRepository, authRepository } from "./AuthRepository";
-export { ProductOperationsRepository, productOperationsRepository } from "./ProductOperationsRepository";
+export type { ApiError } from "./apiClient";
+export * from "./repositories";

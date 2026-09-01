@@ -74,6 +74,11 @@ body{
     flex-grow: 1;
 }
 .nk-wrap-nosidebar{
+    // `.has-sidebar .nk-wrap` sidebar/header için üstten ve soldan boşluk ayırıyor;
+    // sidebarsız sayfalarda (login vb.) bu boşluk görünmez bir sidebar gibi içeriği
+    // sağ-aşağı itiyor, burada sıfırlanıyor.
+    padding: 0 !important;
+
     .nk-content{
         padding: 0 !important;
         min-height: 100vh;

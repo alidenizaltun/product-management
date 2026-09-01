@@ -35,5 +35,19 @@ export default tseslint.config(
       'no-var': 'off',
       'prefer-const': 'off',
     },
+  },
+  {
+    // Katman sınırı: pages/ altındaki bileşenler apiClient/repository'ye doğrudan
+    // erişemez; application/ (store/hook) üzerinden geçmeli. infrastructure/config
+    // (route/env sabitleri) bu kuralın kapsamı dışında.
+    files: ['src/pages/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['warn', {
+        patterns: [{
+          group: ['@/infrastructure/api', '@/infrastructure/api/*'],
+          message: 'pages/ katmanı infrastructure/api\'ye doğrudan erişemez; application/ (store/hook) üzerinden geçin.',
+        }],
+      }],
+    },
   }
 )

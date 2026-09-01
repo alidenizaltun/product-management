@@ -1,4 +1,12 @@
-import { TokenResponse, User } from "../entities";
+import { User } from "../entities/User";
+
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tokenType: string;
+  expiresAt: string;
+}
 
 export interface LoginRequest {
   email: string;
@@ -42,10 +50,4 @@ export interface AuthResponse {
   user?: User;
   token?: TokenResponse;
   errors: string[];
-}
-
-export interface MessageResponse {
-  succeeded?: boolean;
-  message?: string;
-  errors?: string[];
 }

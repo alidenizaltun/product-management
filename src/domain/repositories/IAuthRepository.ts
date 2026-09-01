@@ -1,18 +1,16 @@
+import { User } from "../entities/User";
 import {
   AuthResponse,
   ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
-  RefreshTokenRequest,
   RegisterRequest,
   ResetPasswordRequest,
-} from "../types";
-import { User } from "../entities";
+} from "../types/auth.types";
 
 export interface IAuthRepository {
   login(request: LoginRequest): Promise<AuthResponse>;
   register(request: RegisterRequest): Promise<AuthResponse>;
-  refreshToken(request: RefreshTokenRequest): Promise<AuthResponse>;
   logout(): Promise<void>;
   logoutAll(): Promise<void>;
   getCurrentUser(): Promise<User>;

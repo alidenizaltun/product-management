@@ -97,7 +97,7 @@
             flex-direction: column;
             height: calc(100vh - #{$header-height});
             .nk-sidebar-menu{
-                padding-top: 0.5rem;
+                padding-top: 1.5rem;
                 &[data-simplebar]{
                     height: 100%;
                 }
@@ -193,7 +193,7 @@
 }
 @include media-breakpoint-up(xl){
     .nk-sidebar-content .nk-sidebar-menu{
-        padding-top: 0.25rem;
+        padding-top: 1rem;
         padding-bottom: 1.5rem;
     }
     .nk-sidebar{

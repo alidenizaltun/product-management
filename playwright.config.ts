@@ -1,6 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+dotenv.config({ path: path.resolve(__dirname, ".env.test") });
 
 const PORT = 5180;
+const authFile = path.join(__dirname, "playwright/.auth/user.json");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -18,7 +26,18 @@ export default defineConfig({
     toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    {
+      name: "public",
+      testMatch: /e2e[\\/]public[\\/].*\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "authenticated",
+      testMatch: /e2e[\\/]authenticated[\\/].*\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], storageState: authFile },
+      dependencies: ["setup"],
+    },
   ],
   webServer: {
     command: `npx vite --port ${PORT} --strictPort`,

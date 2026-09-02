@@ -17,6 +17,8 @@ dist-ssr
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/playwright/.auth/
+.env.test
 
 # Editor directories and files
 .vscode/*

@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      # eslint . exit kodu yalnızca gerçek hatalarda (0 dışı) döner; bilinen sınır
+      # kuralı uyarıları (bkz. CONVENTIONS) build'i kırmaz.
+      - name: Lint
+        run: npm run lint
+
+      # Gerçek kapı vite build'dir, ham tsc değil — B2B/PM'de tsc tabanı hâlâ kirli
+      # (bkz. proje hafızası: b2b-frontend-typecheck-baseline). tsc ayrı bir "azalt"
+      # metriği olarak bilgi amaçlı raporlanır, build'i kırmaz.
+      - name: Type-check (informational)
+        run: npx tsc --noEmit || echo "tsc hata sayısı taban çizgisinin üstünde olabilir - bilgi amaçlı, kapı değil"
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm run test

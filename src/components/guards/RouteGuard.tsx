@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Spinner } from "reactstrap";
 import { useAuthStore } from "@/application/stores/authStore";
+import { usePermission } from "@/application/hooks/usePermission";
 import { config } from "@/infrastructure/config/appConfig";
 
 interface RouteGuardProps {
@@ -61,6 +62,24 @@ export const GuestGuard: React.FC<RouteGuardProps> = ({ children }) => {
       config.routes.home;
 
     return <Navigate to={from} replace />;
+  }
+
+  return children ? <>{children}</> : <Outlet />;
+};
+
+/**
+ * RequirePermission - Belirli bir izin anahtarına (örn. "Users.View") sahip
+ * olmayan kimliklendirilmiş kullanıcıları anasayfaya yönlendirir.
+ * AuthGuard'ın altında, Layout içinde route seviyesinde kullanılır.
+ */
+export const RequirePermission: React.FC<{ permission: string; children?: React.ReactNode }> = ({
+  permission,
+  children,
+}) => {
+  const hasPermission = usePermission(permission);
+
+  if (!hasPermission) {
+    return <Navigate to={config.routes.home} replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;

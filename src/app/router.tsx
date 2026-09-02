@@ -12,7 +12,7 @@ import {
 import Layout from "@/layout/Index";
 import LayoutNoSidebar from "@/layout/Index-nosidebar";
 import ThemeProvider from "@/layout/provider/Theme";
-import { AuthGuard, GuestGuard } from "@/components/guards";
+import { AuthGuard, GuestGuard, RequirePermission } from "@/components/guards";
 import Login from "@/pages/auth/Login";
 import Register from "@/pages/auth/Register";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
@@ -118,95 +118,118 @@ const routeTree = createRoutesFromElements(
                 <Route index element={<Navigate to="/products" replace />} />
 
                 {/* ─── Ürün İşlemleri ─────────────────────────────────────── */}
-                <Route path="products" element={<ProductListPage />} />
-                <Route path="products/new" element={<ProductCreatePage />} />
-                <Route path="products/:id" element={<ProductDetailPage />} />
+                <Route element={<RequirePermission permission="Products.View" />}>
+                  <Route path="products" element={<ProductListPage />} />
+                  <Route path="products/new" element={<ProductCreatePage />} />
+                  <Route path="products/:id" element={<ProductDetailPage />} />
 
-                <Route path="product-info/general" element={<GeneralInfoPage />} />
-                <Route path="product-info/classification" element={<ClassificationPage />} />
-                <Route path="product-info/regions" element={<RegionsPage />} />
-                <Route path="product-info/media" element={<MediaPage />} />
-                <Route path="product-info/advanced" element={<AdvancedSettingsPage />} />
+                  <Route path="product-info/general" element={<GeneralInfoPage />} />
+                  <Route path="product-info/classification" element={<ClassificationPage />} />
+                  <Route path="product-info/regions" element={<RegionsPage />} />
+                  <Route path="product-info/media" element={<MediaPage />} />
+                  <Route path="product-info/advanced" element={<AdvancedSettingsPage />} />
 
-                <Route path="physical-products/variants" element={<VariantsPage />} />
-                <Route path="physical-products/inventory-supply" element={<InventorySupplyPage />} />
+                  <Route path="physical-products/variants" element={<VariantsPage />} />
+                  <Route path="physical-products/inventory-supply" element={<InventorySupplyPage />} />
 
-                <Route path="software-products/modules" element={<ModulesPage />} />
+                  <Route path="software-products/modules" element={<ModulesPage />} />
+                </Route>
 
                 {/* Fiyatlandırma tüm ürün tipleri için ortak tek sayfadır. */}
-                <Route path="pricing/product-pricing" element={<ProductPricingPage />} />
+                <Route element={<RequirePermission permission="Pricing.Prices.View" />}>
+                  <Route path="pricing/product-pricing" element={<ProductPricingPage />} />
+                  <Route path="pricing/campaign-rules" element={<CampaignRulesPage />} />
+                </Route>
 
                 {/* ─── Stok İşlemleri ─────────────────────────────────────── */}
-                <Route path="inventory/stock" element={<StockListPage />} />
-                <Route path="inventory/transactions" element={<StockTransactionListPage />} />
-                <Route path="inventory/transactions/new" element={<StockTransactionFormPage />} />
-                <Route path="inventory/transactions/:id/edit" element={<StockTransactionFormPage />} />
-                <Route path="inventory/transactions/:id" element={<StockTransactionDetailPage />} />
-                <Route path="inventory/reservations" element={<ReservationListPage />} />
-                <Route path="inventory/reservations/:id" element={<ReservationDetailPage />} />
-                <Route path="inventory/warehouse-stock" element={<WarehouseStockPage />} />
+                <Route element={<RequirePermission permission="Inventory.View" />}>
+                  <Route path="inventory/stock" element={<StockListPage />} />
+                  <Route path="inventory/transactions" element={<StockTransactionListPage />} />
+                  <Route path="inventory/transactions/new" element={<StockTransactionFormPage />} />
+                  <Route path="inventory/transactions/:id/edit" element={<StockTransactionFormPage />} />
+                  <Route path="inventory/transactions/:id" element={<StockTransactionDetailPage />} />
+                  <Route path="inventory/reservations" element={<ReservationListPage />} />
+                  <Route path="inventory/reservations/:id" element={<ReservationDetailPage />} />
+                  <Route path="inventory/warehouse-stock" element={<WarehouseStockPage />} />
+                </Route>
 
                 {/* ─── Yönetim ve Tanımlar ────────────────────────────────── */}
-                <Route path="definitions/categories" element={<CategoryListPage />} />
-                <Route path="definitions/categories/new" element={<CategoryFormPage />} />
-                <Route path="definitions/categories/:id/edit" element={<CategoryFormPage />} />
-                <Route path="definitions/categories/:id" element={<CategoryDetailPage />} />
+                <Route element={<RequirePermission permission="Catalog.View" />}>
+                  <Route path="definitions/categories" element={<CategoryListPage />} />
+                  <Route path="definitions/categories/new" element={<CategoryFormPage />} />
+                  <Route path="definitions/categories/:id/edit" element={<CategoryFormPage />} />
+                  <Route path="definitions/categories/:id" element={<CategoryDetailPage />} />
 
-                <Route path="definitions/attributes" element={<AttributeDefinitionListPage />} />
-                <Route path="definitions/attributes/new" element={<AttributeDefinitionFormPage />} />
-                <Route path="definitions/attributes/:id/edit" element={<AttributeDefinitionFormPage />} />
-                <Route path="definitions/attributes/:id" element={<AttributeDefinitionDetailPage />} />
+                  <Route path="definitions/attributes" element={<AttributeDefinitionListPage />} />
+                  <Route path="definitions/attributes/new" element={<AttributeDefinitionFormPage />} />
+                  <Route path="definitions/attributes/:id/edit" element={<AttributeDefinitionFormPage />} />
+                  <Route path="definitions/attributes/:id" element={<AttributeDefinitionDetailPage />} />
 
-                <Route path="definitions/attribute-sets" element={<AttributeSetListPage />} />
-                <Route path="definitions/attribute-sets/new" element={<AttributeSetFormPage />} />
-                <Route path="definitions/attribute-sets/:id/edit" element={<AttributeSetFormPage />} />
-                <Route path="definitions/attribute-sets/:id" element={<AttributeSetDetailPage />} />
+                  <Route path="definitions/attribute-sets" element={<AttributeSetListPage />} />
+                  <Route path="definitions/attribute-sets/new" element={<AttributeSetFormPage />} />
+                  <Route path="definitions/attribute-sets/:id/edit" element={<AttributeSetFormPage />} />
+                  <Route path="definitions/attribute-sets/:id" element={<AttributeSetDetailPage />} />
 
-                <Route path="definitions/software-units" element={<UnitDefinitionListPage />} />
-                <Route path="definitions/software-units/new" element={<UnitDefinitionFormPage />} />
-                <Route path="definitions/software-units/:id/edit" element={<UnitDefinitionFormPage />} />
+                  <Route path="definitions/software-units" element={<UnitDefinitionListPage />} />
+                  <Route path="definitions/software-units/new" element={<UnitDefinitionFormPage />} />
+                  <Route path="definitions/software-units/:id/edit" element={<UnitDefinitionFormPage />} />
 
-                <Route path="definitions/regions" element={<RegionListPage />} />
-                <Route path="definitions/regions/new" element={<RegionFormPage />} />
-                <Route path="definitions/regions/:id/edit" element={<RegionFormPage />} />
+                  <Route path="definitions/regions" element={<RegionListPage />} />
+                  <Route path="definitions/regions/new" element={<RegionFormPage />} />
+                  <Route path="definitions/regions/:id/edit" element={<RegionFormPage />} />
 
-                <Route path="definitions/suppliers" element={<SupplierListPage />} />
-                <Route path="definitions/suppliers/new" element={<SupplierFormPage />} />
-                <Route path="definitions/suppliers/:id/edit" element={<SupplierFormPage />} />
-                <Route path="definitions/suppliers/:id" element={<SupplierDetailPage />} />
+                  <Route path="definitions/suppliers" element={<SupplierListPage />} />
+                  <Route path="definitions/suppliers/new" element={<SupplierFormPage />} />
+                  <Route path="definitions/suppliers/:id/edit" element={<SupplierFormPage />} />
+                  <Route path="definitions/suppliers/:id" element={<SupplierDetailPage />} />
 
-                <Route path="definitions/warehouses" element={<WarehouseListPage />} />
-                <Route path="definitions/warehouses/new" element={<WarehouseFormPage />} />
-                <Route path="definitions/warehouses/:id/edit" element={<WarehouseFormPage />} />
-                <Route path="definitions/warehouses/:id" element={<WarehouseDetailPage />} />
+                  <Route path="definitions/warehouses" element={<WarehouseListPage />} />
+                  <Route path="definitions/warehouses/new" element={<WarehouseFormPage />} />
+                  <Route path="definitions/warehouses/:id/edit" element={<WarehouseFormPage />} />
+                  <Route path="definitions/warehouses/:id" element={<WarehouseDetailPage />} />
+                </Route>
 
-                <Route path="pricing/price-lists" element={<PriceListListPage />} />
-                <Route path="pricing/price-lists/new" element={<PriceListFormPage />} />
-                <Route path="pricing/price-lists/:id/edit" element={<PriceListFormPage />} />
-                <Route path="pricing/price-lists/:id" element={<PriceListDetailPage />} />
-                <Route path="pricing/templates" element={<PricingTemplateListPage />} />
-                <Route path="pricing/templates/new" element={<PricingTemplateFormPage />} />
-                <Route path="pricing/templates/:id" element={<PricingTemplateDetailPage />} />
-                <Route path="pricing/templates/:id/edit" element={<PricingTemplateFormPage />} />
-                <Route path="pricing/revisions" element={<PriceRevisionListPage />} />
-                <Route path="pricing/revisions/new" element={<PriceRevisionFormPage />} />
-                <Route path="pricing/revisions/:id" element={<PriceRevisionDetailPage />} />
-                <Route path="pricing/revisions/:id/edit" element={<PriceRevisionFormPage />} />
-                <Route path="pricing/campaign-rules" element={<CampaignRulesPage />} />
+                <Route element={<RequirePermission permission="Pricing.PriceLists.View" />}>
+                  <Route path="pricing/price-lists" element={<PriceListListPage />} />
+                  <Route path="pricing/price-lists/new" element={<PriceListFormPage />} />
+                  <Route path="pricing/price-lists/:id/edit" element={<PriceListFormPage />} />
+                  <Route path="pricing/price-lists/:id" element={<PriceListDetailPage />} />
+                </Route>
+                <Route element={<RequirePermission permission="Pricing.Templates.View" />}>
+                  <Route path="pricing/templates" element={<PricingTemplateListPage />} />
+                  <Route path="pricing/templates/new" element={<PricingTemplateFormPage />} />
+                  <Route path="pricing/templates/:id" element={<PricingTemplateDetailPage />} />
+                  <Route path="pricing/templates/:id/edit" element={<PricingTemplateFormPage />} />
+                </Route>
+                <Route element={<RequirePermission permission="Pricing.Revisions.View" />}>
+                  <Route path="pricing/revisions" element={<PriceRevisionListPage />} />
+                  <Route path="pricing/revisions/new" element={<PriceRevisionFormPage />} />
+                  <Route path="pricing/revisions/:id" element={<PriceRevisionDetailPage />} />
+                  <Route path="pricing/revisions/:id/edit" element={<PriceRevisionFormPage />} />
+                </Route>
 
-                <Route path="identity/users" element={<UserListPage />} />
-                <Route path="identity/users/new" element={<UserFormPage />} />
-                <Route path="identity/users/:id/edit" element={<UserFormPage />} />
-                <Route path="identity/users/:id" element={<UserDetailPage />} />
-                <Route path="identity/roles" element={<RoleListPage />} />
-                <Route path="identity/roles/new" element={<RoleFormPage />} />
-                <Route path="identity/roles/:id/edit" element={<RoleFormPage />} />
-                <Route path="identity/roles/:id" element={<RoleDetailPage />} />
-                <Route path="identity/permissions" element={<PermissionMatrixPage />} />
-                <Route path="identity/login-audit" element={<LoginAuditPage />} />
+                <Route element={<RequirePermission permission="Users.View" />}>
+                  <Route path="identity/users" element={<UserListPage />} />
+                  <Route path="identity/users/new" element={<UserFormPage />} />
+                  <Route path="identity/users/:id/edit" element={<UserFormPage />} />
+                  <Route path="identity/users/:id" element={<UserDetailPage />} />
+                  <Route path="identity/login-audit" element={<LoginAuditPage />} />
+                </Route>
+                <Route element={<RequirePermission permission="Roles.View" />}>
+                  <Route path="identity/roles" element={<RoleListPage />} />
+                  <Route path="identity/roles/new" element={<RoleFormPage />} />
+                  <Route path="identity/roles/:id/edit" element={<RoleFormPage />} />
+                  <Route path="identity/roles/:id" element={<RoleDetailPage />} />
+                  <Route path="identity/permissions" element={<PermissionMatrixPage />} />
+                </Route>
 
-                <Route path="system/settings" element={<SystemSettingsPage />} />
-                <Route path="system/integrations" element={<SystemIntegrationsPage />} />
+                <Route element={<RequirePermission permission="Settings.View" />}>
+                  <Route path="system/settings" element={<SystemSettingsPage />} />
+                </Route>
+                <Route element={<RequirePermission permission="Integrations.View" />}>
+                  <Route path="system/integrations" element={<SystemIntegrationsPage />} />
+                </Route>
+                {/* Backend Permissions taksonomisinde bu ikisi için ayrı bir anahtar yok; eskisi gibi açık. */}
                 <Route path="system/logs" element={<SystemLogsPage />} />
                 <Route path="system/audit" element={<SystemAuditPage />} />
 

@@ -40,6 +40,11 @@ export const getRecentErrorStatus = (maxAgeMs = 2000): number | undefined => {
     return isRecent ? lastRegisteredStatus.statusCode : undefined;
 };
 
+export const resetErrorStatusRegistry = (): void => {
+    errorStatusByMessage.clear();
+    lastRegisteredStatus = null;
+};
+
 export const getErrorStatusCode = (error: unknown): number | undefined => {
     const candidate = error as {
         response?: { status?: number };

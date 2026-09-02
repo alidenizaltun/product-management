@@ -1,6 +1,294 @@
 import type { ProductDto, ProductDetailDto } from "@/domain/types/productOperations.types";
+import type { User } from "@/domain/entities/User";
+import type { AuthResponse } from "@/domain/types/auth.types";
+import type {
+  ProductAttributeDefinitionDto,
+  ProductCategoryDto,
+  ProductInventoryDto,
+  InventoryReservationDto,
+  InventoryTransactionDto,
+  ProductPriceListDto,
+  ProductPriceListItemDto,
+  PriceRevisionDto,
+  PriceRevisionSummaryDto,
+  PriceRevisionLineDto,
+  PriceRevisionExecutionResultDto,
+  PricingTemplateDto,
+  PricingTemplateUsageDto,
+  ApplyPricingTemplateResultDto,
+  RegionDto,
+  ProductSupplierDto,
+  UnitDefinitionDto,
+  WarehouseDto,
+} from "@/domain/types/productOperations.types";
+import type { AllLookupsDto, LookupItem } from "@/domain/types/lookup.types";
+import type { Integration, SystemSetting } from "@/domain/types/system.types";
+import type { Role, PermissionDefinition, AdminUser } from "@/domain/types/identity.types";
 
 const NOW = "2025-01-01T00:00:00Z";
+
+export const mockUser: User = {
+  id: "user-001",
+  email: "admin@example.com",
+  firstName: "Admin",
+  lastName: "Kullanıcı",
+  fullName: "Admin Kullanıcı",
+  phoneNumber: null,
+  emailConfirmed: true,
+  isActive: true,
+  roles: ["Admin"],
+  permissions: [],
+  createdAt: NOW,
+};
+
+export const mockAuthResponse: AuthResponse = {
+  succeeded: true,
+  user: mockUser,
+  token: {
+    accessToken: "mock-access-token",
+    refreshToken: "mock-refresh-token",
+    expiresIn: 3600,
+    tokenType: "Bearer",
+    expiresAt: "2025-01-01T01:00:00Z",
+  },
+  errors: [],
+};
+
+export const mockAttributeDefinition: ProductAttributeDefinitionDto = {
+  id: "attr-001",
+  key: "COLOR",
+  displayName: "Renk",
+  dataType: 1,
+  isRequired: false,
+  isFilterable: true,
+  isVariantAxis: true,
+  createdAt: NOW,
+};
+
+export const mockCategory: ProductCategoryDto = {
+  id: "cat-001",
+  code: "CAT-000001",
+  name: "Elektronik",
+  createdAt: NOW,
+};
+
+export const mockIntegration: Integration = {
+  id: "integration-001",
+  name: "Brevo",
+  type: "Email",
+  providerKey: "brevo",
+  isEnabled: true,
+  hasCredentials: true,
+  isSystemManaged: false,
+  createdAt: NOW,
+};
+
+export const mockInventory: ProductInventoryDto = {
+  id: "inventory-001",
+  productId: "prod-001",
+  warehouseId: "warehouse-001",
+  quantityOnHand: 100,
+  quantityReserved: 10,
+  quantityAvailable: 90,
+  inventoryPolicy: 1,
+  createdAt: NOW,
+};
+
+export const mockInventoryReservation: InventoryReservationDto = {
+  id: "reservation-001",
+  productId: "prod-001",
+  quantity: 5,
+  reservationCode: "RES-000001",
+  status: 1,
+  createdAt: NOW,
+};
+
+export const mockInventoryTransaction: InventoryTransactionDto = {
+  id: "transaction-001",
+  productId: "prod-001",
+  transactionType: 1,
+  quantity: 10,
+  occurredAt: NOW,
+  createdAt: NOW,
+};
+
+export const mockLookupItem: LookupItem = { id: "lookup-001", name: "Test Öğesi" };
+
+export const mockAllLookups: AllLookupsDto = {
+  products: [mockLookupItem],
+  categories: [mockLookupItem],
+  warehouses: [mockLookupItem],
+  suppliers: [mockLookupItem],
+  priceLists: [mockLookupItem],
+  unitDefinitions: [mockLookupItem],
+  regions: [mockLookupItem],
+};
+
+export const mockPriceList: ProductPriceListDto = {
+  id: "pricelist-001",
+  code: "PL-000001",
+  name: "Standart Liste",
+  currencyCode: "TRY",
+  isActive: true,
+  createdAt: NOW,
+};
+
+export const mockPriceListItem: ProductPriceListItemDto = {
+  id: "pricelist-item-001",
+  productPriceListId: mockPriceList.id,
+  productId: "prod-001",
+  amount: 100,
+  createdAt: NOW,
+};
+
+export const mockPriceRevisionSummary: PriceRevisionSummaryDto = {
+  lineCount: 1,
+  excludedLineCount: 0,
+  productCount: 1,
+  totalOldValue: 100,
+  totalNewValue: 110,
+  totalDifference: 10,
+  breakdown: [],
+  skippedRules: [],
+};
+
+export const mockPriceRevision: PriceRevisionDto = {
+  id: "revision-001",
+  code: "REV-000001",
+  name: "2026 Zam",
+  adjustmentType: 1,
+  value: 10,
+  roundingMode: 1,
+  status: 1,
+  scopes: [],
+};
+
+export const mockPriceRevisionLine: PriceRevisionLineDto = {
+  id: "line-001",
+  priceRevisionId: mockPriceRevision.id,
+  targetType: 1,
+  targetId: "offering-001",
+  targetPath: "LicenseOffering.BasePrice",
+  productId: "prod-001",
+  productName: "Test Ürünü",
+  targetLabel: "Standart Lisans",
+  currencyCode: "TRY",
+  oldValue: 100,
+  newValue: 110,
+  difference: 10,
+  isExcluded: false,
+  isApplied: false,
+};
+
+export const mockPriceRevisionExecutionResult: PriceRevisionExecutionResultDto = {
+  priceRevisionId: mockPriceRevision.id,
+  status: 5,
+  affectedLineCount: 1,
+  skippedLineCount: 0,
+  skippedLines: [],
+};
+
+export const mockPricingTemplate: PricingTemplateDto = {
+  id: "template-001",
+  code: "TPL-000001",
+  name: "Standart Şablon",
+  templateKind: 1,
+  currencyCode: "TRY",
+  payloadJson: "{}",
+  version: 1,
+  isActive: true,
+  sortOrder: 0,
+  usageCount: 0,
+};
+
+export const mockPricingTemplateUsage: PricingTemplateUsageDto = {
+  pricingRuleId: "rule-001",
+  pricingRuleCode: "rule-standart",
+  pricingRuleName: "Standart kural",
+  productId: "prod-001",
+  productCode: "TEST-001",
+  productName: "Test Ürünü",
+  templateVersion: 1,
+  isOutdated: false,
+  isActive: true,
+};
+
+export const mockApplyPricingTemplateResult: ApplyPricingTemplateResultDto = {
+  productId: "prod-001",
+  productName: "Test Ürünü",
+  succeeded: true,
+  linkedOfferingCount: 1,
+};
+
+export const mockRegion: RegionDto = {
+  id: "region-001",
+  code: "REG-000001",
+  name: "Avrupa",
+  isActive: true,
+  sortOrder: 0,
+  createdAt: NOW,
+};
+
+export const mockSupplier: ProductSupplierDto = {
+  id: "supplier-001",
+  supplierCode: "SUP-000001",
+  name: "Test Tedarikçi",
+  isActive: true,
+  createdAt: NOW,
+};
+
+export const mockSystemSetting: SystemSetting = {
+  id: "setting-001",
+  category: "General",
+  key: "SITE_NAME",
+  value: "Product Manager",
+  dataType: "String",
+  displayName: "Site Adı",
+  isEditable: true,
+  sortOrder: 0,
+};
+
+export const mockUnitDefinition: UnitDefinitionDto = {
+  id: "unit-001",
+  code: "UNIT-000001",
+  name: "Kullanıcı",
+  isActive: true,
+  sortOrder: 0,
+  createdAt: NOW,
+};
+
+export const mockWarehouse: WarehouseDto = {
+  id: "warehouse-001",
+  code: "WH-000001",
+  name: "Merkez Depo",
+  isActive: true,
+  createdAt: NOW,
+};
+
+export const mockRole: Role = {
+  id: "role-001",
+  name: "Admin",
+  isActive: true,
+  userCount: 1,
+  permissions: ["products.view"],
+  createdAt: NOW,
+};
+
+export const mockPermissionDefinition: PermissionDefinition = {
+  key: "products.view",
+  displayName: "Ürünleri Görüntüle",
+  category: "Products",
+};
+
+export const mockAdminUser: AdminUser = {
+  id: "admin-user-001",
+  email: "admin@example.com",
+  fullName: "Admin Kullanıcı",
+  emailConfirmed: true,
+  isActive: true,
+  roles: ["Admin"],
+  createdAt: NOW,
+};
 
 export const mockProductDto: ProductDto = {
     id: "prod-001",

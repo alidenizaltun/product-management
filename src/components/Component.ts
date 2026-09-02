@@ -14,7 +14,6 @@ import { Row, Col } from "./grid/Grid";
 import { SpecialTable, OrderTable, LoginLogTable } from "./table/SpecialTable";
 import { PreviewCard, PreviewAltCard, PreviewTable, CodeBlock } from "./preview/Preview";
 import { EmailHeader, EmailBody, EmailBodyContent, EmailWrapper, EmailFooter } from "./email/Email";
-import { ProjectCard, ProjectBody, ProjectHead } from "./partials/project-card/ProjectCard";
 import {
   DataTable,
   DataTableBody,
@@ -29,7 +28,6 @@ import Progress from "./progress/Progress";
 import NSComponent from "./number-spinner/NumberSpinner";
 import Knob from "./knob/Knob";
 import Table from "./table/Table";
-import NioIconCard from "./partials/nioIcon/NioIcon";
 import UserAvatar from "./user/UserAvatar";
 import UserGroup from "./user/UserGroup";
 import PaginationComponent from "@/components/pagination/Pagination";
@@ -38,14 +36,12 @@ import Button from "./button/Button";
 import Icon from "./icon/Icon";
 import InputSwitch from "./input/switch/Switch";
 import OutlinedInput from "./input/outlined-input/OutlinedInput";
-import Accordian from "./partials/accordian/Preview";
 import Rating from "./rating/Rating";
 import Sidebar from "./sidebar/Sidebar";
 import ReactDataTable from "./table/ReactDataTable";
 import RSelect from "./select/ReactSelect";
 
 export {
-  Accordian,
   LinkItem,
   LinkList,
   OverlineTitle,
@@ -87,10 +83,6 @@ export {
   EmailBodyContent,
   EmailWrapper,
   EmailFooter,
-  NioIconCard,
-  ProjectCard,
-  ProjectBody,
-  ProjectHead,
   DataTableRow,
   DataTableItem,
   DataTableHead,

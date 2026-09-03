@@ -19,6 +19,6 @@ test.describe("Product creation (authenticated, isolated DB only)", () => {
     await page.getByRole("button", { name: /oluştur ve devam et/i }).click();
 
     await expect(page).toHaveURL(/\/products\/[^/]+$/, { timeout: 15_000 });
-    await expect(page.getByText(productName)).toBeVisible();
+    await expect(page.getByRole("heading", { name: productName }).first()).toBeVisible();
   });
 });

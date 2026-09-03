@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { waitForContentLoaded } from "../utils";
+import { expectScreenshot, waitForContentLoaded } from "../utils";
 
 // /analytics rota seviyesinde izin gerektirmiyor (bkz. router.tsx) - düşük
 // yetkili test hesabıyla da erişilebilir olması garanti.
@@ -14,7 +14,7 @@ test.describe("Dashboard (authenticated)", () => {
     await page.goto("/analytics");
     await expect(page.locator(".nk-sidebar")).toBeVisible();
     await waitForContentLoaded(page);
-    await expect(page).toHaveScreenshot("dashboard-page.png", {
+    await expectScreenshot(page, "dashboard-page.png", {
       fullPage: true,
       mask: [page.locator("[class*='chart']"), page.locator("canvas")],
     });

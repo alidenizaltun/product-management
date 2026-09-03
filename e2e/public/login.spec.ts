@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { expectScreenshot } from "../utils";
 
 test.describe("Login page (public, no auth)", () => {
   test("renders the login form", async ({ page }) => {
@@ -11,6 +12,6 @@ test.describe("Login page (public, no auth)", () => {
   test("matches visual baseline", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: "Giriş Yap" })).toBeVisible();
-    await expect(page).toHaveScreenshot("login-page.png", { fullPage: true });
+    await expectScreenshot(page, "login-page.png", { fullPage: true });
   });
 });

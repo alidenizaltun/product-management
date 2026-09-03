@@ -51,9 +51,10 @@ export default defineConfig({
     // ayağa kaldırılan) backend'e işaret ediyor; e2e testleri bu ortamda
     // çalışan bir yerel backend bulamıyor, bu yüzden sadece bu spawn için
     // paylaşımlı uzak dev API'sine yönlendiriyoruz. Tracked .env dosyası
-    // değişmiyor.
+    // değişmiyor. Faz 7 izole e2e CI job'u E2E_API_BASE_URL'i kendi ephemeral
+    // API'sine (http://localhost:5080) ayarlayıp bu fallback'i geçersiz kılar.
     env: {
-      VITE_API_BASE_URL: "https://pmapi.godeva.com.tr/",
+      VITE_API_BASE_URL: process.env.E2E_API_BASE_URL ?? "https://pmapi.godeva.com.tr/",
     },
   },
 });

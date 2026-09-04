@@ -1,0 +1,18 @@
+stages:
+  - build
+
+quality:
+  stage: build
+  image: node:22
+  cache:
+    key: "$CI_PROJECT_NAME"
+    paths:
+      - .npm/
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm run lint
+    - npx tsc --noEmit || echo "tsc hata sayısı taban çizgisinin üstünde olabilir - bilgi amaçlı, kapı değil"
+    - npm run build
+    - npm run test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"

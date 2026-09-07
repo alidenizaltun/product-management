@@ -15,7 +15,23 @@ export interface LookupSelectProps {
   isDisabled?: boolean;
 }
 
-const errorStyles: StylesConfig<{ value: string; label: string }> = {
+type SelectOption = { value: string; label: string };
+
+/**
+ * Menü, kartın/panelin yığılma bağlamı içinde kaldığında sayfa altındaki sticky
+ * aksiyon çubuğunun (z-index 1020) ve komşu kartların altında kalıyordu. Menüyü
+ * body'ye portal'layıp yeterince yüksek bir z-index vermek bunu çözer; değer
+ * reactstrap modal'ının üstünde (1055) kalacak şekilde seçildi, çünkü aynı
+ * seçiciler satış planı ve kural pencerelerinde de kullanılıyor.
+ */
+const MENU_Z_INDEX = 1080;
+
+const menuPortalStyles: StylesConfig<SelectOption> = {
+  menuPortal: (base) => ({ ...base, zIndex: MENU_Z_INDEX }),
+};
+
+const errorStyles: StylesConfig<SelectOption> = {
+  ...menuPortalStyles,
   control: (base, state) => ({
     ...base,
     borderColor: state.isFocused ? "#e85347" : "#e85347",
@@ -52,7 +68,9 @@ const LookupSelect: React.FC<LookupSelectProps> = ({
         isLoading={isLoading}
         isDisabled={isDisabled || isLoading}
         isClearable={isClearable}
-        styles={isInvalid ? errorStyles : undefined}
+        styles={isInvalid ? errorStyles : menuPortalStyles}
+        menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+        menuPosition="fixed"
         noOptionsMessage={() => "Sonuç bulunamadı"}
         loadingMessage={() => "Yükleniyor..."}
       />

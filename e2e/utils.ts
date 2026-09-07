@@ -32,3 +32,19 @@ export async function expectScreenshot(
   if (process.env.E2E_SKIP_VISUAL) return;
   await expect(page).toHaveScreenshot(name, options);
 }
+
+/**
+ * Paylaşımlı dev veritabanındaki gerçek kayıtlara (İKNET, İNŞAAT 360 gibi)
+ * dayanan testler için atlama koşulu.
+ *
+ * Faz 7'nin izole CI job'u taze/boş bir veritabanına karşı koşuyor ve bu
+ * fikstürler orada yok; o job kendini E2E_SKIP_VISUAL ile işaretliyor.
+ */
+export const SKIP_WITHOUT_SHARED_DATA = Boolean(process.env.E2E_SKIP_VISUAL);
+
+/**
+ * Gerçekten kayıt oluşturan/değiştiren testler için atlama koşulu: yalnızca
+ * E2E_API_BASE_URL ile açıkça bir API hedeflendiğinde çalışırlar, böylece
+ * gelişigüzel bir koşu paylaşımlı veritabanına yazmaz.
+ */
+export const SKIP_WITHOUT_WRITABLE_API = !process.env.E2E_API_BASE_URL || SKIP_WITHOUT_SHARED_DATA;

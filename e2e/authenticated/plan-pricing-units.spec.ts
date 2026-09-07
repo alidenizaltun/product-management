@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { SKIP_WITHOUT_SHARED_DATA } from "../utils";
 
 // Kullanıcı bildirimi (hata #2 ve #3):
 //  - "Plan fiyatlandırma sayfasında hangi planda olduğumu göremiyorum"
@@ -17,10 +18,7 @@ const PLAN_WITHOUT_UNITS = "Tek Seferlik Lisans";
 const PRODUCT_UNITS = ["Kullanıcı Başına", "GB"];
 
 test.describe("Satış planı fiyatlandırması - plan başlığı ve ürün birimleri", () => {
-  test.skip(
-    Boolean(process.env.E2E_API_BASE_URL),
-    "Fikstür paylaşımlı dev DB'sindeki İKNET ürünü; izole/boş CI DB'sinde yok."
-  );
+  test.skip(SKIP_WITHOUT_SHARED_DATA, "Fikstür paylaşımlı dev DB'sindeki İKNET ürünü; izole/boş CI DB'sinde yok.");
 
   test.beforeEach(async ({ page }) => {
     await page.goto(`/pricing/product-pricing?productId=${PRODUCT_ID}`);

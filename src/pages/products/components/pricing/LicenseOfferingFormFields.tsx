@@ -105,7 +105,10 @@ export const buildOfferingPayload = (offering: {
 
     return {
         productUnitId: productUnitIds[0] || undefined,
-        productUnitIds: productUnitIds.length ? productUnitIds : undefined,
+        // Boş dizi "bu planda birim yok" demek; undefined gönderilirse backend
+        // alanı hiç dokunulmamış sayıp mevcut atamaları koruyor ve planın son
+        // birimi bir türlü kaldırılamıyor.
+        productUnitIds,
         licenseModel: normalizeLicenseModel(offering.licenseModel),
         name: offering.name?.trim() || "Yeni Plan",
         description: toOptionalString(offering.description),

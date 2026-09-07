@@ -269,7 +269,19 @@ export const unassignProductUnitFromOffering = async ({
     const nextTempIds = (offering.productUnitTempIds ?? []).filter((tempId) => tempId !== unit._tempId);
     setValue(`licenseOfferings.${offeringIndex}.productUnitIds`, nextIds, { shouldDirty: true });
     setValue(`licenseOfferings.${offeringIndex}.productUnitTempIds`, nextTempIds, { shouldDirty: true });
-    await persistOfferingUnitScope(productId, offering.id, { ...offering, productUnitIds: nextIds });
+    // Eski tekil alanlar da temizlenmeli: buildOfferingPayload, çoklu liste
+    // boşaldığında productUnitId'ye geri düşüyor ve kaldırılan birimi diriltiyor.
+    setValue(`licenseOfferings.${offeringIndex}.productUnitId`, nextIds[0], { shouldDirty: true });
+    setValue(
+        `licenseOfferings.${offeringIndex}.productUnitTempId`,
+        nextIds.length === 0 ? nextTempIds[0] : undefined,
+        { shouldDirty: true }
+    );
+    await persistOfferingUnitScope(productId, offering.id, {
+        ...offering,
+        productUnitIds: nextIds,
+        productUnitId: nextIds[0],
+    });
     await invalidateAllPricingQueries(queryClient, productId);
 };
 

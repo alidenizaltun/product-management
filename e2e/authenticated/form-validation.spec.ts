@@ -16,6 +16,7 @@ interface RequiredFieldForm {
 }
 
 const REQUIRED_FIELD_FORMS: RequiredFieldForm[] = [
+  { route: "/definitions/categories/new", submitLabel: "Kaydet", expectedMessage: "Ad zorunludur" },
   { route: "/definitions/suppliers/new", submitLabel: "Kaydet", expectedMessage: "Ad zorunludur" },
   { route: "/definitions/warehouses/new", submitLabel: "Kaydet", expectedMessage: "Ad zorunludur" },
   { route: "/definitions/regions/new", submitLabel: "Kaydet", expectedMessage: "Ad zorunludur" },
@@ -65,28 +66,4 @@ test.describe("Form doğrulamaları", () => {
       await expect(submit).toBeDisabled();
     });
   }
-  // Kategori formunda Kaydet, form kirlenene kadar bilerek pasif tutuluyor
-  // (disabled={!isDirty && !isEdit}); doğrulamayı görmek için önce zorunlu
-  // olmayan bir alanı doldurup Ad'ı boş bırakıyoruz.
-  test("boş adla kaydedilmiyor: /definitions/categories/new", async ({ page }) => {
-    const writeRequests: string[] = [];
-    page.on("request", (request) => {
-      if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method())) {
-        writeRequests.push(`${request.method()} ${request.url()}`);
-      }
-    });
-
-    await page.goto("/definitions/categories/new");
-    const submit = page.getByRole("button", { name: "Kaydet" }).first();
-    await expect(submit).toBeVisible({ timeout: 20_000 });
-    await expect(submit).toBeDisabled();
-
-    await page.getByLabel("Açıklama").fill("doğrulama denemesi");
-    await expect(submit).toBeEnabled();
-    await submit.click();
-
-    await expect(page.getByText("Ad zorunludur").first()).toBeVisible({ timeout: 10_000 });
-    await expect(page).toHaveURL(/\/definitions\/categories\/new$/);
-    expect(writeRequests, `Boş form yazma isteği gönderdi: ${writeRequests.join(", ")}`).toEqual([]);
-  });
 });

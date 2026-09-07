@@ -92,13 +92,7 @@ const CategoryFormPage: React.FC = () => {
               >
                 İptal
               </button>
-              <LoadingButton
-                color="primary py-2"
-                type="submit"
-                form="category-form"
-                loading={isPending}
-                disabled={!isDirty && !isEdit}
-              >
+              <LoadingButton color="primary py-2" type="submit" form="category-form" loading={isPending}>
                 <Icon name="save" className="me-1" />
                 Kaydet
               </LoadingButton>

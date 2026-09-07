@@ -54,7 +54,7 @@ export default defineConfig({
     // değişmiyor. Faz 7 izole e2e CI job'u E2E_API_BASE_URL'i kendi ephemeral
     // API'sine (http://localhost:5080) ayarlayıp bu fallback'i geçersiz kılar.
     env: {
-      VITE_API_BASE_URL: process.env.E2E_API_BASE_URL ?? "https://pmapi.godeva.com.tr/",
+      VITE_API_BASE_URL: process.env.E2E_API_BASE_URL ?? "https://pmapi.deva.net.tr/",
     },
   },
 });

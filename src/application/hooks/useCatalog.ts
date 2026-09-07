@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { categoryRepository, supplierRepository, warehouseRepository } from "@/infrastructure/api/repositories";
+import { invalidateLookups } from "./useLookups";
 import {
   CreateProductCategoryRequestDto,
   CreateProductSupplierRequestDto,
@@ -33,7 +34,10 @@ export const useCategoryMutations = () => {
   return {
     create: useMutation({
       mutationFn: (payload: CreateProductCategoryRequestDto) => categoryRepository.create(payload),
-      onSuccess: () => qc.invalidateQueries({ queryKey: catalogKeys.categories }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: catalogKeys.categories });
+        invalidateLookups(qc);
+      },
     }),
     update: useMutation({
       mutationFn: (vars: { id: string; payload: UpdateProductCategoryRequestDto }) =>
@@ -41,11 +45,15 @@ export const useCategoryMutations = () => {
       onSuccess: (_d, vars) => {
         qc.invalidateQueries({ queryKey: catalogKeys.categories });
         qc.invalidateQueries({ queryKey: catalogKeys.category(vars.id) });
+        invalidateLookups(qc);
       },
     }),
     remove: useMutation({
       mutationFn: (id: string) => categoryRepository.delete(id),
-      onSuccess: () => qc.invalidateQueries({ queryKey: catalogKeys.categories }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: catalogKeys.categories });
+        invalidateLookups(qc);
+      },
     }),
   };
 };
@@ -65,7 +73,10 @@ export const useSupplierMutations = () => {
   return {
     create: useMutation({
       mutationFn: (payload: CreateProductSupplierRequestDto) => supplierRepository.create(payload),
-      onSuccess: () => qc.invalidateQueries({ queryKey: catalogKeys.suppliers }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: catalogKeys.suppliers });
+        invalidateLookups(qc);
+      },
     }),
     update: useMutation({
       mutationFn: (vars: { id: string; payload: UpdateProductSupplierRequestDto }) =>
@@ -73,11 +84,15 @@ export const useSupplierMutations = () => {
       onSuccess: (_d, vars) => {
         qc.invalidateQueries({ queryKey: catalogKeys.suppliers });
         qc.invalidateQueries({ queryKey: catalogKeys.supplier(vars.id) });
+        invalidateLookups(qc);
       },
     }),
     remove: useMutation({
       mutationFn: (id: string) => supplierRepository.delete(id),
-      onSuccess: () => qc.invalidateQueries({ queryKey: catalogKeys.suppliers }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: catalogKeys.suppliers });
+        invalidateLookups(qc);
+      },
     }),
   };
 };
@@ -97,7 +112,10 @@ export const useWarehouseMutations = () => {
   return {
     create: useMutation({
       mutationFn: (payload: CreateWarehouseRequestDto) => warehouseRepository.create(payload),
-      onSuccess: () => qc.invalidateQueries({ queryKey: catalogKeys.warehouses }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: catalogKeys.warehouses });
+        invalidateLookups(qc);
+      },
     }),
     update: useMutation({
       mutationFn: (vars: { id: string; payload: UpdateWarehouseRequestDto }) =>
@@ -105,11 +123,15 @@ export const useWarehouseMutations = () => {
       onSuccess: (_d, vars) => {
         qc.invalidateQueries({ queryKey: catalogKeys.warehouses });
         qc.invalidateQueries({ queryKey: catalogKeys.warehouse(vars.id) });
+        invalidateLookups(qc);
       },
     }),
     remove: useMutation({
       mutationFn: (id: string) => warehouseRepository.delete(id),
-      onSuccess: () => qc.invalidateQueries({ queryKey: catalogKeys.warehouses }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: catalogKeys.warehouses });
+        invalidateLookups(qc);
+      },
     }),
   };
 };

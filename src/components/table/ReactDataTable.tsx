@@ -4,6 +4,7 @@ import exportFromJSON from "export-from-json";
 import CopyToClipboard from "react-copy-to-clipboard";
 import { Col, Modal, ModalBody, Row, Button } from "reactstrap";
 import { DataTablePagination } from "@/components/Component";
+import { matchesSearch } from "@/utils/turkishSearch";
 
 const Export = ({ data }) => {
   const [modal, setModal] = useState(false);
@@ -103,7 +104,7 @@ const ReactDataTable = ({ data, columns, pagination, actions, className, selecta
     let defaultData = tableData;
     if (searchText !== "") {
       defaultData = data.filter((item) => {
-        return item.name.toLowerCase().includes(searchText.toLowerCase());
+        return matchesSearch(item.name, searchText);
       });
       setTableData(defaultData);
     } else {

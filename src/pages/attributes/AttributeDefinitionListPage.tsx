@@ -9,6 +9,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import DataTableServer, { DataColumn } from "@/components/shared/DataTableServer";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { ProductAttributeDefinitionDto } from "@/domain/types/productOperations.types";
+import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 import {
   useAttributeDefinitions,
   useAttributeDefinitionMutations,
@@ -137,8 +138,13 @@ const AttributeDefinitionListPage: React.FC = () => {
         onCancel={() => setPendingDelete(null)}
         onConfirm={async () => {
           if (!pendingDelete) return;
-          await remove.mutateAsync(pendingDelete.id);
-          setPendingDelete(null);
+          try {
+            await remove.mutateAsync(pendingDelete.id);
+            showSuccess("Öznitelik tanımı silindi.");
+            setPendingDelete(null);
+          } catch (error) {
+            showApiError(error);
+          }
         }}
       />
     </>

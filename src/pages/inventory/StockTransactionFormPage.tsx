@@ -11,6 +11,7 @@ import WarehouseSelect from "@/components/shared/selects/WarehouseSelect";
 import { TextInput, NumberInput, Textarea, FormField, LoadingButton, UnsavedChangesDialog } from "@/components/shared";
 import { useUnsavedChangesGuard } from "@/application/hooks/useUnsavedChangesGuard";
 import { useInventoryTransactionMutations } from "@/application/hooks/useInventory";
+import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 
 interface FormValues {
   productId: string;
@@ -48,19 +49,24 @@ const StockTransactionFormPage: React.FC = () => {
   });
 
   const onSubmit = async (values: FormValues) => {
-    await create.mutateAsync({
-      productId: values.productId,
-      warehouseId: values.warehouseId || undefined,
-      transactionType: Number(values.transactionType),
-      quantity: Number(values.quantity),
-      unitCost: values.unitCost,
-      referenceType: values.referenceType || undefined,
-      referenceNumber: values.referenceNumber || undefined,
-      note: values.note || undefined,
-      occurredAt: values.occurredAt || undefined,
-    });
-    allowNextNavigation();
-    navigate("/inventory/transactions");
+    try {
+      await create.mutateAsync({
+        productId: values.productId,
+        warehouseId: values.warehouseId || undefined,
+        transactionType: Number(values.transactionType),
+        quantity: Number(values.quantity),
+        unitCost: values.unitCost,
+        referenceType: values.referenceType || undefined,
+        referenceNumber: values.referenceNumber || undefined,
+        note: values.note || undefined,
+        occurredAt: values.occurredAt || undefined,
+      });
+      showSuccess("Stok hareketi oluşturuldu.");
+      allowNextNavigation();
+      navigate("/inventory/transactions");
+    } catch (error) {
+      showApiError(error);
+    }
   };
 
   const { blocker, allowNextNavigation } = useUnsavedChangesGuard(isDirty);

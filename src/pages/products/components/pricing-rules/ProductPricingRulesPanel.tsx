@@ -584,9 +584,14 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
 
     try {
       setAddingUnit(true);
-      const { productUnitId, isTemp } = await onCreateProductUnit(definition);
+      const { productUnitId, isTemp, reused } = await onCreateProductUnit(definition);
       updateProductUnitScope(isTemp ? `temp:${productUnitId}` : `id:${productUnitId}`, true);
       await onAssignProductUnitToPlan?.(isTemp ? { _tempId: productUnitId } : { id: productUnitId });
+      showSuccess(
+        reused
+          ? `"${definition.name}" birimi bu plana da eklendi.`
+          : `"${definition.name}" birimi ürüne eklendi.`
+      );
       setUnitModalOpen(false);
     } catch (error) {
       showApiError(error);
@@ -665,13 +670,19 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
       return value === selectedOfferingValue;
     })
     : undefined;
-  // Her satış planı sadece kendi productUnitIds/productUnitTempIds listesindeki birimleri görür.
-  // Bir birim bu plana henüz atanmamışsa burada listelenmez; ataması "Yeni birim ekle" akışıyla yapılır.
-  const activeSelectableProductUnits = productUnits.filter((unit) => {
-    if (!unit.isActive || !(unit.id || unit._tempId)) return false;
+  // Ürün birimleri ürün seviyesindedir: bir plana eklenen birim aynı ürünün bütün
+  // planlarında doğrudan listelenir. Planın kendi productUnitIds listesi birimi
+  // gizlemez, sadece o planda fiilen kullanılıp kullanılmadığını gösterir.
+  const activeSelectableProductUnits = productUnits.filter(
+    (unit) => unit.isActive && Boolean(unit.id || unit._tempId)
+  );
+  const isUnitAssignedToPlan = (unit: ScopedProductUnitOption) => {
     if (!isLocked) return true;
-    return (unit.id && lockedOfferingUnitIds.has(unit.id)) || (unit._tempId && lockedOfferingUnitTempIds.has(unit._tempId));
-  });
+    return Boolean(
+      (unit.id && lockedOfferingUnitIds.has(unit.id)) ||
+      (unit._tempId && lockedOfferingUnitTempIds.has(unit._tempId))
+    );
+  };
   const availableProductUnits = activeSelectableProductUnits.filter(
     (unit) => !selectedProductUnitValues.includes(getProductUnitScopeValue(unit))
   );
@@ -761,6 +772,22 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     }));
   };
 
+  /**
+   * Bir birimi kuralın kapsamına alır. Birim ürüne ait olup bu plana henüz
+   * atanmamışsa (başka bir planda eklenmiş olabilir) aynı anda plana da atanır;
+   * böylece kullanıcı birimi her planda yeniden oluşturmak zorunda kalmaz.
+   */
+  const handleAddUnitToRule = async (unit: ScopedProductUnitOption) => {
+    updateProductUnitScope(getProductUnitScopeValue(unit), true);
+    if (isUnitAssignedToPlan(unit)) return;
+
+    try {
+      await onAssignProductUnitToPlan?.(unit.id ? { id: unit.id } : { _tempId: unit._tempId });
+    } catch (error) {
+      showApiError(error);
+    }
+  };
+
   return (
     <div className="row g-4">
       {editable && (
@@ -775,13 +802,15 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                   <div className="pricing-rule-scope-copy">
                     <span className="overline-title text-primary">1. Adım — Birimler</span>
                     <p className="mb-0 text-soft">
-                      Kuralın uygulanacağı ürün birimlerini seçin. Bir birim eklendiğinde eklenebilir listeden düşer; tekrar seçilmesi için önce kaldırılması gerekir.
+                      Kuralın uygulanacağı ürün birimlerini seçin. Birimler ürün seviyesindedir: bir kez
+                      eklendiğinde ürünün bütün satış planlarında listelenir ve kurala eklediğinizde bu plana
+                      da otomatik atanır.
                     </p>
                   </div>
                   <div className="row g-3">
                     <div className="col-md-6">
                       <div className="d-flex align-items-center justify-content-between mb-2">
-                        <label className="form-label mb-0">Plana ait birimler</label>
+                        <label className="form-label mb-0">Ürünün birimleri</label>
                         {onCreateProductUnit && (
                           <Button color="light" size="sm" type="button" onClick={() => setUnitModalOpen(true)}>
                             <em className="icon ni ni-plus me-1" />
@@ -792,17 +821,23 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                       <div className="pricing-unit-list">
                         {availableProductUnits.map((unit) => {
                           const value = getProductUnitScopeValue(unit);
+                          const inPlan = isUnitAssignedToPlan(unit);
                           return (
                             <div className="pricing-unit-list-item" key={value}>
                               <span>
                                 {getProductUnitLabel(unit)} ({unit.code}){!unit.id ? " (kaydedilecek)" : ""}
+                                {isLocked && !inPlan && (
+                                  <span className="badge bg-outline-light text-soft ms-2" title="Bu birim ürüne ekli; kurala eklediğinizde bu plana da atanır.">
+                                    Bu planda kullanılmıyor
+                                  </span>
+                                )}
                               </span>
                               <div className="d-flex gap-1">
-                                <Button color="light" size="sm" type="button" onClick={() => updateProductUnitScope(value, true)}>
+                                <Button color="light" size="sm" type="button" onClick={() => void handleAddUnitToRule(unit)}>
                                   <em className="icon ni ni-plus" />
                                   Ekle
                                 </Button>
-                                {onRemoveProductUnitFromPlan && (
+                                {onRemoveProductUnitFromPlan && inPlan && isLocked && (
                                   <Button
                                     color="warning"
                                     outline
@@ -831,7 +866,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                           );
                         })}
                         {availableProductUnits.length === 0 && (
-                          <span className="text-soft fs-12px">Plana eklenmiş birim yok.</span>
+                          <span className="text-soft fs-12px">Ürüne eklenmiş birim yok.</span>
                         )}
                       </div>
                     </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import DualListBox from "react-dual-listbox";
 import Icon from "@/components/icon/Icon";
+import { matchesSearch } from "@/utils/turkishSearch";
 
 const ReactDualList = ({ options, icon, canFilter, preSelected }) => {
   const [data, setData] = useState(options);
@@ -14,7 +15,7 @@ const ReactDualList = ({ options, icon, canFilter, preSelected }) => {
   useEffect(() => {
     if (filterText !== "") {
       const filteredObject = options.filter((item) => {
-        return item.label.toLowerCase().includes(filterText.toLowerCase());
+        return matchesSearch(item.label, filterText);
       });
       setData([...filteredObject]);
     } else {

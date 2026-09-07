@@ -7,6 +7,7 @@ import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
+import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 import {
   useInventoryReservation,
   useInventoryReservationMutations,
@@ -38,7 +39,12 @@ const ReservationDetailPage: React.FC = () => {
 
   const setStatus = async (status: number) => {
     if (!id) return;
-    await updateStatus.mutateAsync({ id, payload: { status } });
+    try {
+      await updateStatus.mutateAsync({ id, payload: { status } });
+      showSuccess(status === 2 ? "Rezervasyon tamamlandı." : "Rezervasyon iptal edildi.");
+    } catch (error) {
+      showApiError(error);
+    }
   };
 
   return (

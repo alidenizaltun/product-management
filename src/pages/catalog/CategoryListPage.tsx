@@ -10,6 +10,7 @@ import DataTableServer, { DataColumn } from "@/components/shared/DataTableServer
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { ProductCategoryDto } from "@/domain/types/productOperations.types";
 import { useCategories, useCategoryMutations } from "@/application/hooks/useCatalog";
+import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 
 const PAGE_SIZE = 10;
 
@@ -119,8 +120,13 @@ const CategoryListPage: React.FC = () => {
         onCancel={() => setPendingDelete(null)}
         onConfirm={async () => {
           if (!pendingDelete) return;
-          await remove.mutateAsync(pendingDelete.id);
-          setPendingDelete(null);
+          try {
+            await remove.mutateAsync(pendingDelete.id);
+            showSuccess("Kategori silindi.");
+            setPendingDelete(null);
+          } catch (error) {
+            showApiError(error);
+          }
         }}
       />
     </>

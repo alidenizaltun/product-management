@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { lookupRepository } from "@/infrastructure/api/repositories";
 import type { LookupItem } from "@/domain/types/lookup.types";
 
@@ -63,3 +64,17 @@ export const useAllLookups = (includeInactive = false) =>
     queryFn: () => lookupRepository.all(includeInactive),
     staleTime: STALE_TIME,
   });
+
+// ─── cache invalidation ───────────────────────────────────────────────────────
+
+/**
+ * Lookup cache'i 5 dakika taze sayıldığı için, bir sözlük kaydı (kategori,
+ * depo, tedarikçi, birim, fiyat listesi, ürün) eklendiğinde/güncellendiğinde
+ * ilgili mutation'ın bunu çağırması şart. Aksi halde yeni kayıt, ürün formundaki
+ * seçim kutularında 5 dakika boyunca görünmez.
+ *
+ * Bileşik ["lookups", "all"] sorgusu da her listeyi içerdiğinden, prefix
+ * eşleşmesiyle tüm lookup sorguları birlikte tazelenir.
+ */
+export const invalidateLookups = (qc: QueryClient) =>
+  qc.invalidateQueries({ queryKey: ["lookups"] });

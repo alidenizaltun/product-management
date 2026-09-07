@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/services/query/queryKeys";
 import { unitDefinitionRepository } from "@/infrastructure/api/repositories";
+import { invalidateLookups } from "./useLookups";
 import type {
     CreateUnitDefinitionRequestDto,
     UpdateUnitDefinitionRequestDto,
@@ -24,6 +25,7 @@ export const useUnitDefinitionMutations = () => {
 
     const invalidate = () => {
         qc.invalidateQueries({ queryKey: queryKeys.catalog.unitDefinitions });
+        invalidateLookups(qc);
     };
 
     const create = useMutation({

@@ -57,9 +57,13 @@ export const GuestGuard: React.FC<RouteGuardProps> = ({ children }) => {
   }, [initialize]);
 
   if (isAuthenticated) {
-    const from =
-      (location.state as { from?: { pathname?: string } })?.from?.pathname ||
-      config.routes.home;
+    // AuthGuard, oturum store'u henüz hazır değilken derin bağlantıları da buraya
+    // yönlendiriyor. Sadece pathname geri yüklenirse "?productId=..." gibi query
+    // parametreleri kaybolur ve kullanıcı ürün seçilmemiş boş sayfaya düşer.
+    const previous = (location.state as { from?: { pathname?: string; search?: string; hash?: string } })?.from;
+    const from = previous?.pathname
+      ? `${previous.pathname}${previous.search ?? ""}${previous.hash ?? ""}`
+      : config.routes.home;
 
     return <Navigate to={from} replace />;
   }

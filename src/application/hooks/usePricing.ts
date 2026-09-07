@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { priceListRepository } from "@/infrastructure/api/repositories";
+import { invalidateLookups } from "./useLookups";
 import {
   CreateProductPriceListRequestDto,
   UpdateProductPriceListRequestDto,
@@ -33,7 +34,10 @@ export const usePriceListMutations = () => {
   return {
     create: useMutation({
       mutationFn: (payload: CreateProductPriceListRequestDto) => priceListRepository.create(payload),
-      onSuccess: () => qc.invalidateQueries({ queryKey: pricingKeys.priceLists }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: pricingKeys.priceLists });
+        invalidateLookups(qc);
+      },
     }),
     update: useMutation({
       mutationFn: (vars: { id: string; payload: UpdateProductPriceListRequestDto }) =>
@@ -41,11 +45,15 @@ export const usePriceListMutations = () => {
       onSuccess: (_d, vars) => {
         qc.invalidateQueries({ queryKey: pricingKeys.priceLists });
         qc.invalidateQueries({ queryKey: pricingKeys.priceList(vars.id) });
+        invalidateLookups(qc);
       },
     }),
     remove: useMutation({
       mutationFn: (id: string) => priceListRepository.delete(id),
-      onSuccess: () => qc.invalidateQueries({ queryKey: pricingKeys.priceLists }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: pricingKeys.priceLists });
+        invalidateLookups(qc);
+      },
     }),
   };
 };

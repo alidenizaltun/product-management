@@ -5,6 +5,7 @@ import { unitDefinitionRepository } from "@/infrastructure/api/repositories";
 import { queryKeys } from "@/services/query/queryKeys";
 import { useUnitDefinitionMutations } from "@/application/hooks/useUnitDefinitions";
 import { showApiError } from "@/components/shared/NotificationAlert";
+import { matchesAnySearch } from "@/utils/turkishSearch";
 import type { UnitDefinitionDto } from "@/domain/types/productOperations.types";
 
 const TURKISH_CHAR_MAP: Record<string, string> = {
@@ -28,7 +29,11 @@ const generateUnitCode = (name: string) =>
 interface UnitQuickAddModalProps {
     isOpen: boolean;
     onClose: () => void;
-    /** Üründe zaten bir ProductUnit'a bağlı unitDefinitionId'ler — seçilemesin diye devre dışı bırakılır. */
+    /**
+     * Üründe zaten bir ProductUnit'a bağlı unitDefinitionId'ler. Bu kayıtlar listeden
+     * gizlenmez; devre dışı ve "ürüne ekli" etiketiyle gösterilir, böylece kullanıcı
+     * birimin neden tekrar eklenemediğini görür (birim zaten soldaki listede durur).
+     */
     existingUnitDefinitionIds?: string[];
     onUnitSelected: (definition: UnitDefinitionDto) => void;
     adding?: boolean;
@@ -56,11 +61,8 @@ const UnitQuickAddModal: React.FC<UnitQuickAddModalProps> = ({
     const isBusy = adding || create.isPending;
 
     const filtered = useMemo(() => {
-        const term = search.trim().toLocaleLowerCase("tr-TR");
-        if (!term) return unitDefinitions;
-        return unitDefinitions.filter(
-            (unit) => unit.name.toLocaleLowerCase("tr-TR").includes(term) || unit.code.toLocaleLowerCase("tr-TR").includes(term)
-        );
+        if (!search.trim()) return unitDefinitions;
+        return unitDefinitions.filter((unit) => matchesAnySearch([unit.name, unit.code], search));
     }, [unitDefinitions, search]);
 
     const resetNewUnitForm = () => {
@@ -134,13 +136,11 @@ const UnitQuickAddModal: React.FC<UnitQuickAddModalProps> = ({
                         >
                             {filtered.map((unit) => {
                                 const isExisting = existingUnitDefinitionIds.includes(unit.id);
-                                if (!isExisting) {
-                                    return (
-                                        <option key={unit.id} value={unit.id} disabled={isExisting}>
-                                            {unit.name} ({unit.code})
-                                        </option>
-                                    );
-                                }
+                                return (
+                                    <option key={unit.id} value={unit.id} disabled={isExisting}>
+                                        {unit.name} ({unit.code}){isExisting ? " — ürüne ekli" : ""}
+                                    </option>
+                                );
                             })}
                         </select>
                         {!isLoading && filtered.length === 0 && (

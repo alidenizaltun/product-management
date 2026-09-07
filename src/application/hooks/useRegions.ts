@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/services/query/queryKeys";
 import { regionRepository } from "@/infrastructure/api/repositories";
+import { invalidateLookups } from "./useLookups";
 import type {
     CreateRegionRequestDto,
     UpdateRegionRequestDto,
@@ -24,7 +25,7 @@ export const useRegionMutations = () => {
 
     const invalidate = () => {
         qc.invalidateQueries({ queryKey: queryKeys.catalog.regions });
-        qc.invalidateQueries({ queryKey: ["lookups", "regions"] });
+        invalidateLookups(qc);
     };
 
     const create = useMutation({

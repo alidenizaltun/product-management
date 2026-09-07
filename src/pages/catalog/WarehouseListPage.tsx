@@ -11,6 +11,7 @@ import StatusBadge from "@/components/shared/StatusBadge";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { WarehouseDto } from "@/domain/types/productOperations.types";
 import { useWarehouses, useWarehouseMutations } from "@/application/hooks/useCatalog";
+import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 
 const PAGE_SIZE = 10;
 
@@ -112,8 +113,13 @@ const WarehouseListPage: React.FC = () => {
         onCancel={() => setPendingDelete(null)}
         onConfirm={async () => {
           if (!pendingDelete) return;
-          await remove.mutateAsync(pendingDelete.id);
-          setPendingDelete(null);
+          try {
+            await remove.mutateAsync(pendingDelete.id);
+            showSuccess("Depo silindi.");
+            setPendingDelete(null);
+          } catch (error) {
+            showApiError(error);
+          }
         }}
       />
     </>

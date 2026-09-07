@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useModuleOfferingPrices } from "@/application/hooks/useModuleOfferingPrices";
 import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
+import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 import type {
     ProductModuleOfferingPriceDto,
     CreateProductModuleOfferingPriceRequest,
@@ -72,33 +73,45 @@ const ModuleOfferingPricesPanel: React.FC<Props> = ({ productId, moduleId, licen
             isActive: form.isActive,
         };
 
-        if (editingId) {
-            const payload = {
-                ...basePayload,
-                productLicenseOfferingId: form.productLicenseOfferingId,
-            };
-            await update.mutateAsync({ priceId: editingId, payload });
-        } else if (form.productLicenseOfferingId === ALL_LICENSE_OFFERINGS_KEY) {
-            await Promise.all(
-                availableOfferings.map((offering) =>
-                    create.mutateAsync({
-                        ...basePayload,
-                        productLicenseOfferingId: offering.id,
-                    })
-                )
-            );
-        } else {
-            await create.mutateAsync({
-                ...basePayload,
-                productLicenseOfferingId: form.productLicenseOfferingId,
-            } as CreateProductModuleOfferingPriceRequest);
+        try {
+            if (editingId) {
+                const payload = {
+                    ...basePayload,
+                    productLicenseOfferingId: form.productLicenseOfferingId,
+                };
+                await update.mutateAsync({ priceId: editingId, payload });
+                showSuccess("Modül fiyatı güncellendi.");
+            } else if (form.productLicenseOfferingId === ALL_LICENSE_OFFERINGS_KEY) {
+                await Promise.all(
+                    availableOfferings.map((offering) =>
+                        create.mutateAsync({
+                            ...basePayload,
+                            productLicenseOfferingId: offering.id,
+                        })
+                    )
+                );
+                showSuccess("Modül fiyatları tüm planlar için eklendi.");
+            } else {
+                await create.mutateAsync({
+                    ...basePayload,
+                    productLicenseOfferingId: form.productLicenseOfferingId,
+                } as CreateProductModuleOfferingPriceRequest);
+                showSuccess("Modül fiyatı eklendi.");
+            }
+            closeForm();
+        } catch (error) {
+            showApiError(error);
         }
-        closeForm();
     };
 
     const handleDelete = async (priceId: string) => {
-        await remove.mutateAsync(priceId);
-        setDeleteId(null);
+        try {
+            await remove.mutateAsync(priceId);
+            showSuccess("Modül fiyatı silindi.");
+            setDeleteId(null);
+        } catch (error) {
+            showApiError(error);
+        }
     };
 
     const usedOfferingIds = new Set(prices.map((p) => p.productLicenseOfferingId));

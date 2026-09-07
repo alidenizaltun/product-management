@@ -12,6 +12,7 @@ import ProductCard from "@/pages/products/components/ProductCard";
 import { ProductDto } from "@/domain/types/productOperations.types";
 import { useProducts } from "@/application/hooks/useProducts";
 import { useProductMutations } from "@/application/hooks/useProductMutations";
+import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 
 const PAGE_SIZE = 12;
 
@@ -260,8 +261,13 @@ const ProductListPage: React.FC = () => {
         onCancel={() => setPendingDelete(null)}
         onConfirm={async () => {
           if (!pendingDelete) return;
-          await deleteMutation.mutateAsync(pendingDelete.id);
-          setPendingDelete(null);
+          try {
+            await deleteMutation.mutateAsync(pendingDelete.id);
+            showSuccess("Ürün silindi.");
+            setPendingDelete(null);
+          } catch (error) {
+            showApiError(error);
+          }
         }}
       />
     </>

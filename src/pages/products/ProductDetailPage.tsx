@@ -14,6 +14,7 @@ import { buildProductDetailTabs } from "@/pages/products/components/detail/Produ
 import { KIND_LABELS, STATUS_LABELS } from "@/pages/products/components/detail/constants";
 import ProductSectionShortcuts from "@/pages/products/components/detail/ProductSectionShortcuts";
 import { buildProductSectionLink } from "@/pages/products/config/productSections";
+import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 
 const ProductDetailPage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,8 +51,13 @@ const ProductDetailPage: React.FC = () => {
 
   const handleDelete = async () => {
     if (!id) return;
-    await deleteMutation.mutateAsync(id);
-    navigate("/products");
+    try {
+      await deleteMutation.mutateAsync(id);
+      showSuccess("Ürün silindi.");
+      navigate("/products");
+    } catch (error) {
+      showApiError(error);
+    }
   };
 
   const kind = product ? KIND_LABELS[product.kind] : undefined;

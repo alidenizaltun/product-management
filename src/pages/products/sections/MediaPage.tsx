@@ -5,16 +5,16 @@ import MediaUploadManager from "@/pages/products/components/editor/MediaUploadMa
 /** Ürün Bilgileri > Medya */
 const MediaPage: React.FC = () => (
     <ProductSectionPage sectionKey="media">
-        {() => (
+        {(context) => (
             <section className="card card-bordered">
                 <div className="card-inner border-bottom">
                     <h5 className="title mb-1">Medya Galerisi</h5>
                     <p className="text-soft mb-0">
-                        Kapak görseli, galeri sırası ve alternatif metinleri seçili ürün bağlamında düzenleyin.
+                        Birden fazla görsel yükleyin; dosyalar sunucuda saklanır. Kapak görseli, galeri sırası ve alternatif metinleri buradan düzenleyin.
                     </p>
                 </div>
                 <div className="card-inner">
-                    <MediaUploadManager />
+                    <MediaUploadManager productId={context.productId} />
                 </div>
             </section>
         )}

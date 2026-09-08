@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
@@ -10,6 +10,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useFieldArray, useFormContext } from "react-hook-form";
+import { FileUploadZone } from "@/components/shared/FileUploadZone";
+import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
+import { useProductMedia } from "@/application/hooks/useProductMedia";
+import { resolveMediaUrl } from "@/infrastructure/helpers/mediaUrl";
 import { ProductFormValues } from "@/pages/products/types/productEditor.types";
 
 const MEDIA_TYPES = [
@@ -19,15 +23,15 @@ const MEDIA_TYPES = [
   { value: 4, label: "3D Model" },
 ];
 
-const emptyMedia = () => ({
-  mediaType: 1,
-  url: "",
-  thumbnailUrl: "",
-  mimeType: "image/jpeg",
-  altText: "",
-  isPrimary: false,
-  sortOrder: 0,
-});
+const IMAGE_ACCEPT = {
+  "image/jpeg": [".jpg", ".jpeg"],
+  "image/png": [".png"],
+  "image/gif": [".gif"],
+  "image/webp": [".webp"],
+};
+
+const MAX_FILE_SIZE = 8 * 1024 * 1024;
+const MAX_FILES_PER_UPLOAD = 20;
 
 const SortableMediaCard: React.FC<{
   id: string;
@@ -52,10 +56,16 @@ const SortableMediaCard: React.FC<{
   );
 };
 
-const MediaUploadManager: React.FC = () => {
+interface MediaUploadManagerProps {
+  productId: string;
+}
+
+const MediaUploadManager: React.FC<MediaUploadManagerProps> = ({ productId }) => {
   const { control, register, watch, setValue, formState: { errors } } = useFormContext<ProductFormValues>();
   const { fields, append, remove, move } = useFieldArray({ control, name: "mediaItems" });
   const mediaItems = watch("mediaItems");
+  const { uploadImagesMutation } = useProductMedia();
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -79,38 +89,63 @@ const MediaUploadManager: React.FC = () => {
     reorderMedia(oldIndex, newIndex);
   };
 
-  const appendMedia = (isPrimary = false) => {
-    append({ ...emptyMedia(), isPrimary, sortOrder: fields.length + 1 });
+  const handleFilesSelected = async (files: File[]) => {
+    if (!productId || files.length === 0) return;
+
+    setUploadError(null);
+    try {
+      const created = await uploadImagesMutation.mutateAsync({ productId, files });
+      const currentCount = fields.length;
+      created.forEach((item, index) => {
+        append({
+          mediaType: item.mediaType || 1,
+          url: item.url,
+          thumbnailUrl: item.thumbnailUrl || item.url,
+          mimeType: item.mimeType || "image/jpeg",
+          altText: item.altText || "",
+          isPrimary: Boolean(item.isPrimary) || (currentCount === 0 && index === 0),
+          sortOrder: Number.isFinite(item.sortOrder) ? Number(item.sortOrder) : currentCount + index + 1,
+        });
+      });
+      showSuccess(created.length === 1 ? "Görsel yüklendi." : `${created.length} görsel yüklendi.`);
+    } catch (error) {
+      showApiError(error);
+      setUploadError("Görseller yüklenirken bir hata oluştu. Lütfen tekrar deneyin.");
+    }
   };
+
+  const isUploading = uploadImagesMutation.isPending;
 
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h6 className="overline-title text-primary mb-0">Medya Galerisi</h6>
-          <p className="text-soft fs-13px mb-0">Kapak görseli, galeri sırası ve alt metinleri ürün bağlamında yönetin.</p>
+          <p className="text-soft fs-13px mb-0">
+            Birden fazla görsel seçin; dosyalar sunucuya yüklenir ve ürün galerisine eklenir.
+          </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
-          onClick={() => appendMedia(fields.length === 0)}
-        >
-          <em className="icon ni ni-plus me-1" />
-          Medya Ekle
-        </button>
       </div>
 
-      <button
-        type="button"
-        className="border border-dashed rounded bg-lighter text-center p-4 w-100 mb-3"
-        onClick={() => appendMedia(fields.length === 0)}
-      >
-        <em className="icon ni ni-upload-cloud fs-1 text-primary d-block mb-2" />
-        <span className="fw-medium d-block">Dosya veya bağlantı ekle</span>
-        <span className="text-soft fs-13px">İlk medya otomatik kapak olarak işaretlenir.</span>
-      </button>
+      <FileUploadZone
+        onFilesSelected={handleFilesSelected}
+        accept={IMAGE_ACCEPT}
+        maxFiles={MAX_FILES_PER_UPLOAD}
+        maxSize={MAX_FILE_SIZE}
+        disabled={isUploading}
+        label={isUploading ? "Görseller yükleniyor..." : "Görselleri sürükleyin veya tıklayarak seçin"}
+        hint="JPG, PNG, GIF veya WEBP. En fazla 20 dosya, dosya başına 8 MB. İlk görsel kapak olarak işaretlenir."
+        className="mb-3"
+      />
 
-      {fields.length === 0 && (
+      {uploadError && (
+        <div className="alert alert-danger alert-icon mb-3">
+          <em className="icon ni ni-alert-circle" />
+          {uploadError}
+        </div>
+      )}
+
+      {fields.length === 0 && !isUploading && (
         <div className="text-center py-5 text-soft">
           <em className="icon ni ni-img fs-2 d-block mb-2" />
           <p className="mb-0">Henüz medya eklenmedi.</p>
@@ -122,7 +157,8 @@ const MediaUploadManager: React.FC = () => {
           <div className="row g-3">
             {fields.map((field, index) => {
               const mediaItem = mediaItems?.[index];
-              const previewUrl = mediaItem?.thumbnailUrl || mediaItem?.url;
+              const previewUrl = resolveMediaUrl(mediaItem?.thumbnailUrl || mediaItem?.url);
+              const isImage = (mediaItem?.mediaType ?? 1) === 1;
 
               return (
                 <SortableMediaCard id={field.id} key={field.id}>
@@ -175,6 +211,9 @@ const MediaUploadManager: React.FC = () => {
                           </div>
                         </div>
                         <input type="hidden" {...register(`mediaItems.${index}.sortOrder`, { valueAsNumber: true })} />
+                        <input type="hidden" {...register(`mediaItems.${index}.url`)} />
+                        <input type="hidden" {...register(`mediaItems.${index}.thumbnailUrl`)} />
+                        <input type="hidden" {...register(`mediaItems.${index}.mimeType`)} />
 
                         <div className="row g-3">
                           <div className="col-12">
@@ -182,17 +221,22 @@ const MediaUploadManager: React.FC = () => {
                               className="rounded bg-lighter border d-flex align-items-center justify-content-center overflow-hidden"
                               style={{ aspectRatio: "16 / 9" }}
                             >
-                              {previewUrl ? (
+                              {previewUrl && isImage ? (
                                 <img
                                   src={previewUrl}
                                   alt={mediaItem?.altText || `Medya ${index + 1}`}
                                   className="w-100 h-100"
                                   style={{ objectFit: "cover" }}
                                 />
+                              ) : previewUrl ? (
+                                <div className="text-center text-soft">
+                                  <em className="icon ni ni-file fs-1 d-block mb-2" />
+                                  <span className="fs-13px">Önizleme yok</span>
+                                </div>
                               ) : (
                                 <div className="text-center text-soft">
                                   <em className="icon ni ni-img fs-1 d-block mb-2" />
-                                  <span className="fs-13px">URL girildiğinde önizleme görünür.</span>
+                                  <span className="fs-13px">Görsel henüz yüklenmedi.</span>
                                 </div>
                               )}
                             </div>
@@ -224,35 +268,11 @@ const MediaUploadManager: React.FC = () => {
                             </div>
                           </div>
 
-                          <div className="col-12">
-                            <label className="form-label">URL <span className="text-danger">*</span></label>
-                            <input
-                              className={`form-control ${errors.mediaItems?.[index]?.url ? "is-invalid" : ""}`}
-                              placeholder="https://example.com/image.jpg"
-                              {...register(`mediaItems.${index}.url`, { required: "URL zorunludur" })}
-                            />
-                            {errors.mediaItems?.[index]?.url && (
-                              <div className="invalid-feedback">{errors.mediaItems[index].url?.message}</div>
-                            )}
-                          </div>
-
-                          <div className="col-md-7">
-                            <label className="form-label">Küçük Resim URL</label>
-                            <input
-                              className="form-control"
-                              placeholder="https://example.com/thumb.jpg"
-                              {...register(`mediaItems.${index}.thumbnailUrl`)}
-                            />
-                          </div>
-
-                          <div className="col-md-5">
-                            <label className="form-label">MIME Tipi</label>
-                            <input
-                              className="form-control"
-                              placeholder="image/jpeg"
-                              {...register(`mediaItems.${index}.mimeType`)}
-                            />
-                          </div>
+                          {errors.mediaItems?.[index]?.url && (
+                            <div className="col-12">
+                              <div className="invalid-feedback d-block">{errors.mediaItems[index].url?.message}</div>
+                            </div>
+                          )}
 
                           <div className="col-12">
                             <label className="form-label">Alt Metin</label>
@@ -272,17 +292,6 @@ const MediaUploadManager: React.FC = () => {
           </div>
         </SortableContext>
       </DndContext>
-
-      {fields.length > 0 && (
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm mt-3"
-          onClick={() => appendMedia(false)}
-        >
-          <em className="icon ni ni-plus me-1" />
-          Medya Ekle
-        </button>
-      )}
     </div>
   );
 };

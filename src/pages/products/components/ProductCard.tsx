@@ -4,6 +4,7 @@ import { Card } from "reactstrap";
 import StatusBadge from "@/components/shared/StatusBadge";
 import type { ProductDto } from "@/domain/types/productOperations.types";
 import { getProductListImageUrl } from "@/domain/types/productOperations.types";
+import { resolveMediaUrl } from "@/infrastructure/helpers/mediaUrl";
 import { buildProductSectionLink } from "@/pages/products/config/productSections";
 
 const KIND_META: Record<number, { label: string; color: string; icon: string }> = {
@@ -34,7 +35,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete, selected =
   // Ürüne bağlı sayfalar sabittir; ürün `?productId=` ile önceden seçilir.
   const editUrl = buildProductSectionLink("general", product.id);
   const classificationUrl = buildProductSectionLink("classification", product.id);
-  const imageUrl = getProductListImageUrl(product);
+  const imageUrl = resolveMediaUrl(getProductListImageUrl(product));
   const [imageFailed, setImageFailed] = useState(false);
   const showImage = Boolean(imageUrl) && !imageFailed;
 

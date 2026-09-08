@@ -17,6 +17,7 @@ import {
   ProductModuleOfferingPriceDto,
   CreateProductModuleOfferingPriceRequest,
   UpdateProductModuleOfferingPriceRequest,
+  ProductMediaItemDto,
 } from "@/domain/types/productOperations.types";
 import { apiClient } from "../apiClient";
 import { apiEndpoints } from "../../config/apiEndpoints";
@@ -196,6 +197,18 @@ export class ProductRepository implements IProductRepository {
 
   async deleteModuleOfferingPrice(productId: string, moduleId: string, priceId: string): Promise<void> {
     await apiClient.delete<void>(apiEndpoints.products.moduleOfferingPriceById(productId, moduleId, priceId));
+  }
+
+  async getProductMedia(productId: string): Promise<ProductMediaItemDto[]> {
+    return apiClient.get<ProductMediaItemDto[]>(apiEndpoints.products.media(productId));
+  }
+
+  async uploadProductImages(productId: string, files: File[]): Promise<ProductMediaItemDto[]> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+    return apiClient.post<ProductMediaItemDto[]>(apiEndpoints.products.mediaUpload(productId), formData, {
+      timeout: 120000,
+    });
   }
 }
 

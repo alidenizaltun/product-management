@@ -63,6 +63,7 @@ const FileUploadZone: React.FC<FileUploadZoneProps> = ({
     accept,
     maxFiles,
     maxSize,
+    multiple: maxFiles !== 1,
     disabled,
   });
 

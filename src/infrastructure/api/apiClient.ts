@@ -48,6 +48,9 @@ class ApiClient {
         if (token && requestConfig.headers) {
           requestConfig.headers.Authorization = `Bearer ${token}`;
         }
+        if (requestConfig.data instanceof FormData && requestConfig.headers) {
+          delete requestConfig.headers["Content-Type"];
+        }
         return requestConfig;
       },
       (error) => Promise.reject(error)

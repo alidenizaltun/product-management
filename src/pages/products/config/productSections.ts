@@ -80,7 +80,7 @@ export const productSections: ProductSectionConfig[] = [
         label: "Medya",
         path: "/product-info/media",
         icon: "img",
-        description: "Kapak görseli, galeri sırası ve alternatif metinler",
+        description: "Ürün görsellerini yükleyin, kapak görseli ve galeri sırasını düzenleyin",
         group: "product-info",
         allowedKinds: ALL_PRODUCT_KINDS,
         permission: "product.basic.edit",

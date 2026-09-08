@@ -1,5 +1,6 @@
 import React from "react";
 import type { TabItem } from "@/components/shared/AppTabs";
+import { resolveMediaUrl } from "@/infrastructure/helpers/mediaUrl";
 import type {
   ProductDetailDto,
   ProductAttributeValueDto,
@@ -399,14 +400,14 @@ export const MediaTab: React.FC<{ items: ProductMediaItemDto[] }> = ({ items }) 
               </div>
             )}
             <div className="card-inner p-3 text-center">
-              <a href={m.url} target="_blank" rel="noreferrer" className="d-block mb-2">
+              <a href={resolveMediaUrl(m.url)} target="_blank" rel="noreferrer" className="d-block mb-2">
                 <div
                   className="d-flex align-items-center justify-content-center rounded bg-light"
                   style={{ height: 140 }}
                 >
                   {m.thumbnailUrl || m.url ? (
                     <img
-                      src={m.thumbnailUrl ?? m.url}
+                      src={resolveMediaUrl(m.thumbnailUrl ?? m.url)}
                       alt={m.altText ?? "Ürün görseli"}
                       className="rounded"
                       style={{ maxHeight: 120, maxWidth: "100%", objectFit: "contain" }}

@@ -1,5 +1,6 @@
 import React from "react";
 import type { ProductDetailDto } from "@/domain/types/productOperations.types";
+import { resolveMediaUrl } from "@/infrastructure/helpers/mediaUrl";
 import { KIND_LABELS, STATUS_LABELS } from "./constants";
 import { fmt } from "./utils";
 import { FlagPill } from "./shared";
@@ -35,7 +36,7 @@ const ProductDetailHero: React.FC<ProductDetailHeroProps> = ({ product }) => {
             >
               {primaryImage?.url ? (
                 <img
-                  src={primaryImage.thumbnailUrl ?? primaryImage.url}
+                  src={resolveMediaUrl(primaryImage.thumbnailUrl ?? primaryImage.url)}
                   alt={primaryImage.altText ?? product.name}
                   className="img-fluid"
                   style={{ maxHeight: 160, objectFit: "contain" }}

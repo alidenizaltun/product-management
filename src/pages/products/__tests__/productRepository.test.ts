@@ -165,4 +165,11 @@ describe("productRepository", () => {
  await expect(productRepository.deleteProduct("prod-001")).resolves.toBeUndefined();
  });
  });
+
+ describe("getProductMedia", () => {
+ it("ürün medya listesini döndürür", async () => {
+  const result = await productRepository.getProductMedia("prod-001");
+  expect(result).toEqual([]);
+ });
+ });
 });

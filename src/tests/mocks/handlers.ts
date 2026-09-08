@@ -76,6 +76,27 @@ export const handlers = [
  return new HttpResponse(null, { status: 204 });
  }),
 
+ http.get(`${BASE}/api/products/:id/media`, () => HttpResponse.json([])),
+ http.post(`${BASE}/api/products/:id/media/upload`, () =>
+  HttpResponse.json(
+    [
+      {
+        id: "media-001",
+        productId: mockProductDto.id,
+        mediaType: 1,
+        url: "/uploads/products/prod-001/kapak.png",
+        thumbnailUrl: "/uploads/products/prod-001/kapak.png",
+        mimeType: "image/png",
+        altText: "kapak",
+        isPrimary: true,
+        sortOrder: 1,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    { status: 201 }
+  )
+ ),
+
  // ─── Auth ───────────────────────────────────────────────────────────────
  http.post(`${BASE}/api/auth/login`, () => HttpResponse.json(mockAuthResponse)),
  http.post(`${BASE}/api/auth/register`, () => HttpResponse.json(mockAuthResponse)),

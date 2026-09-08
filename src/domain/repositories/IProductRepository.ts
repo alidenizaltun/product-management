@@ -17,6 +17,7 @@ import {
   ProductModuleOfferingPriceDto,
   CreateProductModuleOfferingPriceRequest,
   UpdateProductModuleOfferingPriceRequest,
+  ProductMediaItemDto,
 } from "../types/productOperations.types";
 
 export interface ProductListResponse {
@@ -71,4 +72,7 @@ export interface IProductRepository {
   createModuleOfferingPrice(productId: string, moduleId: string, payload: CreateProductModuleOfferingPriceRequest): Promise<ProductModuleOfferingPriceDto>;
   updateModuleOfferingPrice(productId: string, moduleId: string, priceId: string, payload: UpdateProductModuleOfferingPriceRequest): Promise<void>;
   deleteModuleOfferingPrice(productId: string, moduleId: string, priceId: string): Promise<void>;
+
+  getProductMedia(productId: string): Promise<ProductMediaItemDto[]>;
+  uploadProductImages(productId: string, files: File[]): Promise<ProductMediaItemDto[]>;
 }

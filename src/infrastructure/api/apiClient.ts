@@ -49,7 +49,7 @@ class ApiClient {
           requestConfig.headers.Authorization = `Bearer ${token}`;
         }
         if (requestConfig.data instanceof FormData && requestConfig.headers) {
-          delete requestConfig.headers["Content-Type"];
+          requestConfig.headers.delete("Content-Type");
         }
         return requestConfig;
       },

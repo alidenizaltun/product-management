@@ -18,4 +18,9 @@ describe("resolveMediaUrl", () => {
     expect(resolveMediaUrl(undefined)).toBe("");
     expect(resolveMediaUrl("   ")).toBe("");
   });
+
+  it("data URL'yi olduğu gibi bırakır", () => {
+    const dataUrl = "data:image/png;base64,AAAA";
+    expect(resolveMediaUrl(dataUrl, "https://pmapi.deva.net.tr/")).toBe(dataUrl);
+  });
 });

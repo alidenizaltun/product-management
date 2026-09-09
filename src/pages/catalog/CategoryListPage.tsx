@@ -11,8 +11,11 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { ProductCategoryDto } from "@/domain/types/productOperations.types";
 import { useCategories, useCategoryMutations } from "@/application/hooks/useCatalog";
 import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
+import { sortCategoriesHierarchically } from "@/pages/catalog/utils/categoryHierarchy";
 
 const PAGE_SIZE = 10;
+
+type CategoryListRow = ProductCategoryDto & { depth: number };
 
 const CategoryListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,15 +25,33 @@ const CategoryListPage: React.FC = () => {
   const { data: categories = [], isLoading } = useCategories();
   const { remove } = useCategoryMutations();
 
+  const treeRows = useMemo<CategoryListRow[]>(
+    () =>
+      sortCategoriesHierarchically(categories).map(({ item, depth }) => ({
+        ...item,
+        depth,
+      })),
+    [categories]
+  );
+
   const paginated = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
-    return categories.slice(start, start + PAGE_SIZE);
-  }, [categories, page]);
+    return treeRows.slice(start, start + PAGE_SIZE);
+  }, [treeRows, page]);
 
-  const columns: DataColumn<ProductCategoryDto>[] = useMemo(
+  const columns: DataColumn<CategoryListRow>[] = useMemo(
     () => [
       { key: "code", title: "Kod", render: (it) => <span className="fw-medium">{it.code}</span> },
-      { key: "name", title: "Ad", render: (it) => it.name },
+      {
+        key: "name",
+        title: "Ad",
+        render: (it) => (
+          <span className="d-inline-flex align-items-center" style={{ paddingLeft: `${it.depth * 1.25}rem` }}>
+            {it.depth > 0 ? <span className="text-soft me-1">└</span> : null}
+            {it.name}
+          </span>
+        ),
+      },
       {
         key: "description",
         title: "Açıklama",

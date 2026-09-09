@@ -197,7 +197,7 @@ const ArrayBuilder: React.FC<ArrayBuilderProps> = ({
       {suggestions && suggestions.length > 0 && (
         <div className="mb-2">
           <p className="text-soft fs-12px mb-1">Önerilen seçenekler:</p>
-          <div className="d-flex flex-wrap gap-1 pb-4">
+          <div className="d-flex flex-wrap gap-1 mb-2">
             {suggestions.map((s) => {
               const active = items.includes(s);
               return (
@@ -221,7 +221,7 @@ const ArrayBuilder: React.FC<ArrayBuilderProps> = ({
 
       {/* Active item chips (non-suggestion items) */}
       {items.filter((i) => !suggestions?.includes(i)).length > 0 && (
-        <div className="d-flex flex-wrap gap-1 mb-4">
+        <div className="d-flex flex-wrap gap-1 mb-2">
           {items
             .filter((i) => !suggestions?.includes(i))
             .map((item) => (
@@ -246,26 +246,30 @@ const ArrayBuilder: React.FC<ArrayBuilderProps> = ({
       )}
 
       {/* Custom add row */}
-      <div className="input-group input-group-sm" style={{ maxWidth: 320 }}>
-        <input
-          className="form-control"
-          placeholder="Özel değer ekle..."
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addCustom();
-            }
-          }}
-        />
-        <button
-          type="button"
-          className="btn btn-outline-primary"
-          onClick={addCustom}
-        >
-          Ekle
-        </button>
+      <div className="row g-2">
+        <div className="col-sm-8 col-md-6 col-lg-4">
+          <div className="input-group input-group-sm">
+            <input
+              className="form-control"
+              placeholder="Özel değer ekle..."
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustom();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              onClick={addCustom}
+            >
+              Ekle
+            </button>
+          </div>
+        </div>
       </div>
 
       {items.length === 0 && !suggestions?.length && (

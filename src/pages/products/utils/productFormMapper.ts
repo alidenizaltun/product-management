@@ -586,6 +586,7 @@ export const buildFullProductPayload = (
                         );
 
                         return {
+                            id: m.id || undefined,
                             productId: productId ?? undefined,
                             moduleCode: m.moduleCode,
                             name: m.name,

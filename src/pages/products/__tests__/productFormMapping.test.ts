@@ -9,6 +9,7 @@ import {
     buildPricingRulePayload,
     buildPricingRulePayloads,
 } from "@/pages/products/utils/productFormPayload";
+import { buildDefaultValues, buildFullProductPayload } from "@/pages/products/utils/productFormMapper";
 
 // mapProductToForm doğrudan export edilmediği için mantığı burada kopyalıyoruz.
 // Alternatif: fonksiyonu ayrı bir utils dosyasına taşıyıp export etmek.
@@ -336,6 +337,126 @@ describe("product full-save module offering price payload", () => {
                 price: 99,
                 currencyCode: "TRY",
                 isActive: true,
+            },
+        ]);
+    });
+});
+
+describe("buildFullProductPayload - modules", () => {
+    it("kayıtlı modül id'sini ve offeringPrices satırlarını full-save payload'ında tutar", () => {
+        const values = {
+            ...buildDefaultValues(),
+            kind: 2,
+            defaultCurrencyCode: "TRY",
+            licenseOfferings: [
+                {
+                    id: "offering-monthly",
+                    name: "Aylık Plan",
+                    licenseModel: 2,
+                    basePrice: 0,
+                    currencyCode: "TRY",
+                    autoRenew: true,
+                    isActive: true,
+                    sortOrder: 1,
+                },
+                {
+                    id: "offering-yearly",
+                    name: "Yıllık Plan",
+                    licenseModel: 2,
+                    basePrice: 0,
+                    currencyCode: "TRY",
+                    autoRenew: true,
+                    isActive: true,
+                    sortOrder: 2,
+                },
+            ],
+            modules: [
+                {
+                    id: "mod-required",
+                    moduleCode: "MOD-CORE",
+                    name: "Çekirdek",
+                    currencyCode: "TRY",
+                    isOptional: false,
+                    isActive: true,
+                    sortOrder: 1,
+                    offeringPrices: [
+                        {
+                            productLicenseOfferingId: "offering-monthly",
+                            price: 25,
+                            currencyCode: "TRY",
+                            isActive: true,
+                        },
+                    ],
+                },
+                {
+                    id: "mod-optional",
+                    moduleCode: "MOD-EXTRA",
+                    name: "Ekstra",
+                    currencyCode: "TRY",
+                    isOptional: true,
+                    isActive: true,
+                    sortOrder: 2,
+                    offeringPrices: [
+                        {
+                            appliesToAllLicenseOfferings: true,
+                            price: 10,
+                            currencyCode: "TRY",
+                            isActive: true,
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const { payload } = buildFullProductPayload(values, { productId: "prod-sw-001" });
+
+        expect(payload.modules).toEqual([
+            {
+                id: "mod-required",
+                productId: "prod-sw-001",
+                moduleCode: "MOD-CORE",
+                name: "Çekirdek",
+                description: undefined,
+                currencyCode: "TRY",
+                isOptional: false,
+                isActive: true,
+                sortOrder: 1,
+                offeringPrices: [
+                    {
+                        productLicenseOfferingId: "offering-monthly",
+                        licenseOfferingTempId: undefined,
+                        price: 25,
+                        currencyCode: "TRY",
+                        isActive: true,
+                    },
+                ],
+            },
+            {
+                id: "mod-optional",
+                productId: "prod-sw-001",
+                moduleCode: "MOD-EXTRA",
+                name: "Ekstra",
+                description: undefined,
+                currencyCode: "TRY",
+                isOptional: true,
+                isActive: true,
+                sortOrder: 2,
+                offeringPrices: [
+                    {
+                        productLicenseOfferingId: "offering-monthly",
+                        licenseOfferingTempId: undefined,
+                        price: 10,
+                        currencyCode: "TRY",
+                        isActive: true,
+                    },
+                    {
+                        productLicenseOfferingId: "offering-yearly",
+                        licenseOfferingTempId: undefined,
+                        price: 10,
+                        currencyCode: "TRY",
+                        isActive: true,
+                    },
+                ],
             },
         ]);
     });

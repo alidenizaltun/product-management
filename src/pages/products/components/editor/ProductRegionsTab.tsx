@@ -1,6 +1,5 @@
 import React from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { Link } from "react-router-dom";
 import { ProductFormValues } from "@/pages/products/types/productEditor.types";
 import RegionSelect from "@/components/shared/selects/RegionSelect";
 import { DEFAULT_CURRENCY_CODE } from "@/shared/config/currency";
@@ -63,7 +62,7 @@ const ProductRegionsTab: React.FC = () => {
           <em className="icon ni ni-map-pin fs-2 d-block mb-2" />
           <p className="mb-1">Bu ürün henüz hiçbir bölgeye tanımlı değil.</p>
           <p className="fs-12px mb-0">
-            Bölge listesini <Link to="/definitions/regions">Bölge Tanımları</Link> sayfasından yönetebilirsiniz.
+            Listede yoksa "Yeni Bölge Tanımı" ile aynı sayfada oluşturabilirsiniz.
           </p>
         </div>
       )}

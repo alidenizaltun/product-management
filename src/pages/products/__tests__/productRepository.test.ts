@@ -172,4 +172,42 @@ describe("productRepository", () => {
   expect(result).toEqual([]);
  });
  });
+
+ describe("uploadProductImages", () => {
+ it("görselleri /api/products/:id/media uçuna JSON url ile kaydeder", async () => {
+  let capturedUrl = "";
+  let capturedBody: { url?: string; mimeType?: string; altText?: string } | null = null;
+  server.use(
+   http.post(`${API_BASE}/api/products/:id/media`, async ({ request }) => {
+    capturedUrl = request.url;
+    capturedBody = (await request.json()) as { url?: string; mimeType?: string; altText?: string };
+    return HttpResponse.json(
+      {
+       id: "media-001",
+       productId: "prod-001",
+       mediaType: 1,
+       url: capturedBody.url,
+       thumbnailUrl: capturedBody.url,
+       mimeType: capturedBody.mimeType,
+       altText: capturedBody.altText,
+       isPrimary: true,
+       sortOrder: 1,
+       createdAt: new Date().toISOString(),
+      },
+     { status: 201 }
+    );
+   })
+  );
+
+  const file = new File(["x"], "ok.png", { type: "image/png" });
+  const result = await productRepository.uploadProductImages("prod-001", [file]);
+
+  expect(new URL(capturedUrl).pathname).toBe("/api/products/prod-001/media");
+  expect(capturedBody?.url).toMatch(/^data:image\/png;base64,/);
+  expect(capturedBody?.mimeType).toBe("image/png");
+  expect(capturedBody?.altText).toBe("ok.png");
+  expect(result).toHaveLength(1);
+  expect(result[0].url).toMatch(/^data:image\/png;base64,/);
+ });
+ });
 });

@@ -21,6 +21,7 @@ import {
 } from "@/domain/types/productOperations.types";
 import { apiClient } from "../apiClient";
 import { apiEndpoints } from "../../config/apiEndpoints";
+import { fileToDataUrl } from "../../helpers/mediaUrl";
 
 const buildQuery = (params?: ProductListParams) => {
   if (!params) return "";
@@ -204,11 +205,23 @@ export class ProductRepository implements IProductRepository {
   }
 
   async uploadProductImages(productId: string, files: File[]): Promise<ProductMediaItemDto[]> {
-    const formData = new FormData();
-    files.forEach((file) => formData.append("files", file));
-    return apiClient.post<ProductMediaItemDto[]>(apiEndpoints.products.mediaUpload(productId), formData, {
-      timeout: 120000,
-    });
+    const created: ProductMediaItemDto[] = [];
+
+    for (const [index, file] of files.entries()) {
+      const url = await fileToDataUrl(file);
+      const item = await apiClient.post<ProductMediaItemDto>(apiEndpoints.products.mediaUpload(productId), {
+        mediaType: 1,
+        url,
+        thumbnailUrl: url,
+        mimeType: file.type || "image/png",
+        altText: file.name,
+        isPrimary: index === 0,
+        sortOrder: index + 1,
+      });
+      created.push(item);
+    }
+
+    return created;
   }
 }
 

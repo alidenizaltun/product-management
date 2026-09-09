@@ -275,7 +275,35 @@
     color: $accent-color;
     background: rgba($accent-color, .08);
     font-size: 11px;
-    cursor: help;
+    cursor: pointer;
+}
+
+.pricing-help-label{
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+}
+
+.pricing-help-bubble{
+    position: absolute;
+    left: 0;
+    top: calc(100% + .4rem);
+    z-index: 30;
+    width: max-content;
+    max-width: min(22rem, 72vw);
+    padding: .625rem .75rem;
+    border: 1px solid $light-300;
+    border-radius: 8px;
+    background: $white;
+    box-shadow: 0 10px 24px rgba($base-color, .12);
+    color: $base-text;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: normal;
 }
 
 .pricing-unit-dropzone{

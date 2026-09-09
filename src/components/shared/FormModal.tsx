@@ -39,6 +39,9 @@ export const FormModal: React.FC<FormModalProps> = ({
 }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // The modal is portaled to document.body, but it stays a React child of
+    // whatever form opened it. Stop bubbling so the parent form is not submitted.
+    e.stopPropagation();
     if (onSubmit) await onSubmit();
   };
 
@@ -47,7 +50,7 @@ export const FormModal: React.FC<FormModalProps> = ({
       <ModalHeader
         toggle={toggle}
         close={
-          <button className="close" onClick={toggle}>
+          <button type="button" className="close" onClick={toggle}>
             <Icon name="cross" />
           </button>
         }

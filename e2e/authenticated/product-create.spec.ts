@@ -1,24 +1,52 @@
 import { test, expect } from "@playwright/test";
+import { SKIP_WITHOUT_WRITABLE_API } from "../utils";
+import {
+  createSoftwareProduct,
+  defaultSoftwareProductGeneralInfo,
+  deleteSoftwareProductIfSupported,
+  expectGeneralInfoValues,
+  fillSoftwareProductGeneralInfo,
+  openGeneralInfo,
+  saveGeneralInfo,
+} from "./helpers/softwareProduct";
 
-// Faz 7 kritik akış: ürün oluşturma. Gerçekten submit edip DB'ye yazıyor - bu
-// yüzden SADECE izole e2e CI ortamında çalışır (E2E_API_BASE_URL set edilmişse,
-// bkz. playwright.config.ts). Paylaşımlı dev DB'ye karşı yerel/manuel koşularda
-// atlanır ki gerçek veritabanına çöp ürün yazılmasın.
-test.describe("Product creation (authenticated, isolated DB only)", () => {
-  test.skip(
-    !process.env.E2E_API_BASE_URL,
-    "Gerçekten ürün oluşturuyor; sadece izole e2e DB'sine karşı çalışır."
-  );
+/**
+ * Faz 7 kritik akış: yazılım ürünü oluşturma ve Genel Bilgiler kaydı.
+ * Gerçekten submit edip DB'ye yazıyor — yalnızca E2E_API_BASE_URL set
+ * edildiğinde çalışır (bkz. SKIP_WITHOUT_WRITABLE_API).
+ */
+test.describe("Yazılım ürünü oluşturma ve genel bilgiler", () => {
+  test.skip(SKIP_WITHOUT_WRITABLE_API, "Gerçekten ürün oluşturuyor; yazılabilir API olmadan atlanır.");
 
-  test("yeni ürün oluşturulup detay sayfasına yönlendiriyor", async ({ page }) => {
-    await page.goto("/products/new");
-    await expect(page.getByRole("heading", { name: "Yeni Ürün" })).toBeVisible();
+  test("yazılım türüyle ürün oluşturup detay sayfasına yönlendiriyor", async ({ page }) => {
+    const created = await createSoftwareProduct(page);
 
-    const productName = `E2E Test Ürünü ${Date.now()}`;
-    await page.getByLabel("Ürün Adı").fill(productName);
-    await page.getByRole("button", { name: /oluştur ve devam et/i }).click();
+    try {
+      await expect(page).toHaveURL(new RegExp(`/products/${created.id}$`));
+      await expect(page.getByRole("heading", { name: created.name }).first()).toBeVisible();
+      await expect(page.locator(".nk-content .badge", { hasText: /^Yazılım$/ }).first()).toBeVisible();
+    } finally {
+      await deleteSoftwareProductIfSupported(page, created.id);
+    }
+  });
 
-    await expect(page).toHaveURL(/\/products\/[^/]+$/, { timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: productName }).first()).toBeVisible();
+  test("genel bilgiler kaydı yenileme sonrası aynı değerleri korur", async ({ page }) => {
+    const created = await createSoftwareProduct(page);
+
+    try {
+      const values = defaultSoftwareProductGeneralInfo(created.name);
+
+      await openGeneralInfo(page, created.id);
+      await fillSoftwareProductGeneralInfo(page, values);
+      await saveGeneralInfo(page);
+
+      await expect(page.getByText("Güncel").first()).toBeVisible({ timeout: 10_000 });
+      await page.reload();
+      await expect(page.getByLabel("Ürün Adı")).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByLabel("Ürün Adı")).toHaveValue(created.name);
+      await expectGeneralInfoValues(page, values);
+    } finally {
+      await deleteSoftwareProductIfSupported(page, created.id);
+    }
   });
 });

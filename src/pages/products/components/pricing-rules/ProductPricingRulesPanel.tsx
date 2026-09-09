@@ -1,5 +1,5 @@
-import React, { useId, useMemo, useState } from "react";
-import { Button, Modal, ModalBody, ModalHeader, UncontrolledTooltip } from "reactstrap";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Button, Modal, ModalBody, ModalHeader } from "reactstrap";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
@@ -97,31 +97,91 @@ interface RuleFormState {
 
 interface HelpLabelProps {
   children: React.ReactNode;
-  help: string;
+  help: React.ReactNode;
 }
 
+const fieldLabelText = (children: React.ReactNode) =>
+  typeof children === "string" || typeof children === "number" ? String(children).replace(/\s+/g, " ").trim() : "Alan";
+
+const HELP_OPEN_EVENT = "pricing-help-open";
+
 const HelpLabel: React.FC<HelpLabelProps> = ({ children, help }) => {
-  const reactId = useId();
-  const id = `pricing-help-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const instanceId = useId();
+  const [open, setOpen] = useState(false);
+  const label = fieldLabelText(children);
+
+  useEffect(() => {
+    const closeOthers = (event: Event) => {
+      if ((event as CustomEvent<string>).detail === instanceId) return;
+      setOpen(false);
+    };
+    window.addEventListener(HELP_OPEN_EVENT, closeOthers);
+    return () => window.removeEventListener(HELP_OPEN_EVENT, closeOthers);
+  }, [instanceId]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (wrapRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const toggle = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    window.dispatchEvent(new CustomEvent(HELP_OPEN_EVENT, { detail: instanceId }));
+    setOpen(true);
+  };
 
   return (
-    <span className="d-inline-flex align-items-center gap-1">
+    <span className="pricing-help-label" ref={wrapRef}>
       <span>{children}</span>
       <button
         type="button"
-        id={id}
         className="btn btn-xs btn-trigger btn-icon text-soft p-0"
-        aria-label={`${children} hakkında bilgi`}
-        onClick={(event) => event.preventDefault()}
+        aria-expanded={open}
+        aria-label={`${label} hakkında bilgi`}
+        onClick={toggle}
       >
         <em className="icon ni ni-info" />
       </button>
-      <UncontrolledTooltip autohide={false} placement="top" target={id}>
-        {help}
-      </UncontrolledTooltip>
+      {open && (
+        <span className="pricing-help-bubble" role="tooltip">
+          {help}
+        </span>
+      )}
     </span>
   );
 };
+
+const CALCULATION_MODE_HELP = (
+  <>
+    <p className="mb-2">
+      Fiyat etkisinin tüm satışa tek değerle mi, yoksa satın alınan miktarın girdiği aralığa göre mi uygulanacağını seçer.
+    </p>
+    <p className="mb-2">
+      <strong>Sabit:</strong> Aynı etki her miktarda geçerlidir. Örnek: 1.000 TL plana %10 düşür seçiliyse sonuç 900 TL olur. 5 kullanıcı da 50 kullanıcı da aynı orandır.
+    </p>
+    <p className="mb-0">
+      <strong>Kademeli:</strong> Miktarın girdiği aralığa göre farklı fiyat uygulanır. Örnek: 1–10 kullanıcı 50 TL/kullanıcı, 11–50 kullanıcı 40 TL/kullanıcı. 8 kullanıcı 50 TL, 20 kullanıcı 40 TL üzerinden hesaplanır.
+    </p>
+  </>
+);
 
 
 
@@ -249,7 +309,7 @@ const ruleToForm = (rule: ProductPricingRuleDto): RuleFormState => ({
 });
 
 const shortJsonSummary = (rule: ProductPricingRuleDto) => {
-  const adjustment = rule.priceAdjustment;
+  const adjustment = getAdjustment(rule);
   if (adjustment?.mode === "unit") {
     const field = adjustment.unit?.field ?? "unit";
     const tierCount = adjustment.tiers?.length ?? 0;
@@ -911,7 +971,7 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                       </div>
                       <div className="col-md-3">
                         <label className="form-label">
-                          <HelpLabel help="Kural birimlerinin tek bir değerle mi yoksa kademeli mi hesaplanacağını seçer. Kademeli modda fiyat etkisi kademelerden gelir.">
+                          <HelpLabel help={CALCULATION_MODE_HELP}>
                             Hesaplama modu
                           </HelpLabel>
                         </label>

@@ -68,7 +68,7 @@ export const apiEndpoints = {
     moduleOfferingPrices: (productId: string, moduleId: string) => `/api/products/${productId}/modules/${moduleId}/offering-prices`,
     moduleOfferingPriceById: (productId: string, moduleId: string, priceId: string) => `/api/products/${productId}/modules/${moduleId}/offering-prices/${priceId}`,
     media: (productId: string) => `/api/products/${productId}/media`,
-    mediaUpload: (productId: string) => `/api/products/${productId}/media/upload`,
+    mediaUpload: (productId: string) => `/api/products/${productId}/media`,
     mediaById: (mediaId: string) => `/api/products/media/${mediaId}`,
   },
   attributes: {

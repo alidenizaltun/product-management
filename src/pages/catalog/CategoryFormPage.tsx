@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import Content from "@/layout/content/Content";
@@ -10,6 +10,7 @@ import { TextInput, Textarea, FormField, LoadingButton, UnsavedChangesDialog } f
 import { useUnsavedChangesGuard } from "@/application/hooks/useUnsavedChangesGuard";
 import { useCategories, useCategory, useCategoryMutations } from "@/application/hooks/useCatalog";
 import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
+import { formatCategoryTreeLabel, sortCategoriesHierarchically } from "@/pages/catalog/utils/categoryHierarchy";
 
 interface CategoryFormValues {
   code: string;
@@ -26,6 +27,10 @@ const CategoryFormPage: React.FC = () => {
   const { data: category, isLoading } = useCategory(id);
   const { data: categories = [] } = useCategories();
   const { create, update } = useCategoryMutations();
+  const parentOptions = useMemo(
+    () => sortCategoriesHierarchically(categories).filter(({ item }) => item.id !== id),
+    [categories, id]
+  );
 
   const {
     register,
@@ -136,13 +141,11 @@ const CategoryFormPage: React.FC = () => {
                     <FormField label="Üst Kategori" htmlFor="category-parent">
                       <select id="category-parent" className="form-control form-select" {...register("parentCategoryId")}>
                         <option value="">— Yok (Kök Kategori) —</option>
-                        {categories
-                          .filter((c) => c.id !== id)
-                          .map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
+                        {parentOptions.map(({ item, depth }) => (
+                          <option key={item.id} value={item.id}>
+                            {formatCategoryTreeLabel(item.name, depth)}
+                          </option>
+                        ))}
                       </select>
                     </FormField>
                   </div>

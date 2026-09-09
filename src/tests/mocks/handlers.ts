@@ -77,25 +77,25 @@ export const handlers = [
  }),
 
  http.get(`${BASE}/api/products/:id/media`, () => HttpResponse.json([])),
- http.post(`${BASE}/api/products/:id/media/upload`, () =>
-  HttpResponse.json(
-    [
-      {
-        id: "media-001",
-        productId: mockProductDto.id,
-        mediaType: 1,
-        url: "/uploads/products/prod-001/kapak.png",
-        thumbnailUrl: "/uploads/products/prod-001/kapak.png",
-        mimeType: "image/png",
-        altText: "kapak",
-        isPrimary: true,
-        sortOrder: 1,
-        createdAt: new Date().toISOString(),
-      },
-    ],
+ http.get(`${BASE}/api/products/:id/pricing-rules`, () => HttpResponse.json([])),
+ http.post(`${BASE}/api/products/:id/media`, async ({ request }) => {
+  const body = (await request.json().catch(() => ({}))) as { url?: string; mimeType?: string; altText?: string };
+  return HttpResponse.json(
+    {
+      id: "media-001",
+      productId: mockProductDto.id,
+      mediaType: 1,
+      url: body.url ?? "/uploads/products/prod-001/kapak.png",
+      thumbnailUrl: body.url ?? "/uploads/products/prod-001/kapak.png",
+      mimeType: body.mimeType ?? "image/png",
+      altText: body.altText ?? "kapak",
+      isPrimary: true,
+      sortOrder: 1,
+      createdAt: new Date().toISOString(),
+    },
     { status: 201 }
-  )
- ),
+  );
+ }),
 
  // ─── Auth ───────────────────────────────────────────────────────────────
  http.post(`${BASE}/api/auth/login`, () => HttpResponse.json(mockAuthResponse)),

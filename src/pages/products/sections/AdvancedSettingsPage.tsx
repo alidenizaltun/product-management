@@ -13,7 +13,8 @@ const AdvancedSettingsPage: React.FC = () => (
                 <div className="card-inner border-bottom">
                     <h5 className="title mb-1">Profil ve Teknik Detaylar</h5>
                     <p className="text-soft mb-0">
-                        Ürün tipine özgü nadir veya teknik alanları ana akışı bozmadan düzenleyin.
+                        Seçili ürün tipine göre kargo, yazılım, hizmet veya abonelik alanlarını düzenleyin.
+                        Bu alanlar ana bilgi akışını bozmamak için burada tutulur.
                     </p>
                 </div>
                 <div className="card-inner">

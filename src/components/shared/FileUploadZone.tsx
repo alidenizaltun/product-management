@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { useDropzone } from "react-dropzone";
+import type { FileRejection } from "react-dropzone";
 import { Row, Col, Progress } from "reactstrap";
 import Icon from "@/components/icon/Icon";
 
@@ -31,6 +32,25 @@ function getFileIcon(type: string): string {
   return "file";
 }
 
+function describeRejection(rejections: FileRejection[], maxSize: number, maxFiles: number): string {
+  const first = rejections[0];
+  const error = first?.errors[0];
+  if (!first || !error) return "Dosya yüklenemedi.";
+
+  switch (error.code) {
+    case "file-too-large":
+      return `${first.file.name} çok büyük. En fazla ${formatFileSize(maxSize)}.`;
+    case "file-invalid-type":
+      return `${first.file.name} bu dosya türü kabul edilmiyor.`;
+    case "too-many-files":
+      return `En fazla ${maxFiles} dosya yüklenebilir.`;
+    case "file-too-small":
+      return `${first.file.name} çok küçük.`;
+    default:
+      return error.message || "Dosya yüklenemedi.";
+  }
+}
+
 // ─── FileUploadZone ──────────────────────────────────────────────────────────
 
 interface FileUploadZoneProps {
@@ -54,8 +74,14 @@ const FileUploadZone: React.FC<FileUploadZoneProps> = ({
   disabled = false,
   className = "",
 }) => {
+  const [rejectionError, setRejectionError] = useState<string | null>(null);
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
-    onDrop: (acceptedFiles) => {
+    onDrop: (acceptedFiles, fileRejections) => {
+      if (fileRejections.length > 0) {
+        setRejectionError(describeRejection(fileRejections, maxSize, maxFiles));
+      } else {
+        setRejectionError(null);
+      }
       if (acceptedFiles.length > 0) {
         onFilesSelected(acceptedFiles);
       }
@@ -78,27 +104,34 @@ const FileUploadZone: React.FC<FileUploadZoneProps> = ({
   }
 
   return (
-    <div
-      {...getRootProps()}
-      className={`text-center p-4 rounded ${disabled ? "opacity-50" : ""} ${className}`}
-      style={{
-        border: `2px dashed ${borderColor}`,
-        backgroundColor: bgColor,
-        cursor: disabled ? "not-allowed" : "pointer",
-        transition: "border-color 0.2s, background-color 0.2s",
-      }}
-    >
-      <input {...getInputProps()} />
-      <div className="py-3">
-        <div className="mb-2">
-          <Icon name="upload-cloud" style={{ fontSize: 36 }} className="text-primary" />
+    <div className={className}>
+      <div
+        {...getRootProps()}
+        className={`text-center p-4 rounded ${disabled ? "opacity-50" : ""}`}
+        style={{
+          border: `2px dashed ${borderColor}`,
+          backgroundColor: bgColor,
+          cursor: disabled ? "not-allowed" : "pointer",
+          transition: "border-color 0.2s, background-color 0.2s",
+        }}
+      >
+        <input {...getInputProps({ "aria-label": "Dosya seç" })} />
+        <div className="py-3">
+          <div className="mb-2">
+            <Icon name="upload-cloud" style={{ fontSize: 36 }} className="text-primary" />
+          </div>
+          <p className="fw-medium mb-1">{label}</p>
+          {hint && <span className="sub-text">{hint}</span>}
+          {!hint && maxSize && (
+            <span className="sub-text">Maks. {formatFileSize(maxSize)}</span>
+          )}
         </div>
-        <p className="fw-medium mb-1">{label}</p>
-        {hint && <span className="sub-text">{hint}</span>}
-        {!hint && maxSize && (
-          <span className="sub-text">Maks. {formatFileSize(maxSize)}</span>
-        )}
       </div>
+      {rejectionError && (
+        <div className="alert alert-danger mb-0 mt-2" role="alert">
+          {rejectionError}
+        </div>
+      )}
     </div>
   );
 };

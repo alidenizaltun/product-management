@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { ProductFormValues } from "@/pages/products/types/productEditor.types";
 import JsonFieldEditor from "@/components/shared/JsonFieldEditor";
-import { TextInput, Textarea, Checkbox, FormField } from "@/components/shared";
+import { TextInput, NumberInput, Textarea, Checkbox, FormField } from "@/components/shared";
 import { unitDefinitionRepository } from "@/infrastructure/api/repositories";
 import type { LookupItem } from "@/domain/types/lookup.types";
 
@@ -24,7 +24,8 @@ const GeneralInfoTab: React.FC = () => {
 
     useEffect(() => {
         if (isSoftwareProduct) {
-            setValue("trackInventory", false, { shouldDirty: true, shouldValidate: true });
+            // Keep software products off inventory tracking without dirtying a loaded form.
+            setValue("trackInventory", false, { shouldDirty: false, shouldValidate: true });
         }
 
         if (!isPhysicalProduct) {
@@ -150,6 +151,26 @@ const GeneralInfoTab: React.FC = () => {
                     placeholder="Ürün detayında kullanılacak açıklamayı yazın"
                     {...register("description")}
                 />
+            </div>
+
+            <div className="col-md-3 col-sm-6">
+                <NumberInput
+                    label="Vergi Oranı"
+                    min={0}
+                    max={100}
+                    step="0.01"
+                    hint="Yüzde olarak KDV oranı"
+                    error={errors.taxRate?.message}
+                    {...register("taxRate", {
+                        valueAsNumber: true,
+                        min: { value: 0, message: "Vergi oranı 0'dan küçük olamaz" },
+                        max: { value: 100, message: "Vergi oranı 100'den büyük olamaz" },
+                    })}
+                />
+            </div>
+
+            <div className="col-md-3 col-sm-6">
+                <TextInput label="Vergi Kodu" placeholder="KDV18" {...register("taxCode")} />
             </div>
 
             <div className="col-12 mt-2">

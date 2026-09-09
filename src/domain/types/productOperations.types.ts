@@ -1128,6 +1128,8 @@ export interface CreateFullProductRequestDto {
     cancellationPolicy?: string;
   };
   modules?: Array<{
+    /** Existing module id on update; omit for newly added modules. */
+    id?: Uuid;
     productId?: Uuid;
     moduleCode: string;
     name: string;

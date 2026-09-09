@@ -14,10 +14,13 @@ interface FormModalProps {
   submitLabel?: string;
   cancelLabel?: string;
   loading?: boolean;
+  loadingText?: string;
   disabled?: boolean;
   hideFooter?: boolean;
   centered?: boolean;
+  scrollable?: boolean;
   className?: string;
+  bodyClassName?: string;
   footerContent?: React.ReactNode;
 }
 
@@ -31,10 +34,13 @@ export const FormModal: React.FC<FormModalProps> = ({
   submitLabel = "Kaydet",
   cancelLabel = "İptal",
   loading,
+  loadingText = "İşleniyor...",
   disabled,
   hideFooter,
   centered,
+  scrollable,
   className,
+  bodyClassName,
   footerContent,
 }) => {
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,11 +48,20 @@ export const FormModal: React.FC<FormModalProps> = ({
     // The modal is portaled to document.body, but it stays a React child of
     // whatever form opened it. Stop bubbling so the parent form is not submitted.
     e.stopPropagation();
+    if (loading || disabled) return;
     if (onSubmit) await onSubmit();
   };
 
   return (
-    <Modal isOpen={open} toggle={toggle} size={size} centered={centered} className={className}>
+    <Modal
+      isOpen={open}
+      toggle={toggle}
+      backdrop="static"
+      size={size}
+      centered={centered}
+      scrollable={scrollable}
+      className={className}
+    >
       <ModalHeader
         toggle={toggle}
         close={
@@ -57,10 +72,16 @@ export const FormModal: React.FC<FormModalProps> = ({
       >
         {title}
       </ModalHeader>
-      <form onSubmit={handleSubmit}>
-        <ModalBody>{children}</ModalBody>
+      <form
+        onSubmit={handleSubmit}
+        className={scrollable ? "d-flex flex-column flex-grow-1 overflow-hidden" : undefined}
+        style={scrollable ? { minHeight: 0 } : undefined}
+      >
+        <ModalBody className={[bodyClassName, scrollable ? "flex-grow-1 overflow-auto" : undefined].filter(Boolean).join(" ") || undefined}>
+          {children}
+        </ModalBody>
         {!hideFooter && (
-          <ModalFooter className="bg-light">
+          <ModalFooter className={scrollable ? "bg-light flex-shrink-0" : "bg-light"}>
             {footerContent ?? (
               <>
                 <Button
@@ -79,7 +100,7 @@ export const FormModal: React.FC<FormModalProps> = ({
                   {loading ? (
                     <>
                       <span className="spinner-border spinner-border-sm me-2" />
-                      İşleniyor...
+                      {loadingText}
                     </>
                   ) : (
                     submitLabel
@@ -115,7 +136,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   actions,
   className,
 }) => (
-  <Modal isOpen={open} toggle={toggle} size={size} className={className}>
+  <Modal isOpen={open} toggle={toggle} backdrop="static" size={size} className={className}>
     <ModalHeader
       toggle={toggle}
       close={
@@ -153,7 +174,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   alt,
   title,
 }) => (
-  <Modal isOpen={open} toggle={toggle} size="lg" centered>
+  <Modal isOpen={open} toggle={toggle} backdrop="static" size="lg" centered>
     {title && (
       <ModalHeader
         toggle={toggle}

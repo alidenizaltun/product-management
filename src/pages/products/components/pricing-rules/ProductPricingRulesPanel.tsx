@@ -1,5 +1,6 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Button, Modal, ModalBody, ModalHeader } from "reactstrap";
+import React, { useMemo, useState } from "react";
+import { Button } from "reactstrap";
+import { FormModal } from "@/components/shared/FormModal";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
@@ -11,6 +12,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import HelpLabel from "@/pages/pricing/adjustment/HelpLabel";
+import PricingAdjustmentFields from "@/pages/pricing/adjustment/PricingAdjustmentFields";
 import { showApiError, showSuccess, showWarning } from "@/components/shared/NotificationAlert";
 import { useProductPricingRuleMutations, useProductPricingRules } from "@/application/hooks/useProductPricingRules";
 import UnitQuickAddModal from "@/pages/products/components/pricing/UnitQuickAddModal";
@@ -20,31 +23,16 @@ import {
   TemplateOriginBadge,
 } from "@/pages/products/components/pricing/PricingTemplateActions";
 import {
-  ADJUSTMENT_TYPES,
-  APPLY_ON,
-  CONDITION_OPERATORS,
   adjustmentToForm,
   collectAdjustmentFields,
   defaultAdjustment,
-  emptyCondition,
-  emptyTier,
   formToAdjustment,
   formatFieldLabel,
   getAdjustment,
-  numberToInput,
-  parseConditionValue,
-  toNumberOrNull,
-  toNumberOrUndefined,
-  valueToInput,
 } from "@/pages/pricing/adjustment/adjustmentForm";
-import type {
-  AdjustmentFormState,
-  ConditionFormState,
-  TierFormState,
-} from "@/pages/pricing/adjustment/adjustmentForm";
+import type { AdjustmentFormState } from "@/pages/pricing/adjustment/adjustmentForm";
 import type {
   ProductLicenseOfferingDto,
-  ProductPricingRuleAdjustmentDto,
   ProductPricingRuleDto,
   ProductUnitDto,
   ProductVariantDto,
@@ -93,96 +81,6 @@ interface RuleFormState {
   productVariantId: string;
   adjustment: AdjustmentFormState;
 }
-
-
-interface HelpLabelProps {
-  children: React.ReactNode;
-  help: React.ReactNode;
-}
-
-const fieldLabelText = (children: React.ReactNode) =>
-  typeof children === "string" || typeof children === "number" ? String(children).replace(/\s+/g, " ").trim() : "Alan";
-
-const HELP_OPEN_EVENT = "pricing-help-open";
-
-const HelpLabel: React.FC<HelpLabelProps> = ({ children, help }) => {
-  const wrapRef = useRef<HTMLSpanElement>(null);
-  const instanceId = useId();
-  const [open, setOpen] = useState(false);
-  const label = fieldLabelText(children);
-
-  useEffect(() => {
-    const closeOthers = (event: Event) => {
-      if ((event as CustomEvent<string>).detail === instanceId) return;
-      setOpen(false);
-    };
-    window.addEventListener(HELP_OPEN_EVENT, closeOthers);
-    return () => window.removeEventListener(HELP_OPEN_EVENT, closeOthers);
-  }, [instanceId]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (wrapRef.current?.contains(event.target as Node)) return;
-      setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  const toggle = () => {
-    if (open) {
-      setOpen(false);
-      return;
-    }
-    window.dispatchEvent(new CustomEvent(HELP_OPEN_EVENT, { detail: instanceId }));
-    setOpen(true);
-  };
-
-  return (
-    <span className="pricing-help-label" ref={wrapRef}>
-      <span>{children}</span>
-      <button
-        type="button"
-        className="btn btn-xs btn-trigger btn-icon text-soft p-0"
-        aria-expanded={open}
-        aria-label={`${label} hakkında bilgi`}
-        onClick={toggle}
-      >
-        <em className="icon ni ni-info" />
-      </button>
-      {open && (
-        <span className="pricing-help-bubble" role="tooltip">
-          {help}
-        </span>
-      )}
-    </span>
-  );
-};
-
-const CALCULATION_MODE_HELP = (
-  <>
-    <p className="mb-2">
-      Fiyat etkisinin tüm satışa tek değerle mi, yoksa satın alınan miktarın girdiği aralığa göre mi uygulanacağını seçer.
-    </p>
-    <p className="mb-2">
-      <strong>Sabit:</strong> Aynı etki her miktarda geçerlidir. Örnek: 1.000 TL plana %10 düşür seçiliyse sonuç 900 TL olur. 5 kullanıcı da 50 kullanıcı da aynı orandır.
-    </p>
-    <p className="mb-0">
-      <strong>Kademeli:</strong> Miktarın girdiği aralığa göre farklı fiyat uygulanır. Örnek: 1–10 kullanıcı 50 TL/kullanıcı, 11–50 kullanıcı 40 TL/kullanıcı. 8 kullanıcı 50 TL, 20 kullanıcı 40 TL üzerinden hesaplanır.
-    </p>
-  </>
-);
-
 
 
 const getProductUnitScopeValue = (unit: ScopedProductUnitOption) =>
@@ -481,46 +379,8 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const updateAdjustment = <K extends keyof AdjustmentFormState>(key: K, value: AdjustmentFormState[K]) => {
-    setForm((current) => ({
-      ...current,
-      adjustment: {
-        ...current.adjustment,
-        [key]: value,
-      },
-    }));
-  };
-
-  const updateTier = <K extends keyof TierFormState>(index: number, key: K, value: TierFormState[K]) => {
-    setForm((current) => {
-      const tiers = [...current.adjustment.tiers];
-      tiers[index] = { ...tiers[index], [key]: value };
-      return { ...current, adjustment: { ...current.adjustment, tiers } };
-    });
-  };
-
-  const addTier = () => updateAdjustment("tiers", [...form.adjustment.tiers, emptyTier()]);
-
-  const removeTier = (index: number) => {
-    updateAdjustment("tiers", form.adjustment.tiers.filter((_, itemIndex) => itemIndex !== index));
-  };
-
-  const updateCondition = <K extends keyof ConditionFormState>(
-    index: number,
-    key: K,
-    value: ConditionFormState[K]
-  ) => {
-    setForm((current) => {
-      const conditions = [...current.adjustment.conditions];
-      conditions[index] = { ...conditions[index], [key]: value };
-      return { ...current, adjustment: { ...current.adjustment, conditions } };
-    });
-  };
-
-  const addCondition = () => updateAdjustment("conditions", [...form.adjustment.conditions, emptyCondition()]);
-
-  const removeCondition = (index: number) => {
-    updateAdjustment("conditions", form.adjustment.conditions.filter((_, itemIndex) => itemIndex !== index));
+  const updateAdjustment = (adjustment: AdjustmentFormState) => {
+    setForm((current) => ({ ...current, adjustment }));
   };
 
   const buildPayload = (): UpsertProductPricingRuleRequestDto => {
@@ -750,7 +610,6 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     .map((value) => activeSelectableProductUnits.find((unit) => getProductUnitScopeValue(unit) === value))
     .filter((unit): unit is ScopedProductUnitOption => Boolean(unit));
   const pending = createMutation.isPending || updateMutation.isPending;
-  const isUnitMode = form.adjustment.mode === "unit";
   const conditionFieldOptions = (() => {
     const fields = new Set<string>();
 
@@ -803,20 +662,6 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
     setForm((current) => ({ ...current, ...nextScope }));
   };
 
-  const updateAdjustmentMode = (value: string) => {
-    setForm((current) => ({
-      ...current,
-      adjustment: {
-        ...current.adjustment,
-        mode: value,
-      },
-    }));
-
-    if (value === "unit") {
-      setEngineOpen(true);
-    }
-  };
-
   const updateProductUnitScope = (value: string, checked: boolean) => {
     const values = checked
       ? [...selectedProductUnitValues, value]
@@ -851,11 +696,20 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
   return (
     <div className="row g-4">
       {editable && (
-        <Modal isOpen={formOpen} toggle={resetForm} size="xl" centered scrollable className="pricing-rule-modal">
-          <ModalHeader toggle={resetForm}>
-            {form.id ? "Kuralı Güncelle" : "Dinamik Kural Ekle"}
-          </ModalHeader>
-          <ModalBody className="pricing-manager-modal-body">
+        <FormModal
+          open={formOpen}
+          toggle={resetForm}
+          title={form.id ? "Kuralı Güncelle" : "Dinamik Kural Ekle"}
+          size="xl"
+          centered
+          scrollable
+          className="pricing-rule-modal"
+          bodyClassName="pricing-manager-modal-body"
+          loading={pending}
+          loadingText="Kaydediliyor..."
+          submitLabel={form.id ? "Kuralı Güncelle" : "Kural Ekle"}
+          onSubmit={handleSubmit}
+        >
             <div className="row g-3">
               <div className="col-12">
                 <div className="pricing-rule-scope-panel">
@@ -958,449 +812,61 @@ const ProductPricingRulesPanel: React.FC<ProductPricingRulesPanelProps> = ({
                 </div>
               </div>
 
-              <div className="col-12">
-                <div className="card card-bordered bg-lighter mb-0">
-                  <div className="card-inner">
-                    <div className="row g-3 align-items-end">
-                      <div className="col-12">
-                        <span className="overline-title text-primary">
-                          <HelpLabel help="Bu bölüm, kural çalıştığında ürün fiyatında ne yapılacağını tanımlar. Önce fiyat artırılsın mı düşürülsün mü seçilir, sonra bu değişimin yüzde, sabit tutar veya çarpan olarak nasıl hesaplanacağı belirlenir.">
-                            Fiyat aksiyonu
-                          </HelpLabel>
-                        </span>
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">
-                          <HelpLabel help={CALCULATION_MODE_HELP}>
-                            Hesaplama modu
-                          </HelpLabel>
-                        </label>
-                        <select
-                          className="form-select"
-                          value={form.adjustment.mode}
-                          onChange={(event) => updateAdjustmentMode(event.target.value)}
-                        >
-                          <option value="">Sabit</option>
-                          <option value="unit">Kademeli</option>
-                        </select>
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">
-                          <HelpLabel help="Kural tetiklendiğinde fiyatın hangi yöne değişeceğini seçer. Düşür seçeneği indirim uygular; artır seçeneği fiyatın üzerine ekleme yapar.">
-                            Fiyat yönü
-                          </HelpLabel>
-                        </label>
-                        <select
-                          className="form-select"
-                          value={form.adjustment.operation === "subtract" ? "subtract" : "add"}
-                          onChange={(event) =>
-                            updateAdjustment("operation", event.target.value === "subtract" ? "subtract" : "")
-                          }
-                        >
-                          <option value="subtract">Düşür</option>
-                          <option value="add">Artır</option>
-                        </select>
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">
-                          <HelpLabel help="Fiyat değişiminin hangi yöntemle hesaplanacağını belirtir. Yüzdeyle seçerseniz değer alanı yüzde oranıdır; sabit tutarda doğrudan para tutarıdır; çarpanda fiyat belirlenen katsayıyla çarpılır.">
-                            Değişim türü
-                          </HelpLabel>
-                        </label>
-                        <select
-                          className="form-select"
-                          value={form.adjustment.type || "fixed"}
-                          disabled={isUnitMode}
-                          onChange={(event) => updateAdjustment("type", event.target.value)}
-                        >
-                          <option value="fixed">Sabit tutarla</option>
-                          <option value="percentage">Yüzdeyle</option>
-                          <option value="multiplier">Çarpanla</option>
-                        </select>
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">
-                          <HelpLabel help="Seçilen değişim türünün sayısal karşılığıdır. Yüzde indirimi için 10 yazmak yüzde 10 anlamına gelir; sabit tutar için para tutarı, çarpan için katsayı olarak yorumlanır.">
-                            Değişim değeri
-                          </HelpLabel>
-                        </label>
-                        <input
-                          className="form-control"
-                          type="number"
-                          step="0.0001"
-                          placeholder={isUnitMode ? "Kademeden gelir" : "10"}
-                          value={form.adjustment.value}
-                          disabled={isUnitMode}
-                          onChange={(event) => updateAdjustment("value", event.target.value)}
-                        />
-                      </div>
-                      {isUnitMode && (
-                        <div className="col-12 border-top pt-3 mt-1">
-                          <div className="d-flex justify-content-between align-items-center mb-3">
-                            <h6 className="title mb-0">
-                              <HelpLabel help="Birim bazlı fiyatlandırmada farklı miktar aralıklarına farklı fiyat etkisi tanımlamak için kullanılır. Örneğin 1-10 kullanıcı için bir tutar, 11-50 kullanıcı için farklı bir tutar belirleyebilirsiniz.">
-                                Fiyat kademeleri
-                              </HelpLabel>
-                            </h6>
-                            <Button color="light" size="sm" type="button" onClick={addTier}>
-                              <em className="icon ni ni-plus me-1" />
-                              Kademe ekle
-                            </Button>
-                          </div>
-                          {form.adjustment.tiers.length ? (
-                            <div className="table-responsive">
-                              <table className="table table-middle mb-0">
-                                <thead className="table-light">
-                                  <tr>
-                                    <th>
-                                      <HelpLabel help="Bu kademenin hangi miktardan itibaren geçerli olacağını belirtir. Örneğin 1 yazarsanız kademe 1 birimden başlar.">
-                                        Aralık başlangıcı
-                                      </HelpLabel>
-                                    </th>
-                                    <th>
-                                      <HelpLabel help="Bu kademenin hangi miktara kadar geçerli olacağını belirtir. Boş bırakılırsa üst sınır olmadan devam eden son kademe olarak yorumlanabilir.">
-                                        Aralık bitişi
-                                      </HelpLabel>
-                                    </th>
-                                    <th>
-                                      <HelpLabel help="Bu kademede fiyat etkisinin yüzde, sabit tutar veya çarpan olarak mı uygulanacağını seçer.">
-                                        Kademe türü
-                                      </HelpLabel>
-                                    </th>
-                                    <th>
-                                      <HelpLabel help="Kademe türünün sayısal değeridir. Yüzde türünde oran, sabit tutarda para tutarı, çarpanda katsayı olarak kullanılır.">
-                                        Kademe değeri
-                                      </HelpLabel>
-                                    </th>
-                                    <th className="text-end">İşlem</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {form.adjustment.tiers.map((tier, index) => (
-                                    <tr key={index}>
-                                      <td>
-                                        <input
-                                          className="form-control"
-                                          type="number"
-                                          value={tier.from}
-                                          onChange={(event) => updateTier(index, "from", event.target.value)}
-                                        />
-                                      </td>
-                                      <td>
-                                        <input
-                                          className="form-control"
-                                          type="number"
-                                          value={tier.to}
-                                          onChange={(event) => updateTier(index, "to", event.target.value)}
-                                        />
-                                      </td>
-                                      <td>
-                                        <select
-                                          className="form-select"
-                                          value={tier.type}
-                                          onChange={(event) => updateTier(index, "type", event.target.value)}
-                                        >
-                                          {ADJUSTMENT_TYPES.map((item) => (
-                                            <option key={item.value} value={item.value}>
-                                              {item.label}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </td>
-                                      <td>
-                                        <input
-                                          className="form-control"
-                                          type="number"
-                                          step="0.0001"
-                                          value={tier.value}
-                                          onChange={(event) => updateTier(index, "value", event.target.value)}
-                                        />
-                                      </td>
-                                      <td className="text-end">
-                                        <Button color="danger" outline size="sm" type="button" onClick={() => removeTier(index)}>
-                                          Sil
-                                        </Button>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          ) : (
-                            <p className="text-soft fs-13px mb-0">Henüz kademe eklenmedi. Farklı miktar aralıkları tanımlamak için "Kademe ekle" butonunu kullanın.</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-md-3">
-                <label className="form-label">
-                  <HelpLabel help="Kuralın çalışmaya başlayacağı tarih ve saattir. Boş bırakılırsa kural, aktif olduğu sürece başlangıç kısıtı olmadan değerlendirilebilir.">
-                    Geçerlilik başlangıcı
-                  </HelpLabel>
-                </label>
-                <input
-                  className="form-control"
-                  type="datetime-local"
-                  value={form.validFrom}
-                  onChange={(event) => updateForm("validFrom", event.target.value)}
-                />
-              </div>
-              <div className="col-md-3">
-                <label className="form-label">
-                  <HelpLabel help="Kuralın çalışmayı bırakacağı tarih ve saattir. Kampanya veya dönemsel fiyat kuralı oluştururken son geçerlilik zamanını buradan belirleyin.">
-                    Geçerlilik bitişi
-                  </HelpLabel>
-                </label>
-                <input
-                  className="form-control"
-                  type="datetime-local"
-                  value={form.validTo}
-                  onChange={(event) => updateForm("validTo", event.target.value)}
-                />
-              </div>
-              <div className="col-md-3 d-flex align-items-end pb-1">
-                <div className="custom-control custom-switch">
-                  <input
-                    type="checkbox"
-                    className="custom-control-input"
-                    id="pricing-rule-active"
-                    checked={form.isActive}
-                    onChange={(event) => updateForm("isActive", event.target.checked)}
-                  />
-                  <label className="custom-control-label" htmlFor="pricing-rule-active">
-                    <HelpLabel help="Aktif değilse kural kayıtlı kalır ancak fiyat hesaplamasında kullanılmaz. Taslak olarak saklamak istediğiniz kuralları pasif bırakabilirsiniz.">
-                      Kural aktif
-                    </HelpLabel>
-                  </label>
-                </div>
-              </div>
-              <div className="col-md-3 d-flex align-items-end">
-                <Button
-                  color="light"
-                  outline
-                  type="button"
-                  className="w-100"
-                  onClick={() => setEngineOpen((current) => !current)}
-                >
-                  <em className={`icon ni ni-chevron-${engineOpen ? "up" : "down"} me-1`} />
-                  Gelişmiş ayarlar
-                </Button>
-              </div>
-
-              {engineOpen && (
-                <div className="col-12">
-                  <div className="card card-bordered mb-0">
-                    <div className="card-inner">
-                      <h6 className="overline-title text-primary mb-3">
-                        <HelpLabel help="Bu alanlar kuralın teknik çalışma biçimini belirler. Çoğu standart indirim veya artırım için kapalı kalabilir; öncelik, ek koşul, birim bazlı kademe veya fiyat limitleri gerektiğinde kullanılır.">
-                          Gelişmiş ayarlar
+              <PricingAdjustmentFields
+                value={form.adjustment}
+                onChange={updateAdjustment}
+                engineOpen={engineOpen}
+                onEngineOpenChange={setEngineOpen}
+                conditionFieldOptions={conditionFieldOptions}
+                leadingAdvancedRow={
+                  <>
+                    <div className="col-md-3">
+                      <label className="form-label">
+                        <HelpLabel help="Kuralın çalışmaya başlayacağı tarih ve saattir. Boş bırakılırsa kural, aktif olduğu sürece başlangıç kısıtı olmadan değerlendirilebilir.">
+                          Geçerlilik başlangıcı
                         </HelpLabel>
-                      </h6>
-
-                      <div className="pricing-rule-sections">
-                        <div className="pricing-rule-section">
-                          <h6 className="title mb-3">Kademe ayarları</h6>
-                          <div className={`row g-3 ${isUnitMode ? "row-cols-1 row-cols-md-5" : "row-cols-1 row-cols-md-2"}`}>
-                            {isUnitMode && (
-                              <>
-                                <div className="col">
-                                  <label className="form-label">
-                                    <HelpLabel help="Fiyat hesaplamasına dahil edilmeyecek başlangıç miktarıdır. Örneğin 5 ücretsiz kullanıcı varsa ilk 5 kullanıcı ücretlendirilmez, hesaplama kalan miktardan başlar.">
-                                      Ücretsiz miktar
-                                    </HelpLabel>
-                                  </label>
-                                  <input
-                                    className="form-control"
-                                    type="number"
-                                    value={form.adjustment.freeUnits}
-                                    onChange={(event) => updateAdjustment("freeUnits", event.target.value)}
-                                  />
-                                </div>
-                                <div className="col">
-                                  <label className="form-label">
-                                    <HelpLabel help="Birim miktarı tam sayı değilse nasıl yuvarlanacağını belirler. Yukarı seçeneği eksik kalan parçayı bir üst birime tamamlar; aşağı, alt tam sayıya indirir; en yakın, matematiksel yuvarlama yapar.">
-                                      Miktar yuvarlama
-                                    </HelpLabel>
-                                  </label>
-                                  <select
-                                    className="form-select"
-                                    value={form.adjustment.rounding}
-                                    onChange={(event) => updateAdjustment("rounding", event.target.value)}
-                                  >
-                                    <option value="">Seçiniz</option>
-                                    <option value="ceil">Yukarı</option>
-                                    <option value="floor">Aşağı</option>
-                                    <option value="round">En yakın</option>
-                                    <option value="none">Yok</option>
-                                  </select>
-                                </div>
-                                <div className="col">
-                                  <label className="form-label">
-                                    <HelpLabel help="Ek koşullardan kaç tanesinin sağlanması gerektiğini belirler. Tüm koşullar seçilirse her koşul doğru olmalıdır; herhangi biri seçilirse koşullardan birinin doğru olması yeterlidir.">
-                                      Koşul mantığı
-                                    </HelpLabel>
-                                  </label>
-                                  <select
-                                    className="form-select"
-                                    value={form.adjustment.conditionsOperator}
-                                    onChange={(event) =>
-                                      updateAdjustment("conditionsOperator", event.target.value as "all" | "any")
-                                    }
-                                  >
-                                    <option value="all">Tüm koşullar sağlansın</option>
-                                    <option value="any">Herhangi biri sağlansın</option>
-                                  </select>
-                                </div>
-                              </>
-                            )}
-                            <div className="col">
-                              <label className="form-label">
-                                <HelpLabel help="Kural uygulandıktan sonra oluşacak son satış fiyatının inebileceği en düşük değerdir. Özellikle indirimlerde fiyatın belirli bir tabanın altına düşmesini engellemek için kullanılır.">
-                                  Minimum son fiyat
-                                </HelpLabel>
-                              </label>
-                              <input
-                                className="form-control"
-                                type="number"
-                                value={form.adjustment.minFinalPrice}
-                                onChange={(event) => updateAdjustment("minFinalPrice", event.target.value)}
-                              />
-                            </div>
-                            <div className="col">
-                              <label className="form-label">
-                                <HelpLabel help="Kural uygulandıktan sonra oluşacak son satış fiyatının çıkabileceği en yüksek değerdir. Artırım veya çarpan kullanılan kurallarda son fiyatı tavan değerle sınırlamak için kullanılır.">
-                                  Maksimum son fiyat
-                                </HelpLabel>
-                              </label>
-                              <input
-                                className="form-control"
-                                type="number"
-                                value={form.adjustment.maxFinalPrice}
-                                onChange={(event) => updateAdjustment("maxFinalPrice", event.target.value)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="pricing-rule-section">
-                          <div className="d-flex justify-content-between align-items-center mb-3">
-                            <h6 className="title mb-0">
-                              <HelpLabel help="Kuralın sadece belirli veriler sağlandığında çalışmasını istiyorsanız ek koşul ekleyin. Örneğin miktar belirli bir sayının üzerindeyse veya belirli bir özellik değeri varsa kural çalışabilir.">
-                                Ek koşullar
-                              </HelpLabel>
-                            </h6>
-                            <Button color="light" size="sm" type="button" onClick={addCondition}>
-                              <em className="icon ni ni-plus me-1" />
-                              Koşul ekle
-                            </Button>
-                          </div>
-                          <div className="d-flex flex-column gap-3">
-                            {form.adjustment.conditions.map((condition, index) => (
-                              <div className="row g-3 align-items-end" key={index}>
-                                <div className="col-md-4">
-                                  <label className="form-label">
-                                    <HelpLabel help="Koşulun hangi veri alanına bakacağını seçer. Miktar, kullanıcı sayısı, seçili pakete atanan diğer birimlerin miktarı veya fiyat hesaplamasında kullanılan özel bir alan olabilir.">
-                                      Koşul alanı
-                                    </HelpLabel>
-                                  </label>
-                                  <select
-                                    className="form-select"
-                                    value={condition.field}
-                                    onChange={(event) => updateCondition(index, "field", event.target.value)}
-                                  >
-                                    <option value="">Alan seçiniz</option>
-                                    {conditionFieldOptions.map((field) => (
-                                      <option key={field.value} value={field.value}>
-                                        {field.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div className="col-md-3">
-                                  <label className="form-label">
-                                    <HelpLabel help="Seçilen alanın beklenen değerle nasıl karşılaştırılacağını belirtir. Eşittir, büyüktür, küçüktür veya içerir gibi operatörler kuralın ne zaman geçerli olacağını belirler.">
-                                      Koşul işleci
-                                    </HelpLabel>
-                                  </label>
-                                  <select
-                                    className="form-select"
-                                    value={condition.operator}
-                                    onChange={(event) => updateCondition(index, "operator", event.target.value)}
-                                  >
-                                    <option value="">Seçiniz</option>
-                                    {CONDITION_OPERATORS.map((operator) => (
-                                      <option key={operator.value} value={operator.value}>
-                                        {operator.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div className="col-md-3">
-                                  <label className="form-label">
-                                    <HelpLabel help="Koşul alanının karşılaştırılacağı beklenen değerdir. Örneğin miktar alanı için 10 yazarsanız seçilen karşılaştırma işlemine göre 10 eşiği kullanılır.">
-                                      Koşul değeri
-                                    </HelpLabel>
-                                  </label>
-                                  <input
-                                    className="form-control"
-                                    value={condition.value}
-                                    onChange={(event) => updateCondition(index, "value", event.target.value)}
-                                    disabled={condition.operator === "exists"}
-                                  />
-                                </div>
-                                <div className="col-md-2 text-end">
-                                  <Button color="danger" outline size="sm" type="button" onClick={() => removeCondition(index)}>
-                                    Sil
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                            {!form.adjustment.conditions.length && (
-                              <p className="text-soft fs-13px mb-0">Ek koşul yok. Üstte seçilen satış planı ve ürün birimi kapsamı kullanılacak.</p>
-                            )}
-                          </div>
-                        </div>
+                      </label>
+                      <input
+                        className="form-control"
+                        type="datetime-local"
+                        value={form.validFrom}
+                        onChange={(event) => updateForm("validFrom", event.target.value)}
+                      />
+                    </div>
+                    <div className="col-md-3">
+                      <label className="form-label">
+                        <HelpLabel help="Kuralın çalışmayı bırakacağı tarih ve saattir. Kampanya veya dönemsel fiyat kuralı oluştururken son geçerlilik zamanını buradan belirleyin.">
+                          Geçerlilik bitişi
+                        </HelpLabel>
+                      </label>
+                      <input
+                        className="form-control"
+                        type="datetime-local"
+                        value={form.validTo}
+                        onChange={(event) => updateForm("validTo", event.target.value)}
+                      />
+                    </div>
+                    <div className="col-md-3 d-flex align-items-end pb-1">
+                      <div className="custom-control custom-switch">
+                        <input
+                          type="checkbox"
+                          className="custom-control-input"
+                          id="pricing-rule-active"
+                          checked={form.isActive}
+                          onChange={(event) => updateForm("isActive", event.target.checked)}
+                        />
+                        <label className="custom-control-label" htmlFor="pricing-rule-active">
+                          <HelpLabel help="Aktif değilse kural kayıtlı kalır ancak fiyat hesaplamasında kullanılmaz. Taslak olarak saklamak istediğiniz kuralları pasif bırakabilirsiniz.">
+                            Kural aktif
+                          </HelpLabel>
+                        </label>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="col-12 d-flex justify-content-end gap-2 h-100">
-                <Button color="light" type="button" onClick={resetForm} disabled={pending}>
-                  Kapat
-                </Button>
-                <Button
-                  color="primary"
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={pending}
-                >
-                  {pending ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      Kaydediliyor...
-                    </>
-                  ) : form.id ? (
-                    <>
-                      <em className="icon ni ni-save me-1" />
-                      Kuralı Güncelle
-                    </>
-                  ) : (
-                    <>
-                      <em className="icon ni ni-plus me-1" />
-                      Kural Ekle
-                    </>
-                  )}
-                </Button>
-              </div>
+                  </>
+                }
+              />
             </div>
-          </ModalBody>
-        </Modal>
+        </FormModal>
       )}
 
       <ApplyTemplateModal

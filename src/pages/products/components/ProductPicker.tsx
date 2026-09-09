@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useProductLookups } from "@/application/hooks/useLookups";
 import { useProducts } from "@/application/hooks/useProducts";
 import { KIND_LABELS } from "@/pages/products/components/detail/constants";
 import type { ProductKind } from "@/pages/products/config/productSections";
 import type { ProductDto } from "@/domain/types/productOperations.types";
 import {
+    filterLiveRecentProducts,
+    forgetRecentProducts,
     readRecentProducts,
     rememberRecentProduct,
+    staleRecentProductIds,
     type RecentProduct,
 } from "@/pages/products/utils/recentProducts";
 
@@ -67,16 +71,45 @@ const ProductPicker: React.FC<ProductPickerProps> = ({
         search: debouncedTerm || undefined,
         kind: serverKind,
     });
+    // Varlık kontrolü arama sayfasına değil, tam ürün lookup listesine bakılır.
+    const { data: productLookups, isSuccess: catalogReady, isError: catalogError } = useProductLookups(true);
 
     const results = useMemo(
         () => (data?.items ?? []).filter((product) => allowedKinds.includes(product.kind as ProductKind)),
         [data?.items, allowedKinds]
     );
 
-    const visibleRecents = useMemo(
-        () => recents.filter((item) => !item.kind || allowedKinds.includes(item.kind as ProductKind)),
-        [recents, allowedKinds]
+    const existingIds = useMemo(
+        () => new Set((productLookups ?? []).map((item) => item.id)),
+        [productLookups]
     );
+    const selectedLiveId = selectedProduct?.id ?? null;
+
+    useEffect(() => {
+        if (!catalogReady) return;
+
+        const staleIds = staleRecentProductIds(recents, existingIds, selectedLiveId);
+        if (staleIds.length === 0) return;
+
+        forgetRecentProducts(staleIds);
+        setRecents(readRecentProducts(storageKey));
+    }, [catalogReady, recents, existingIds, selectedLiveId, storageKey]);
+
+    const visibleRecents = useMemo(() => {
+        if (catalogReady) {
+            return filterLiveRecentProducts(recents, existingIds, {
+                selectedLiveId,
+                allowedKinds,
+            });
+        }
+
+        // Katalog isteği başarısızsa silinmiş varsayılmaz; recents olduğu gibi kalır.
+        if (catalogError) {
+            return recents.filter((item) => !item.kind || allowedKinds.includes(item.kind as ProductKind));
+        }
+
+        return [];
+    }, [catalogReady, catalogError, recents, existingIds, selectedLiveId, allowedKinds]);
 
     const allowedKindLabels = allowedKinds.map((kind) => KIND_LABELS[kind]?.label ?? String(kind)).join(", ");
 

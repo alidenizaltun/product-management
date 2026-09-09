@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { FormModal } from "@/components/shared/FormModal";
-import { TextInput, NumberInput, Checkbox } from "@/components/shared";
+import { TextInput, Checkbox } from "@/components/shared";
 import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 import { useRegionMutations } from "@/application/hooks/useRegions";
 import { queryKeys } from "@/services/query/queryKeys";
@@ -13,7 +13,6 @@ interface RegionQuickAddValues {
   name: string;
   description?: string;
   isActive: boolean;
-  sortOrder: number;
 }
 
 interface RegionQuickAddModalProps {
@@ -26,7 +25,6 @@ const DEFAULT_VALUES: RegionQuickAddValues = {
   name: "",
   description: "",
   isActive: true,
-  sortOrder: 0,
 };
 
 const RegionQuickAddModal: React.FC<RegionQuickAddModalProps> = ({ open, toggle, onCreated }) => {
@@ -54,7 +52,7 @@ const RegionQuickAddModal: React.FC<RegionQuickAddModalProps> = ({ open, toggle,
         name: values.name,
         description: values.description || undefined,
         isActive: values.isActive,
-        sortOrder: values.sortOrder,
+        sortOrder: 0,
       });
       const nextRegions = (current: RegionDto[] = []) =>
         current.some((item) => item.id === created.id) ? current : [...current, created];
@@ -85,7 +83,7 @@ const RegionQuickAddModal: React.FC<RegionQuickAddModalProps> = ({ open, toggle,
       onSubmit={handleSubmit(onSubmit)}
     >
       <div className="row g-3">
-        <div className="col-md-9">
+        <div className="col-12">
           <TextInput
             label="Ad"
             required
@@ -94,17 +92,11 @@ const RegionQuickAddModal: React.FC<RegionQuickAddModalProps> = ({ open, toggle,
             {...register("name", { required: "Ad zorunludur" })}
           />
         </div>
-        <div className="col-md-3">
-          <NumberInput label="Sıra" min={0} placeholder="0" {...register("sortOrder", { valueAsNumber: true })} />
-        </div>
         <div className="col-12">
           <TextInput label="Açıklama" placeholder="Opsiyonel açıklama..." {...register("description")} />
         </div>
         <div className="col-12">
           <Checkbox label="Aktif" switchStyle {...register("isActive")} />
-        </div>
-        <div className="col-12">
-          <p className="text-soft fs-12px mb-0">Kod sistem tarafından üretilir.</p>
         </div>
       </div>
     </FormModal>

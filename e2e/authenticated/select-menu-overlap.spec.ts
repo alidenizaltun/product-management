@@ -86,7 +86,7 @@ test.describe("Açılır seçim menüleri üstte kalıyor", () => {
     // portal'lanan menünün modal'ın (z-index 1055) üstünde kalması gerekiyor.
     await page.goto("/pricing/product-pricing?productId=013183E9-0866-4102-BA5C-3B0B5C4FDDB0");
     await expect(page.getByRole("heading", { name: "Satış Planları" })).toBeVisible({ timeout: 20_000 });
-    await page.locator(".card", { hasText: "Aylık Plan" }).last().getByRole("button", { name: "Fiyatlandırma" }).click();
+    await page.locator(".sales-plan-card", { hasText: "Aylık Plan" }).getByRole("button", { name: "Fiyatlandırma" }).click();
     await page.getByRole("button", { name: "Şablondan Ekle" }).click();
     await expect(page.getByText("Şablondan Kural Ekle")).toBeVisible({ timeout: 15_000 });
 

@@ -550,6 +550,16 @@
     }
 }
 
+.sales-plan-card{
+    overflow: hidden;
+    &-art{
+        height: 200px;
+        .icon{
+            opacity: .45;
+        }
+    }
+}
+
 @include media-breakpoint-down(lg) {
     .pricing-manager-head,
     .pricing-manager-item,

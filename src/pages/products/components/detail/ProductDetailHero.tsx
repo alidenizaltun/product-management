@@ -92,9 +92,11 @@ const ProductDetailHero: React.FC<ProductDetailHeroProps> = ({ product }) => {
             )}
 
             <div className="d-flex flex-wrap gap-2 mb-3">
-              <FlagPill label="Satılabilir" active={product.isSellable} />
-              <FlagPill label="Satın Alınabilir" active={product.isPurchasable} />
-              <FlagPill label="Stok Takibi" active={product.trackInventory} />
+              <FlagPill label="Satışa açık" active={product.isSellable} />
+              <FlagPill label="Bayiler satın alabilir" active={product.isPurchasable} />
+              {product.kind !== 2 && (
+                <FlagPill label="Stok Takibi" active={product.trackInventory} />
+              )}
             </div>
 
             {product.kind === 2 && product.softwareProfile?.version && (

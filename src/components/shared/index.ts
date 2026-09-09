@@ -40,6 +40,7 @@ export type { StickyActionBarProps } from "./StickyActionBar";
 
 // ─── Detail / Display ─────────────────────────────────────────────────────────
 export { DetailSection, DetailCard, DetailRow, DetailBadge } from "./DetailSection";
+export { EMPTY_DETAIL_VALUE, formatDetailDate, formatDetailYesNo } from "./detailDisplay";
 
 // ─── Dashboard Widgets ────────────────────────────────────────────────────────
 export {
@@ -111,6 +112,7 @@ export {
   TwoColumnLayout,
   MetricRow,
 } from "./PageLayout";
+export type { DetailPageProps, FormPageProps, BreadcrumbItem } from "./PageLayout";
 
 // ─── Badges & Display Utils ───────────────────────────────────────────────────
 export {

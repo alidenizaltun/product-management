@@ -36,6 +36,15 @@ export const rememberRecentProduct = (storageKey: string, product: RecentProduct
 
 /** Silinen bir ürünü, tüm sayfaların "son kullanılanlar" listesinden temizler. */
 export const forgetRecentProduct = (productId: string) => {
+    forgetRecentProducts([productId]);
+};
+
+/** Verilen id'leri tüm sayfaların "son kullanılanlar" listesinden tek geçişte siler. */
+export const forgetRecentProducts = (productIds: readonly string[]) => {
+    if (productIds.length === 0) return;
+
+    const drop = new Set(productIds);
+
     try {
         for (let i = 0; i < window.localStorage.length; i++) {
             const key = window.localStorage.key(i);
@@ -47,7 +56,7 @@ export const forgetRecentProduct = (productId: string) => {
             const parsed = JSON.parse(raw) as RecentProduct[];
             if (!Array.isArray(parsed)) continue;
 
-            const next = parsed.filter((item) => item?.id !== productId);
+            const next = parsed.filter((item) => item?.id && !drop.has(item.id));
             if (next.length !== parsed.length) {
                 window.localStorage.setItem(key, JSON.stringify(next));
             }
@@ -56,3 +65,40 @@ export const forgetRecentProduct = (productId: string) => {
         /* localStorage kullanılamıyorsa sessizce vazgeç */
     }
 };
+
+export interface FilterLiveRecentProductsOptions {
+    /** Hâlâ seçili görünen ürün; katalog gecikse bile listede kalır. */
+    selectedLiveId?: string | null;
+    /** Verilirse başka tipteki recents gizlenir (silinmiş sayılmaz). */
+    allowedKinds?: readonly number[];
+}
+
+/**
+ * Katalogda hâlâ var olan (veya seçili canlı ürün olan) recents.
+ * Tip filtresi yalnızca gizler; silinmiş saymaz.
+ */
+export const filterLiveRecentProducts = (
+    recents: RecentProduct[],
+    existingIds: ReadonlySet<string>,
+    options: FilterLiveRecentProductsOptions = {}
+): RecentProduct[] => {
+    const selectedLiveId = options.selectedLiveId ?? null;
+    const allowedKinds = options.allowedKinds;
+
+    return recents.filter((item) => {
+        const exists = existingIds.has(item.id) || item.id === selectedLiveId;
+        if (!exists) return false;
+        if (allowedKinds && item.kind && !allowedKinds.includes(item.kind)) return false;
+        return true;
+    });
+};
+
+/** Yalnızca recents'te kalan ve seçili canlı ürün olmayan id'ler. */
+export const staleRecentProductIds = (
+    recents: RecentProduct[],
+    existingIds: ReadonlySet<string>,
+    selectedLiveId?: string | null
+): string[] =>
+    recents
+        .filter((item) => !existingIds.has(item.id) && item.id !== selectedLiveId)
+        .map((item) => item.id);

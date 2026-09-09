@@ -1,12 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import Content from "@/layout/content/Content";
-import Head from "@/layout/head/Head";
-import Icon from "@/components/icon/Icon";
-import { Block } from "@/components/Component";
-import PageHeader from "@/components/shared/PageHeader";
-import { TextInput, Textarea, Checkbox, LoadingButton, UnsavedChangesDialog } from "@/components/shared";
+import { TextInput, Textarea, Checkbox, FormPage, UnsavedChangesDialog } from "@/components/shared";
 import AppAccordion, { AccordionItem } from "@/components/shared/AppAccordion";
 import { useUnsavedChangesGuard } from "@/application/hooks/useUnsavedChangesGuard";
 import { useRole, useRoleMutations, usePermissionCatalog } from "@/application/hooks/useRoles";
@@ -109,84 +104,60 @@ const RoleFormPage: React.FC = () => {
 
     return (
         <>
-            <Head title={title} />
-            <Content>
-                <PageHeader
-                    title={title}
-                    description="Rol tanımlayın ve bu role hangi izinlerin verileceğini seçin."
-                    actions={
-                        <div className="d-flex gap-2">
-                            <button
-                                type="button"
-                                className="btn btn-light py-2"
-                                onClick={() => navigate("/identity/roles")}
-                                disabled={isPending}
-                            >
-                                İptal
-                            </button>
-                            <LoadingButton color="primary py-2" type="submit" form="role-form" loading={isPending}>
-                                <Icon name="save" id="" className="me-1" style={{}} />
-                                Kaydet
-                            </LoadingButton>
-                        </div>
-                    }
-                />
+            <FormPage
+                title={title}
+                subtitle="Rol tanımlayın ve bu role hangi izinlerin verileceğini seçin."
+                loading={isEdit && isLoading}
+                saving={isPending}
+                onSubmit={handleSubmit(onSubmit)}
+                onCancel={() => navigate("/identity/roles")}
+                stickySave
+            >
                 <div className="row g-gs">
                     <div className="col-lg-5">
-                        {isEdit && isLoading ? (
-                            <div className="card card-bordered">
-                                <div className="card-inner d-flex align-items-center gap-2">
-                                    <span className="spinner-border spinner-border-sm text-primary" />
-                                    <span>Yükleniyor...</span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="card card-bordered">
-                                <div className="card-inner">
-                                    <form id="role-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
+                        <div className="card card-bordered">
+                            <div className="card-inner">
+                                <div className="row g-3">
+                                    <div className="col-12">
+                                        <TextInput
+                                            label="Rol Adı"
+                                            required
+                                            disabled={isEdit}
+                                            placeholder="Örn: Editor"
+                                            error={errors.name?.message}
+                                            {...register("name", { required: "Rol adı zorunludur" })}
+                                        />
+                                    </div>
+                                    <div className="col-12">
+                                        <Textarea
+                                            label="Açıklama"
+                                            placeholder="Bu rolün amacını açıklayın..."
+                                            {...register("description")}
+                                        />
+                                    </div>
+                                    {isEdit && (
                                         <div className="col-12">
-                                            <TextInput
-                                                label="Rol Adı"
-                                                required
-                                                disabled={isEdit}
-                                                placeholder="Örn: Editor"
-                                                error={errors.name?.message}
-                                                {...register("name", { required: "Rol adı zorunludur" })}
-                                            />
+                                            <Checkbox label="Aktif" switchStyle {...register("isActive")} />
                                         </div>
-                                        <div className="col-12">
-                                            <Textarea
-                                                label="Açıklama"
-                                                placeholder="Bu rolün amacını açıklayın..."
-                                                {...register("description")}
-                                            />
-                                        </div>
-                                        {isEdit && (
-                                            <div className="col-12">
-                                                <Checkbox label="Aktif" switchStyle {...register("isActive")} />
-                                            </div>
-                                        )}
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <div className="col-lg-7">
-                        <Block className="" size="">
-                            <div className="card card-bordered">
-                                <div className="card-inner">
-                                    <h6 className="overline-title text-primary-dim mb-3">Yetki Matrisi</h6>
-                                    {accordionItems.length === 0 ? (
-                                        <span className="text-soft">İzin kataloğu yükleniyor...</span>
-                                    ) : (
-                                        <AppAccordion items={accordionItems} allowMultiple defaultOpen={categories.map(([c]) => c)} />
                                     )}
                                 </div>
                             </div>
-                        </Block>
+                        </div>
+                    </div>
+                    <div className="col-lg-7">
+                        <div className="card card-bordered">
+                            <div className="card-inner">
+                                <h6 className="overline-title text-primary-dim mb-3">Yetki Matrisi</h6>
+                                {accordionItems.length === 0 ? (
+                                    <span className="text-soft">İzin kataloğu yükleniyor...</span>
+                                ) : (
+                                    <AppAccordion items={accordionItems} allowMultiple defaultOpen={categories.map(([c]) => c)} />
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </Content>
+            </FormPage>
 
             <UnsavedChangesDialog blocker={blocker} />
         </>

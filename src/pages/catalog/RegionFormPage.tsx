@@ -1,12 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import Content from "@/layout/content/Content";
-import Head from "@/layout/head/Head";
-import Icon from "@/components/icon/Icon";
-import { Block } from "@/components/Component";
-import PageHeader from "@/components/shared/PageHeader";
-import { TextInput, NumberInput, Checkbox, LoadingButton, UnsavedChangesDialog } from "@/components/shared";
+import { TextInput, NumberInput, Checkbox, FormPage, UnsavedChangesDialog } from "@/components/shared";
 import { useUnsavedChangesGuard } from "@/application/hooks/useUnsavedChangesGuard";
 import { useRegion, useRegionMutations } from "@/application/hooks/useRegions";
 import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
@@ -84,92 +79,70 @@ const RegionFormPage: React.FC = () => {
 
     return (
         <>
-            <Head title={title} />
-            <Content>
-                <PageHeader
-                    title={title}
-                    description={
-                        isEdit
-                            ? "Satış bölgesini düzenleyin (Türkiye, Almanya, Marmara vb.)"
-                            : "Satış bölgesi tanımlayın (Türkiye, Almanya, Marmara vb.). Kod sistem tarafından üretilir."
-                    }
-                    actions={
-                        <div className="d-flex gap-2">
-                            <button
-                                type="button"
-                                className="btn btn-light py-2"
-                                onClick={() => navigate("/definitions/regions")}
-                                disabled={isPending}
-                            >
-                                İptal
-                            </button>
-                            <LoadingButton color="primary py-2" type="submit" form="region-form" loading={isPending}>
-                                <Icon name="save" id="" className="me-1" style={{}} />
-                                Kaydet
-                            </LoadingButton>
-                        </div>
-                    }
-                />
-                <Block className="" size="">
-                    {isEdit && isLoading ? (
-                        <div className="card card-bordered">
-                            <div className="card-inner d-flex align-items-center gap-2">
-                                <span className="spinner-border spinner-border-sm text-primary" />
-                                <span>Yükleniyor...</span>
+            <FormPage
+                title={title}
+                subtitle={
+                    isEdit
+                        ? "Satış bölgesini düzenleyin (Türkiye, Almanya, Marmara vb.)"
+                        : "Satış bölgesi tanımlayın (Türkiye, Almanya, Marmara vb.)"
+                }
+                loading={isEdit && isLoading}
+                saving={isPending}
+                onSubmit={handleSubmit(onSubmit)}
+                onCancel={() => navigate("/definitions/regions")}
+            >
+                <div className="card card-bordered">
+                    <div className="card-inner">
+                        <div className="row g-3">
+                            {isEdit && (
+                                <div className="col-md-4">
+                                    <TextInput
+                                        label="Kod"
+                                        required
+                                        className="text-uppercase"
+                                        error={errors.code?.message}
+                                        {...register("code", { required: "Kod zorunludur" })}
+                                    />
+                                </div>
+                            )}
+
+                            <div className={isEdit ? "col-md-6" : "col-12"}>
+                                <TextInput
+                                    label="Ad"
+                                    required
+                                    placeholder="Türkiye"
+                                    error={errors.name?.message}
+                                    {...register("name", { required: "Ad zorunludur" })}
+                                />
+                            </div>
+
+                            {isEdit && (
+                                <div className="col-md-2">
+                                    <NumberInput
+                                        label="Sıra"
+                                        size="sm"
+                                        min={0}
+                                        placeholder="0"
+                                        {...register("sortOrder", { valueAsNumber: true })}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="col-12">
+                                <TextInput
+                                    label="Açıklama"
+                                    placeholder="Opsiyonel açıklama..."
+                                    {...register("description")}
+                                />
+                            </div>
+
+                            <div className="col-12">
+                                <Checkbox label="Aktif" switchStyle {...register("isActive")} />
                             </div>
                         </div>
-                    ) : (
-                        <div className="card card-bordered">
-                            <div className="card-inner">
-                                <form id="region-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
-                                    {isEdit && (
-                                        <div className="col-md-4">
-                                            <TextInput
-                                                label="Kod"
-                                                required
-                                                className="text-uppercase"
-                                                error={errors.code?.message}
-                                                {...register("code", { required: "Kod zorunludur" })}
-                                            />
-                                        </div>
-                                    )}
-
-                                    <div className={isEdit ? "col-md-5" : "col-md-9"}>
-                                        <TextInput
-                                            label="Ad"
-                                            required
-                                            placeholder="Türkiye"
-                                            error={errors.name?.message}
-                                            {...register("name", { required: "Ad zorunludur" })}
-                                        />
-                                    </div>
-
-                                    <div className="col-md-3">
-                                        <NumberInput
-                                            label="Sıra"
-                                            min={0}
-                                            placeholder="0"
-                                            {...register("sortOrder", { valueAsNumber: true })}
-                                        />
-                                    </div>
-
-                                    <div className="col-12">
-                                        <TextInput
-                                            label="Açıklama"
-                                            placeholder="Opsiyonel açıklama..."
-                                            {...register("description")}
-                                        />
-                                    </div>
-
-                                    <div className="col-12">
-                                        <Checkbox label="Aktif" switchStyle {...register("isActive")} />
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-                </Block>
-            </Content>
+                    </div>
+                </div>
+            </FormPage>
 
             <UnsavedChangesDialog blocker={blocker} />
         </>

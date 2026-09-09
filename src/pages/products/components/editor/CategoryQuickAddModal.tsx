@@ -109,9 +109,6 @@ const CategoryQuickAddModal: React.FC<CategoryQuickAddModalProps> = ({ open, tog
         <div className="col-12">
           <Textarea label="Açıklama" rows={3} placeholder="Kategori açıklaması" {...register("description")} />
         </div>
-        <div className="col-12">
-          <p className="text-soft fs-12px mb-0">Kod sistem tarafından üretilir.</p>
-        </div>
       </div>
     </FormModal>
   );

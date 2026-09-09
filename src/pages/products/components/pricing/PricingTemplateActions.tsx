@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Button, Modal, ModalBody, ModalHeader } from "reactstrap";
 import Icon from "@/components/icon/Icon";
+import { FormModal } from "@/components/shared/FormModal";
 import LookupSelect from "@/components/shared/selects/LookupSelect";
 import { showApiError, showSuccess, showWarning } from "@/components/shared/NotificationAlert";
 import { usePricingTemplateMutations, usePricingTemplates } from "@/application/hooks/usePricingTemplates";
@@ -49,49 +49,44 @@ export const SaveAsTemplateModal: React.FC<SaveAsTemplateModalProps> = ({ open, 
   };
 
   return (
-    <Modal isOpen={open} toggle={onClose} size="md">
-      <ModalHeader toggle={onClose}>Şablon Olarak Kaydet</ModalHeader>
-      <ModalBody>
-        <p className="text-soft small">
-          Bu kuralın fiyat gövdesi ve birimi, ürün bağımsız bir şablon olarak saklanır.
-          Sonrasında başka ürünlere tek tıkla uygulayabilirsiniz.
-        </p>
+    <FormModal
+      open={open}
+      toggle={onClose}
+      title="Şablon Olarak Kaydet"
+      size="md"
+      loading={saveRuleAsTemplate.isPending}
+      loadingText="Kaydediliyor…"
+      disabled={!effectiveName}
+      submitLabel="Şablona Al"
+      cancelLabel="Vazgeç"
+      onSubmit={handleSave}
+    >
+      <p className="text-soft small">
+        Bu kuralın fiyat gövdesi ve birimi, ürün bağımsız bir şablon olarak saklanır.
+        Sonrasında başka ürünlere tek tıkla uygulayabilirsiniz.
+      </p>
 
-        <div className="mb-3">
-          <label className="form-label">Şablon adı</label>
-          <input
-            className="form-control"
-            value={name}
-            placeholder={rule?.name ?? "SMS Birim Fiyatı"}
-            onChange={(event) => setName(event.target.value)}
-          />
-          <div className="form-note">Boş bırakılırsa kuralın adı kullanılır.</div>
-        </div>
+      <div className="mb-3">
+        <label className="form-label">Şablon adı</label>
+        <input
+          className="form-control"
+          value={name}
+          placeholder={rule?.name ?? "SMS Birim Fiyatı"}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <div className="form-note">Boş bırakılırsa kuralın adı kullanılır.</div>
+      </div>
 
-        <div className="mb-3">
-          <label className="form-label">Açıklama</label>
-          <textarea
-            className="form-control"
-            rows={2}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </div>
-
-        <div className="d-flex justify-content-end gap-2">
-          <Button color="light" onClick={onClose}>
-            Vazgeç
-          </Button>
-          <Button
-            color="primary"
-            disabled={saveRuleAsTemplate.isPending || !effectiveName}
-            onClick={handleSave}
-          >
-            {saveRuleAsTemplate.isPending ? "Kaydediliyor…" : "Şablona Al"}
-          </Button>
-        </div>
-      </ModalBody>
-    </Modal>
+      <div className="mb-3">
+        <label className="form-label">Açıklama</label>
+        <textarea
+          className="form-control"
+          rows={2}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+        />
+      </div>
+    </FormModal>
   );
 };
 
@@ -170,68 +165,67 @@ export const ApplyTemplateModal: React.FC<ApplyTemplateModalProps> = ({
   };
 
   return (
-    <Modal isOpen={open} toggle={onClose} size="md">
-      <ModalHeader toggle={onClose}>Şablondan Kural Ekle</ModalHeader>
-      <ModalBody>
-        <div className="mb-3">
-          <label className="form-label">Şablon</label>
-          <LookupSelect
-            items={options}
-            isLoading={isLoading}
-            value={templateId}
-            onChange={setTemplateId}
-            placeholder="Şablon seçin"
-          />
-          {selected?.unitDefinitionName && (
-            <div className="form-note">
-              Birim: {selected.unitDefinitionName}. Üründe bu birim yoksa otomatik oluşturulur.
-            </div>
-          )}
-        </div>
-
-        <div className="row g-3">
-          <div className="col-6">
-            <label className="form-label">Öncelik</label>
-            <input
-              type="number"
-              className="form-control"
-              value={priority}
-              onChange={(event) => setPriority(event.target.value)}
-            />
-          </div>
-          <div className="col-6">
-            <label className="form-label">Değer farkı</label>
-            <input
-              className="form-control"
-              value={overrideValue}
-              placeholder="Şablondaki değer"
-              disabled={hasTiers}
-              onChange={(event) => setOverrideValue(event.target.value)}
-            />
-            <div className="form-note">
-              {hasTiers
-                ? "Kademeli şablonda tek değer değiştirilemez."
-                : "Boş bırakılırsa şablondaki değer kullanılır."}
-            </div>
-          </div>
-        </div>
-
-        {licenseOfferingId && (
-          <div className="alert alert-light mt-3 mb-0">
-            Kural yalnızca seçili satış planı için geçerli olacak.
+    <FormModal
+      open={open}
+      toggle={onClose}
+      title="Şablondan Kural Ekle"
+      size="md"
+      loading={apply.isPending}
+      loadingText="Uygulanıyor…"
+      disabled={!templateId}
+      submitLabel="Uygula"
+      cancelLabel="Vazgeç"
+      onSubmit={handleApply}
+    >
+      <div className="mb-3">
+        <label className="form-label">Şablon</label>
+        <LookupSelect
+          items={options}
+          isLoading={isLoading}
+          value={templateId}
+          onChange={setTemplateId}
+          placeholder="Şablon seçin"
+        />
+        {selected?.unitDefinitionName && (
+          <div className="form-note">
+            Birim: {selected.unitDefinitionName}. Üründe bu birim yoksa otomatik oluşturulur.
           </div>
         )}
+      </div>
 
-        <div className="d-flex justify-content-end gap-2 mt-3">
-          <Button color="light" onClick={onClose}>
-            Vazgeç
-          </Button>
-          <Button color="primary" disabled={!templateId || apply.isPending} onClick={handleApply}>
-            {apply.isPending ? "Uygulanıyor…" : "Uygula"}
-          </Button>
+      <div className="row g-3">
+        <div className="col-6">
+          <label className="form-label">Öncelik</label>
+          <input
+            type="number"
+            className="form-control"
+            value={priority}
+            onChange={(event) => setPriority(event.target.value)}
+          />
         </div>
-      </ModalBody>
-    </Modal>
+        <div className="col-6">
+          <label className="form-label">Değer farkı</label>
+          <input
+            className="form-control"
+            value={overrideValue}
+            placeholder="Şablondaki değer"
+            disabled={hasTiers}
+            onChange={(event) => setOverrideValue(event.target.value)}
+          />
+          <div className="form-note">
+            {hasTiers
+              ? "Kademeli şablonda tek değer değiştirilemez."
+              : "Boş bırakılırsa şablondaki değer kullanılır."}
+          </div>
+        </div>
+      </div>
+
+      {licenseOfferingId && (
+        <div className="alert alert-light mt-3 mb-0">
+          Kural yalnızca seçili satış planı için geçerli olacak.
+        </div>
+      )}
+    </FormModal>
   );
 };
 

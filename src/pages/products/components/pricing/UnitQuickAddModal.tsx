@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
+import { Button } from "reactstrap";
+import { FormModal } from "@/components/shared/FormModal";
 import { unitDefinitionRepository } from "@/infrastructure/api/repositories";
 import { queryKeys } from "@/services/query/queryKeys";
 import { useUnitDefinitionMutations } from "@/application/hooks/useUnitDefinitions";
@@ -97,92 +98,101 @@ const UnitQuickAddModal: React.FC<UnitQuickAddModalProps> = ({
     };
 
     return (
-        <Modal isOpen={isOpen} toggle={handleClose} size="sm" centered>
-            <ModalHeader toggle={handleClose}>Birim Ekle</ModalHeader>
-            <ModalBody>
-                {isCreatingNew ? (
-                    <>
-                        <label className="form-label">Yeni Evrensel Birim</label>
-                        <input
-                            className="form-control"
-                            placeholder="Ad (örn: Adet)"
-                            value={newName}
-                            onChange={(event) => setNewName(event.target.value)}
-                            disabled={isBusy}
-                            autoFocus
-                        />
-                        {newName.trim() && (
-                            <p className="text-soft fs-12px mt-1 mb-0">
-                                Kod: <span className="fw-medium">{generateUnitCode(newName.trim())}</span>
-                            </p>
+        <FormModal
+            open={isOpen}
+            toggle={handleClose}
+            title="Birim Ekle"
+            size="sm"
+            centered
+            loading={isBusy}
+            disabled={isCreatingNew ? !newName.trim() : !selectedId}
+            onSubmit={isCreatingNew ? handleCreateNewUnit : handleAdd}
+            footerContent={
+                <>
+                    <Button
+                        color="light"
+                        type="button"
+                        onClick={isCreatingNew ? resetNewUnitForm : handleClose}
+                        disabled={isBusy}
+                    >
+                        {isCreatingNew ? "Vazgeç" : "İptal"}
+                    </Button>
+                    <Button
+                        color="primary"
+                        type="submit"
+                        disabled={isBusy || (isCreatingNew ? !newName.trim() : !selectedId)}
+                    >
+                        {isBusy ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2" />
+                                {isCreatingNew ? "Oluşturuluyor..." : "Ekleniyor..."}
+                            </>
+                        ) : isCreatingNew ? (
+                            "Oluştur ve Ekle"
+                        ) : (
+                            "Ekle"
                         )}
-                    </>
-                ) : (
-                    <>
-                        <label className="form-label">Evrensel Birim</label>
-                        <input
-                            className="form-control mb-2"
-                            placeholder="Birim ara..."
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            disabled={isBusy}
-                        />
-                        <select
-                            className="form-select"
-                            size={6}
-                            value={selectedId}
-                            onChange={(event) => setSelectedId(event.target.value)}
-                            disabled={isBusy || isLoading}
-                        >
-                            {filtered.map((unit) => {
-                                const isExisting = existingUnitDefinitionIds.includes(unit.id);
-                                return (
-                                    <option key={unit.id} value={unit.id} disabled={isExisting}>
-                                        {unit.name} ({unit.code}){isExisting ? " — ürüne ekli" : ""}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                        {!isLoading && filtered.length === 0 && (
-                            <p className="text-soft fs-12px mt-2 mb-0">Aramayla eşleşen evrensel birim bulunamadı.</p>
-                        )}
-                        <button
-                            type="button"
-                            className="btn btn-sm btn-outline-primary mt-2"
-                            onClick={() => setIsCreatingNew(true)}
-                            disabled={isBusy}
-                        >
-                            + Yeni Evrensel Birim Ekle
-                        </button>
-                    </>
-                )}
-            </ModalBody>
-            <ModalFooter>
-                <Button
-                    color="light"
-                    onClick={isCreatingNew ? resetNewUnitForm : handleClose}
-                    disabled={isBusy}
-                >
-                    {isCreatingNew ? "Vazgeç" : "İptal"}
-                </Button>
-                <Button
-                    color="primary"
-                    onClick={isCreatingNew ? () => void handleCreateNewUnit() : handleAdd}
-                    disabled={isBusy || (isCreatingNew ? !newName.trim() : !selectedId)}
-                >
-                    {isBusy ? (
-                        <>
-                            <span className="spinner-border spinner-border-sm me-2" />
-                            {isCreatingNew ? "Oluşturuluyor..." : "Ekleniyor..."}
-                        </>
-                    ) : isCreatingNew ? (
-                        "Oluştur ve Ekle"
-                    ) : (
-                        "Ekle"
+                    </Button>
+                </>
+            }
+        >
+            {isCreatingNew ? (
+                <>
+                    <label className="form-label">Yeni Evrensel Birim</label>
+                    <input
+                        className="form-control"
+                        placeholder="Ad (örn: Adet)"
+                        value={newName}
+                        onChange={(event) => setNewName(event.target.value)}
+                        disabled={isBusy}
+                        autoFocus
+                    />
+                    {newName.trim() && (
+                        <p className="text-soft fs-12px mt-1 mb-0">
+                            Kod: <span className="fw-medium">{generateUnitCode(newName.trim())}</span>
+                        </p>
                     )}
-                </Button>
-            </ModalFooter>
-        </Modal>
+                </>
+            ) : (
+                <>
+                    <label className="form-label">Evrensel Birim</label>
+                    <input
+                        className="form-control mb-2"
+                        placeholder="Birim ara..."
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        disabled={isBusy}
+                    />
+                    <select
+                        className="form-select"
+                        size={6}
+                        value={selectedId}
+                        onChange={(event) => setSelectedId(event.target.value)}
+                        disabled={isBusy || isLoading}
+                    >
+                        {filtered.map((unit) => {
+                            const isExisting = existingUnitDefinitionIds.includes(unit.id);
+                            return (
+                                <option key={unit.id} value={unit.id} disabled={isExisting}>
+                                    {unit.name} ({unit.code}){isExisting ? " — ürüne ekli" : ""}
+                                </option>
+                            );
+                        })}
+                    </select>
+                    {!isLoading && filtered.length === 0 && (
+                        <p className="text-soft fs-12px mt-2 mb-0">Aramayla eşleşen evrensel birim bulunamadı.</p>
+                    )}
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary mt-2"
+                        onClick={() => setIsCreatingNew(true)}
+                        disabled={isBusy}
+                    >
+                        + Yeni Evrensel Birim Ekle
+                    </button>
+                </>
+            )}
+        </FormModal>
     );
 };
 

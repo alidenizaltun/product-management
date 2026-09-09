@@ -1,6 +1,13 @@
 import React from "react";
 import { Row, Col } from "reactstrap";
 import Icon from "@/components/icon/Icon";
+import { EMPTY_DETAIL_VALUE } from "./detailDisplay";
+
+function displayDetailValue(value: React.ReactNode): React.ReactNode {
+  if (value == null) return EMPTY_DETAIL_VALUE;
+  if (typeof value === "string" && value.trim() === "") return EMPTY_DETAIL_VALUE;
+  return value;
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,7 +64,7 @@ const DetailSection: React.FC<DetailSectionProps> = ({
                 <span className="text-soft">{item.label}</span>
               </Col>
               <Col xs={7}>
-                <span className="fw-medium">{item.value ?? "—"}</span>
+                <span className="fw-medium">{displayDetailValue(item.value)}</span>
               </Col>
             </Row>
           </Col>
@@ -122,7 +129,7 @@ const DetailRow: React.FC<DetailRowProps> = ({ label, value, className = "" }) =
         <span className="text-soft">{label}</span>
       </Col>
       <Col xs={7}>
-        <span className="fw-medium">{value ?? "—"}</span>
+        <span className="fw-medium">{displayDetailValue(value)}</span>
       </Col>
     </Row>
   </div>

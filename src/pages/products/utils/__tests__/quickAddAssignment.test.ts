@@ -101,14 +101,14 @@ describe("placeRegionAssignment", () => {
             currencyCode: "TRY",
             isDefault: true,
             isActive: true,
-            sortOrder: 0,
+            sortOrder: 1,
         });
 
         const second = placeRegionAssignment(first.next, "region-2");
         expect(second.next[1]).toMatchObject({
             regionId: "region-2",
             isDefault: false,
-            sortOrder: 1,
+            sortOrder: 2,
         });
     });
 

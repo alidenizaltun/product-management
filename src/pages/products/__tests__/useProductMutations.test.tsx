@@ -189,5 +189,36 @@ describe("useProductMutations", () => {
                 expect(result.current.deleteMutation.isSuccess).toBe(true);
             });
         });
+
+        it("başarılı silmede ürünü son kullanılanlardan temizler", async () => {
+            window.localStorage.clear();
+            window.localStorage.setItem(
+                "pm_recent_products_general",
+                JSON.stringify([{ id: "prod-001", name: "Test Ürünü" }])
+            );
+            window.localStorage.setItem(
+                "pm_recent_products_pricing",
+                JSON.stringify([
+                    { id: "prod-001", name: "Test Ürünü" },
+                    { id: "prod-002", name: "Diğer" },
+                ])
+            );
+
+            const { result } = renderHook(() => useProductMutations(), { wrapper: makeWrapper() });
+
+            await act(async () => {
+                await result.current.deleteMutation.mutateAsync("prod-001");
+            });
+
+            await waitFor(() => {
+                expect(result.current.deleteMutation.isSuccess).toBe(true);
+            });
+
+            expect(JSON.parse(window.localStorage.getItem("pm_recent_products_general") ?? "[]")).toEqual([]);
+            expect(JSON.parse(window.localStorage.getItem("pm_recent_products_pricing") ?? "[]")).toEqual([
+                { id: "prod-002", name: "Diğer" },
+            ]);
+            window.localStorage.clear();
+        });
     });
 });

@@ -7,6 +7,7 @@ import {
   createSoftwareProduct,
   deleteSoftwareProductIfSupported,
   openProductPricing,
+  salesPlanCard,
   writableApiBase,
   type CreatedSoftwareProduct,
 } from "./helpers/softwareProduct";
@@ -181,12 +182,6 @@ function attachWriteGuard(page: Page): () => void {
   return () => expect(failures, failures.join("\n")).toEqual([]);
 }
 
-function planCard(page: Page, planName: string) {
-  return page.locator(".card.h-100").filter({
-    has: page.getByRole("heading", { name: planName, exact: true }),
-  });
-}
-
 function labeledControl(dialog: Locator, label: string) {
   const fieldLabel = dialog.locator("label.form-label").filter({ hasText: new RegExp(`^${label}`) }).first();
   return fieldLabel.locator("xpath=following::*[self::select or self::input][1]");
@@ -223,13 +218,13 @@ async function createPlanFromTemplate(page: Page, templateTitle: string, planNam
 
 async function openPlanRules(page: Page, productId: string, planName: string) {
   await openProductPricing(page, productId);
-  await planCard(page, planName).getByRole("button", { name: "Fiyatlandırma" }).click();
+  await salesPlanCard(page, planName).getByRole("button", { name: "Fiyatlandırma" }).click();
   await expect(page.getByRole("heading", { name: planName })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("Fiyatlandırma kuralları", { exact: true })).toBeVisible();
 }
 
 async function openPlanSettings(page: Page, planName: string) {
-  await planCard(page, planName).getByRole("button", { name: "Ayarlar" }).click();
+  await salesPlanCard(page, planName).getByRole("button", { name: "Ayarlar" }).click();
   const dialog = dialogByTitle(page, "Satış Planı Ayarları");
   await expect(dialog).toBeVisible({ timeout: 15_000 });
   return dialog;
@@ -254,7 +249,7 @@ function rightUnitList(dialog: Locator) {
 }
 
 async function closeRuleForm(dialog: Locator) {
-  await dialog.getByRole("button", { name: "Kapat" }).click();
+  await dialog.getByRole("button", { name: "İptal" }).click();
   await expect(dialog).toHaveCount(0);
 }
 
@@ -487,15 +482,15 @@ test.describe("Satış planı şablonları, birimler ve kademeli kurallar", () =
 
     for (const template of PLAN_TEMPLATES) {
       await createPlanFromTemplate(page, template.templateTitle, template.name);
-      await expect(planCard(page, template.name)).toBeVisible();
-      await expect(planCard(page, template.name).getByText(template.licenseModelLabel, { exact: true })).toBeVisible();
+      await expect(salesPlanCard(page, template.name)).toBeVisible();
+      await expect(salesPlanCard(page, template.name).getByText(template.licenseModelLabel, { exact: true })).toBeVisible();
     }
 
     await page.goto("/dashboard");
     await openProductPricing(page, product.id);
 
     for (const template of PLAN_TEMPLATES) {
-      const card = planCard(page, template.name);
+      const card = salesPlanCard(page, template.name);
       await expect(card).toBeVisible();
       await expect(card.getByText(template.licenseModelLabel, { exact: true })).toBeVisible();
 
@@ -520,7 +515,7 @@ test.describe("Satış planı şablonları, birimler ve kademeli kurallar", () =
     await expect(page.getByText("30 ay periyot")).toBeVisible();
     await page.getByRole("button", { name: "Planlara dön" }).click();
 
-    await planCard(page, "Yıllık Plan").getByRole("button", { name: "Fiyatlandırma" }).click();
+    await salesPlanCard(page, "Yıllık Plan").getByRole("button", { name: "Fiyatlandırma" }).click();
     await expect(page.getByRole("heading", { name: "Yıllık Plan" })).toBeVisible();
     await expect(page.getByText("365 yıl periyot")).toBeVisible();
 
@@ -561,7 +556,7 @@ test.describe("Satış planı şablonları, birimler ve kademeli kurallar", () =
     await closeRuleForm(monthlyRecheck);
 
     await page.getByRole("button", { name: "Planlara dön" }).click();
-    await planCard(page, "Yıllık Plan").getByRole("button", { name: "Fiyatlandırma" }).click();
+    await salesPlanCard(page, "Yıllık Plan").getByRole("button", { name: "Fiyatlandırma" }).click();
     await expect(page.getByRole("heading", { name: "Yıllık Plan" })).toBeVisible({ timeout: 15_000 });
 
     const yearlyDialog = await openRuleForm(page);
@@ -678,7 +673,7 @@ test.describe("Satış planı şablonları, birimler ve kademeli kurallar", () =
     await expect(secondRow.locator("input[type=number]").nth(1)).toHaveValue("");
     await expect(secondRow.locator("select")).toHaveValue("fixed");
     await expect(secondRow.locator("input[type=number]").nth(2)).toHaveValue("40");
-    await editDialog.getByRole("button", { name: "Kapat" }).click();
+    await editDialog.getByRole("button", { name: "İptal" }).click();
 
     assertNoWriteError();
   });

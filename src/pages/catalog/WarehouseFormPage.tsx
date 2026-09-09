@@ -1,12 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import Content from "@/layout/content/Content";
-import Head from "@/layout/head/Head";
-import Icon from "@/components/icon/Icon";
-import { Block } from "@/components/Component";
-import PageHeader from "@/components/shared/PageHeader";
-import { TextInput, Textarea, Checkbox, LoadingButton, UnsavedChangesDialog } from "@/components/shared";
+import { TextInput, Textarea, Checkbox, FormPage, UnsavedChangesDialog } from "@/components/shared";
 import { useUnsavedChangesGuard } from "@/application/hooks/useUnsavedChangesGuard";
 import { useWarehouse, useWarehouseMutations } from "@/application/hooks/useCatalog";
 import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
@@ -91,86 +86,60 @@ const WarehouseFormPage: React.FC = () => {
 
   return (
     <>
-      <Head title={title} />
-      <Content>
-        <PageHeader
-          title={title}
-          description={isEdit ? undefined : "Kod sistem tarafından üretilir."}
-          actions={
-            <div className="d-flex gap-2">
-              <button
-                type="button"
-                className="btn btn-light py-2"
-                onClick={() => navigate("/definitions/warehouses")}
-                disabled={isPending}
-              >
-                İptal
-              </button>
-              <LoadingButton color="primary py-2" type="submit" form="warehouse-form" loading={isPending}>
-                <Icon name="save" className="me-1" />
-                Kaydet
-              </LoadingButton>
-            </div>
-          }
-        />
-        <Block>
-          {isEdit && isLoading ? (
-            <div className="card card-bordered">
-              <div className="card-inner d-flex align-items-center gap-2">
-                <span className="spinner-border spinner-border-sm text-primary" />
-                <span>Yükleniyor...</span>
+      <FormPage
+        title={title}
+        loading={isEdit && isLoading}
+        saving={isPending}
+        onSubmit={handleSubmit(onSubmit)}
+        onCancel={() => navigate("/definitions/warehouses")}
+      >
+        <div className="card card-bordered">
+          <div className="card-inner">
+            <div className="row g-3">
+              {isEdit && (
+                <div className="col-md-4">
+                  <TextInput
+                    label="Kod"
+                    required
+                    error={errors.code?.message}
+                    {...register("code", { required: "Kod zorunludur" })}
+                  />
+                </div>
+              )}
+
+              <div className={isEdit ? "col-md-8" : "col-md-12"}>
+                <TextInput
+                  label="Ad"
+                  required
+                  placeholder="Depo adı"
+                  error={errors.name?.message}
+                  {...register("name", { required: "Ad zorunludur" })}
+                />
+              </div>
+
+              <div className="col-md-6">
+                <TextInput label="Şehir" {...register("city")} />
+              </div>
+
+              <div className="col-md-6">
+                <TextInput label="Ülke" {...register("country")} />
+              </div>
+
+              <div className="col-12">
+                <Textarea label="Adres" rows={2} {...register("address")} />
+              </div>
+
+              <div className="col-12">
+                <Textarea label="Açıklama" rows={2} {...register("description")} />
+              </div>
+
+              <div className="col-12">
+                <Checkbox label="Aktif" switchStyle {...register("isActive")} />
               </div>
             </div>
-          ) : (
-            <div className="card card-bordered">
-              <div className="card-inner">
-                <form id="warehouse-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
-                  {isEdit && (
-                    <div className="col-md-4">
-                      <TextInput
-                        label="Kod"
-                        required
-                        error={errors.code?.message}
-                        {...register("code", { required: "Kod zorunludur" })}
-                      />
-                    </div>
-                  )}
-
-                  <div className={isEdit ? "col-md-8" : "col-md-12"}>
-                    <TextInput
-                      label="Ad"
-                      required
-                      placeholder="Depo adı"
-                      error={errors.name?.message}
-                      {...register("name", { required: "Ad zorunludur" })}
-                    />
-                  </div>
-
-                  <div className="col-md-6">
-                    <TextInput label="Şehir" {...register("city")} />
-                  </div>
-
-                  <div className="col-md-6">
-                    <TextInput label="Ülke" {...register("country")} />
-                  </div>
-
-                  <div className="col-12">
-                    <Textarea label="Adres" rows={2} {...register("address")} />
-                  </div>
-
-                  <div className="col-12">
-                    <Textarea label="Açıklama" rows={2} {...register("description")} />
-                  </div>
-
-                  <div className="col-12">
-                    <Checkbox label="Aktif" switchStyle {...register("isActive")} />
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-        </Block>
-      </Content>
+          </div>
+        </div>
+      </FormPage>
 
       <UnsavedChangesDialog blocker={blocker} />
     </>

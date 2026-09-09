@@ -104,7 +104,7 @@ export const placeRegionAssignment = (
         taxRate: undefined,
         isDefault: current.length === 0,
         isActive: true,
-        sortOrder: current.length,
+        sortOrder: current.length + 1,
       },
     ],
     placement: "appended",

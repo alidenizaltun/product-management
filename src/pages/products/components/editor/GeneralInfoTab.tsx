@@ -51,9 +51,16 @@ const GeneralInfoTab: React.FC = () => {
             .toUpperCase()
             .replace(/[^A-Z0-9]+/g, "-")
             .replace(/^-|-$/g, "")
-            .slice(0, 16);
+            .slice(0, 12);
 
-        setValue("productCode", `PRD-${seed || "URUN"}`, { shouldDirty: true, shouldValidate: true });
+        const uniqueSuffix = (
+            Date.now().toString(36).slice(-4) + Math.random().toString(36).slice(2, 4)
+        ).toUpperCase();
+
+        setValue("productCode", `PRD-${seed || "URUN"}-${uniqueSuffix}`, {
+            shouldDirty: true,
+            shouldValidate: true,
+        });
     };
 
     return (
@@ -213,11 +220,9 @@ const GeneralInfoTab: React.FC = () => {
                         <h6 className="overline-title text-primary mb-3">Satış Ayarları</h6>
                         <div className="d-flex flex-wrap gap-4">
                             <Checkbox label="Aktif" switchStyle {...register("isActive")} />
-                            <Checkbox label="Satılabilir" switchStyle {...register("isSellable")} />
-                            <Checkbox label="Satın Alınabilir" switchStyle {...register("isPurchasable")} />
-                            {isSoftwareProduct ? (
-                                <Checkbox label="Stok Takibi" switchStyle checked={false} disabled readOnly />
-                            ) : (
+                            <Checkbox label="Satışa açık" switchStyle {...register("isSellable")} />
+                            <Checkbox label="Bayiler satın alabilir" switchStyle {...register("isPurchasable")} />
+                            {!isSoftwareProduct && (
                                 <Checkbox label="Stok Takibi" switchStyle {...register("trackInventory")} />
                             )}
                         </div>

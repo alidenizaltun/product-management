@@ -32,7 +32,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   onCancel,
 }) => (
-  <Modal isOpen={open} toggle={onCancel} centered>
+  <Modal isOpen={open} toggle={onCancel} backdrop="static" centered>
     <div className="modal-body modal-body-md text-center">
       <div className="nk-modal text-center">
         <Icon

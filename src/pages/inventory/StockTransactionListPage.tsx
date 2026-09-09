@@ -106,6 +106,12 @@ const StockTransactionListPage: React.FC = () => {
             emptyTitle="Henüz hareket yok"
             emptyIcon="exchange"
             rowKey={(it) => it.id}
+            emptyAction={
+              <Button color="primary" onClick={() => navigate("/inventory/transactions/new")}>
+                <Icon name="plus" className="me-1" />
+                Yeni Hareket
+              </Button>
+            }
           />
         </Block>
       </Content>

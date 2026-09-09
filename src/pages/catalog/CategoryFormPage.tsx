@@ -1,12 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import Content from "@/layout/content/Content";
-import Head from "@/layout/head/Head";
-import Icon from "@/components/icon/Icon";
-import { Block } from "@/components/Component";
-import PageHeader from "@/components/shared/PageHeader";
-import { TextInput, Textarea, FormField, LoadingButton, UnsavedChangesDialog } from "@/components/shared";
+import { TextInput, Textarea, FormField, FormPage, UnsavedChangesDialog } from "@/components/shared";
 import { useUnsavedChangesGuard } from "@/application/hooks/useUnsavedChangesGuard";
 import { useCategories, useCategory, useCategoryMutations } from "@/application/hooks/useCatalog";
 import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
@@ -80,85 +75,58 @@ const CategoryFormPage: React.FC = () => {
 
   return (
     <>
-      <Head title={title} />
-      <Content>
-        <PageHeader
-          title={title}
-          description={
-            isEdit ? "Kategori bilgilerini girin." : "Kategori bilgilerini girin. Kod sistem tarafından üretilir."
-          }
-          actions={
-            <div className="d-flex gap-2">
-              <button
-                type="button"
-                className="btn btn-light py-2"
-                onClick={() => navigate("/definitions/categories")}
-                disabled={isPending}
-              >
-                İptal
-              </button>
-              <LoadingButton color="primary py-2" type="submit" form="category-form" loading={isPending}>
-                <Icon name="save" className="me-1" />
-                Kaydet
-              </LoadingButton>
-            </div>
-          }
-        />
-        <Block>
-          {isEdit && isLoading ? (
-            <div className="card card-bordered">
-              <div className="card-inner d-flex align-items-center gap-2">
-                <span className="spinner-border spinner-border-sm text-primary" />
-                <span>Yükleniyor...</span>
+      <FormPage
+        title={title}
+        subtitle="Kategori bilgilerini girin."
+        loading={isEdit && isLoading}
+        saving={isPending}
+        onSubmit={handleSubmit(onSubmit)}
+        onCancel={() => navigate("/definitions/categories")}
+      >
+        <div className="card card-bordered">
+          <div className="card-inner">
+            <div className="row g-3">
+              {isEdit && (
+                <div className="col-md-4">
+                  <TextInput
+                    label="Kod"
+                    required
+                    error={errors.code?.message}
+                    {...register("code", { required: "Kod zorunludur" })}
+                  />
+                </div>
+              )}
+
+              <div className={isEdit ? "col-md-4" : "col-md-6"}>
+                <TextInput
+                  label="Ad"
+                  required
+                  placeholder="Kategori adı"
+                  error={errors.name?.message}
+                  {...register("name", { required: "Ad zorunludur" })}
+                />
+              </div>
+
+              <div className={isEdit ? "col-md-4" : "col-md-6"}>
+                <FormField label="Üst Kategori" htmlFor="category-parent">
+                  <select id="category-parent" className="form-control form-select" {...register("parentCategoryId")}>
+                    <option value="">— Yok (Kök Kategori) —</option>
+                    {parentOptions.map(({ item, depth }) => (
+                      <option key={item.id} value={item.id}>
+                        {formatCategoryTreeLabel(item.name, depth)}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+              </div>
+
+              <div className="col-12">
+                <Textarea label="Açıklama" rows={3} placeholder="Kategori açıklaması" {...register("description")} />
               </div>
             </div>
-          ) : (
-            <div className="card card-bordered">
-              <div className="card-inner">
-                <form id="category-form" onSubmit={handleSubmit(onSubmit)} className="row g-3">
-                  {isEdit && (
-                    <div className="col-md-4">
-                      <TextInput
-                        label="Kod"
-                        required
-                        error={errors.code?.message}
-                        {...register("code", { required: "Kod zorunludur" })}
-                      />
-                    </div>
-                  )}
-
-                  <div className={isEdit ? "col-md-4" : "col-md-6"}>
-                    <TextInput
-                      label="Ad"
-                      required
-                      placeholder="Kategori adı"
-                      error={errors.name?.message}
-                      {...register("name", { required: "Ad zorunludur" })}
-                    />
-                  </div>
-
-                  <div className={isEdit ? "col-md-4" : "col-md-6"}>
-                    <FormField label="Üst Kategori" htmlFor="category-parent">
-                      <select id="category-parent" className="form-control form-select" {...register("parentCategoryId")}>
-                        <option value="">— Yok (Kök Kategori) —</option>
-                        {parentOptions.map(({ item, depth }) => (
-                          <option key={item.id} value={item.id}>
-                            {formatCategoryTreeLabel(item.name, depth)}
-                          </option>
-                        ))}
-                      </select>
-                    </FormField>
-                  </div>
-
-                  <div className="col-12">
-                    <Textarea label="Açıklama" rows={3} placeholder="Kategori açıklaması" {...register("description")} />
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-        </Block>
-      </Content>
+          </div>
+        </div>
+      </FormPage>
 
       <UnsavedChangesDialog blocker={blocker} />
     </>

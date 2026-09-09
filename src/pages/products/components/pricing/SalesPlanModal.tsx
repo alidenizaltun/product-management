@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
+import { Button } from "reactstrap";
+import { FormModal } from "@/components/shared/FormModal";
 import { productRepository } from "@/infrastructure/api/repositories";
 import { showApiError, showSuccess } from "@/components/shared/NotificationAlert";
 import { usePermission } from "@/application/hooks/usePermission";
@@ -14,10 +15,10 @@ interface SalesPlanModalProps {
     productId: string;
     onClose: () => void;
     onRequestDelete: (index: number) => void;
-    onOpenRules: (index: number) => void;
+    onOpenRules?: (index: number) => void;
 }
 
-const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClose, onRequestDelete, onOpenRules }) => {
+const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClose, onRequestDelete }) => {
     const queryClient = useQueryClient();
     const canEdit = usePermission("product.pricing.edit");
     const { control, getValues, setValue, trigger, reset, setFocus, formState } = useFormContext<ProductFormValues>();
@@ -81,34 +82,20 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
     };
 
     return (
-        <>
-            <Modal isOpen={isOpen} toggle={handleCancel} size="lg" centered scrollable>
-                <ModalHeader toggle={handleCancel}>{isSaved ? "Satış Planı Ayarları" : "Yeni Satış Planı"}</ModalHeader>
-                <ModalBody>
-                    <LicenseOfferingFormFields
-                        index={index}
-                        fieldId={String(offering?.id ?? offering?._tempId ?? index)}
-                    />
-
-                    {/* {isSaved && (
-                        <>
-                            <hr className="my-4" />
-                            <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
-                                <div>
-                                    <span className="overline-title text-primary d-block">Fiyatlandırma kuralları</span>
-                                    <p className="text-soft fs-12px mb-0">
-                                        Bu plana özel kademe, indirim veya koşullu fiyat kuralları ayrı bir pencerede yönetilir.
-                                    </p>
-                                </div>
-                                <Button color="outline-primary" size="sm" type="button" onClick={() => onOpenRules(index)}>
-                                    <em className="icon ni ni-coins me-1" />
-                                    Kuralları Yönet
-                                </Button>
-                            </div>
-                        </>
-                    )} */}
-                </ModalBody>
-                <ModalFooter className="d-flex justify-content-between">
+        <FormModal
+            open={isOpen}
+            toggle={handleCancel}
+            title={isSaved ? "Satış Planı Ayarları" : "Yeni Satış Planı"}
+            size="lg"
+            centered
+            scrollable
+            loading={saving}
+            loadingText="Kaydediliyor..."
+            disabled={!canEdit}
+            submitLabel={isSaved ? "Kaydet" : "Planı Kaydet"}
+            onSubmit={handleSave}
+            footerContent={
+                <div className="d-flex justify-content-between w-100">
                     <div>
                         {isSaved && canEdit && (
                             <Button color="outline-danger" type="button" onClick={() => onRequestDelete(index)} disabled={saving}>
@@ -121,7 +108,7 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
                         <Button color="light" type="button" onClick={handleCancel} disabled={saving}>
                             İptal
                         </Button>
-                        <Button color="primary" type="button" onClick={() => void handleSave()} disabled={saving || !canEdit}>
+                        <Button color="primary" type="submit" disabled={saving || !canEdit}>
                             {saving ? (
                                 <>
                                     <span className="spinner-border spinner-border-sm me-2" />
@@ -135,9 +122,14 @@ const SalesPlanModal: React.FC<SalesPlanModalProps> = ({ index, productId, onClo
                             )}
                         </Button>
                     </div>
-                </ModalFooter>
-            </Modal>
-        </>
+                </div>
+            }
+        >
+            <LicenseOfferingFormFields
+                index={index}
+                fieldId={String(offering?.id ?? offering?._tempId ?? index)}
+            />
+        </FormModal>
     );
 };
 

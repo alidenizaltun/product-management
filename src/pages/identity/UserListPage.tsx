@@ -149,6 +149,14 @@ const UserListPage: React.FC = () => {
                         emptyTitle="Henüz kullanıcı yok"
                         emptyIcon="users"
                         rowKey={(it) => it.id}
+                        emptyAction={
+                            canManage ? (
+                                <Button color="primary" onClick={() => navigate("/identity/users/new")}>
+                                    <Icon name="plus" id="" className="me-1" style={{}} />
+                                    Yeni Kullanıcı
+                                </Button>
+                            ) : undefined
+                        }
                         toolbar={
                             <SearchInput value={search} onChange={setSearch} placeholder="Ad, soyad veya e-posta ara..." />
                         }

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { SKIP_WITHOUT_WRITABLE_API } from "../utils";
+import { salesPlanCard } from "./helpers/softwareProduct";
 
 /**
  * Hata #3'ün yazma yolu: bir plana eklenen birimin gerçekten kaydedildiğini ve
@@ -25,7 +26,7 @@ const UNIT = "GB";
 async function openPlanRules(page: Page, planName: string) {
   await page.goto(`/pricing/product-pricing?productId=${PRODUCT_ID}`);
   await expect(page.getByRole("heading", { name: "Satış Planları" })).toBeVisible({ timeout: 20_000 });
-  const planCard = page.locator(".card", { hasText: planName }).last();
+  const planCard = salesPlanCard(page, planName);
   await planCard.getByRole("button", { name: "Fiyatlandırma" }).click();
   await expect(page.getByRole("heading", { name: planName })).toBeVisible({ timeout: 15_000 });
 }

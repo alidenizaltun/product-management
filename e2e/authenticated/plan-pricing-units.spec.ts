@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { SKIP_WITHOUT_SHARED_DATA } from "../utils";
+import { salesPlanCard } from "./helpers/softwareProduct";
 
 // Kullanıcı bildirimi (hata #2 ve #3):
 //  - "Plan fiyatlandırma sayfasında hangi planda olduğumu göremiyorum"
@@ -26,7 +27,7 @@ test.describe("Satış planı fiyatlandırması - plan başlığı ve ürün bir
   });
 
   test("kural ekranı hangi planda olunduğunu başlıkta gösteriyor", async ({ page }) => {
-    const planCard = page.locator(".card", { hasText: PLAN_WITHOUT_UNITS }).last();
+    const planCard = salesPlanCard(page, PLAN_WITHOUT_UNITS);
     await planCard.getByRole("button", { name: "Fiyatlandırma" }).click();
 
     // Hata #2: kural ekranında plan adı hiçbir yerde yazmıyordu.
@@ -37,7 +38,7 @@ test.describe("Satış planı fiyatlandırması - plan başlığı ve ürün bir
   });
 
   test("birimi olmayan planda ürünün bütün birimleri solda listeleniyor", async ({ page }) => {
-    const planCard = page.locator(".card", { hasText: PLAN_WITHOUT_UNITS }).last();
+    const planCard = salesPlanCard(page, PLAN_WITHOUT_UNITS);
     await planCard.getByRole("button", { name: "Fiyatlandırma" }).click();
     await expect(page.getByRole("heading", { name: PLAN_WITHOUT_UNITS })).toBeVisible();
 
@@ -56,7 +57,7 @@ test.describe("Satış planı fiyatlandırması - plan başlığı ve ürün bir
   });
 
   test("birim ekleme penceresi ürüne ekli birimleri gizlemiyor, devre dışı gösteriyor", async ({ page }) => {
-    const planCard = page.locator(".card", { hasText: PLAN_WITHOUT_UNITS }).last();
+    const planCard = salesPlanCard(page, PLAN_WITHOUT_UNITS);
     await planCard.getByRole("button", { name: "Fiyatlandırma" }).click();
     await page.getByRole("button", { name: "Yeni Kural" }).click();
     await page.getByRole("button", { name: "Yeni birim ekle" }).click();

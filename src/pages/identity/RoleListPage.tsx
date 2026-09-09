@@ -128,6 +128,14 @@ const RoleListPage: React.FC = () => {
                         emptyTitle="Henüz rol yok"
                         emptyIcon="shield-star"
                         rowKey={(it) => it.id}
+                        emptyAction={
+                            canManage ? (
+                                <Button color="primary" onClick={() => navigate("/identity/roles/new")}>
+                                    <Icon name="plus" id="" className="me-1" style={{}} />
+                                    Yeni Rol
+                                </Button>
+                            ) : undefined
+                        }
                     />
                 </Block>
             </Content>

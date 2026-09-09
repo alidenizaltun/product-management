@@ -1,15 +1,22 @@
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "reactstrap";
-import Content from "@/layout/content/Content";
-import Head from "@/layout/head/Head";
 import Icon from "@/components/icon/Icon";
-import { Block } from "@/components/Component";
-import PageHeader from "@/components/shared/PageHeader";
-import DataTableServer, { DataColumn } from "@/components/shared/DataTableServer";
-import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import EmptyState from "@/components/shared/EmptyState";
-import { showApiError, showSuccess, showWarning } from "@/components/shared/NotificationAlert";
+import {
+  ConfirmDialog,
+  DataTableServer,
+  DetailCard,
+  DetailPage,
+  DetailSection,
+  EMPTY_DETAIL_VALUE,
+  InlineAlert,
+  MetricRow,
+  formatDetailDate,
+  showApiError,
+  showSuccess,
+  showWarning,
+} from "@/components/shared";
+import type { DataColumn } from "@/components/shared";
 import {
   usePriceRevision,
   usePriceRevisionLines,
@@ -23,6 +30,7 @@ import {
   describeTargetType,
   formatMoney,
   revisionCan,
+  ROUNDING_MODE_OPTIONS,
 } from "@/pages/pricing/components/revisionDisplay";
 import type { PriceRevisionLineDto } from "@/domain/types/productOperations.types";
 
@@ -39,7 +47,7 @@ const PriceRevisionDetailPage: React.FC = () => {
   const [confirmApply, setConfirmApply] = useState(false);
   const [confirmRollback, setConfirmRollback] = useState(false);
 
-  const { data: revision, isLoading } = usePriceRevision(id);
+  const { data: revision, isLoading, refetch } = usePriceRevision(id);
   const { data: linePage, isLoading: linesLoading } = usePriceRevisionLines(id, {
     targetType: targetTypeFilter ?? null,
     skip: (page - 1) * PAGE_SIZE,
@@ -49,6 +57,7 @@ const PriceRevisionDetailPage: React.FC = () => {
   const actions = usePriceRevisionMutations(id);
   const can = revisionCan(revision);
   const summary = revision?.summary;
+  const missing = !isLoading && !revision;
 
   const run = async (task: () => Promise<unknown>, message: string) => {
     try {
@@ -60,13 +69,13 @@ const PriceRevisionDetailPage: React.FC = () => {
   };
 
   const columns: DataColumn<PriceRevisionLineDto>[] = [
-    { key: "product", title: "Ürün", render: (it) => it.productName },
+    { key: "product", title: "Ürün", render: (it) => it.productName || EMPTY_DETAIL_VALUE },
     {
       key: "target",
       title: "Hedef",
       render: (it) => (
         <>
-          <span className="d-block">{it.targetLabel}</span>
+          <span className="d-block">{it.targetLabel || EMPTY_DETAIL_VALUE}</span>
           <span className="text-soft small">{describeTargetType(it.targetType)}</span>
         </>
       ),
@@ -90,7 +99,7 @@ const PriceRevisionDetailPage: React.FC = () => {
       title: "Fark",
       render: (it) => {
         const difference = it.newValue - it.oldValue;
-        if (difference === 0) return <span className="text-soft">—</span>;
+        if (difference === 0) return <span className="text-soft">{EMPTY_DETAIL_VALUE}</span>;
         return (
           <span className={difference > 0 ? "text-danger" : "text-success"}>
             {difference > 0 ? "+" : ""}
@@ -138,244 +147,238 @@ const PriceRevisionDetailPage: React.FC = () => {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <Content>
-        <div className="text-center py-5">Yükleniyor…</div>
-      </Content>
-    );
-  }
-
-  if (!revision) {
-    return (
-      <Content>
-        <EmptyState
-          icon="alert-circle"
-          title="Revizyon bulunamadı"
-          description="Bu zam revizyonu silinmiş olabilir."
-          action={
-            <Button color="light" onClick={() => navigate("/pricing/revisions")}>
-              Listeye Dön
-            </Button>
-          }
-        />
-      </Content>
-    );
-  }
+  const roundingLabel =
+    ROUNDING_MODE_OPTIONS.find((option) => option.value === revision?.roundingMode)?.label ??
+    EMPTY_DETAIL_VALUE;
 
   return (
     <>
-      <Head title={`Zam: ${revision.name}`} />
-      <Content>
-        <PageHeader
-          title={revision.name}
-          description={`${revision.code} · ${describeAdjustment(revision)}`}
-          actions={
-            <div className="d-flex align-items-center gap-2">
+      <DetailPage
+        title={revision ? revision.name : "Zam Detayı"}
+        headTitle={revision ? `Zam: ${revision.name}` : "Zam Detayı"}
+        subtitle={revision ? `${revision.code} · ${describeAdjustment(revision)}` : undefined}
+        breadcrumbs={[
+          { label: "Zam Yönetimi", to: "/pricing/revisions" },
+          { label: revision?.name ?? "Detay" },
+        ]}
+        loading={isLoading}
+        error={missing}
+        errorMessage="Revizyon bulunamadı veya yüklenirken bir hata oluştu."
+        onRetry={() => {
+          void refetch();
+        }}
+        backTo="/pricing/revisions"
+        headerActions={
+          revision ? (
+            <div className="d-flex align-items-center gap-2 flex-wrap">
               <RevisionStatusBadge status={revision.status} />
-              <Button color="light" onClick={() => navigate("/pricing/revisions")}>
-                <Icon name="arrow-left" className="me-1" />
-                Liste
-              </Button>
               {can.edit && (
-                <Button color="light" onClick={() => navigate(`/pricing/revisions/${revision.id}/edit`)}>
+                <Button color="primary" size="sm" onClick={() => navigate(`/pricing/revisions/${revision.id}/edit`)}>
                   <Icon name="edit" className="me-1" />
                   Düzenle
                 </Button>
               )}
             </div>
-          }
-        />
-
-        <Block>
-          <PriceRevisionScopePanel
-            scopes={revision.scopes}
-            editable={can.edit}
-            busy={actions.addScope.isPending || actions.removeScope.isPending}
-            onAdd={(scope) => actions.addScope.mutateAsync(scope)}
-            onRemove={(scopeId) => actions.removeScope.mutateAsync(scopeId)}
-          />
-        </Block>
-
-        {summary && summary.lineCount > 0 && (
-          <Block>
-            <div className="row g-3">
-              <div className="col-sm-3">
-                <div className="card card-bordered h-100">
-                  <div className="card-inner">
-                    <div className="text-soft small">Etkilenen fiyat</div>
-                    <div className="h4 mb-0">{summary.lineCount - summary.excludedLineCount}</div>
-                    {summary.excludedLineCount > 0 && (
-                      <div className="text-soft small">{summary.excludedLineCount} hariç tutuldu</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="col-sm-3">
-                <div className="card card-bordered h-100">
-                  <div className="card-inner">
-                    <div className="text-soft small">Ürün</div>
-                    <div className="h4 mb-0">{summary.productCount}</div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-sm-3">
-                <div className="card card-bordered h-100">
-                  <div className="card-inner">
-                    <div className="text-soft small">Eski toplam</div>
-                    <div className="h4 mb-0">{formatMoney(summary.totalOldValue)}</div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-sm-3">
-                <div className="card card-bordered h-100">
-                  <div className="card-inner">
-                    <div className="text-soft small">Yeni toplam</div>
-                    <div className="h4 mb-0">{formatMoney(summary.totalNewValue)}</div>
-                    <div className={summary.totalDifference > 0 ? "text-danger small" : "text-success small"}>
-                      {summary.totalDifference > 0 ? "+" : ""}
-                      {formatMoney(summary.totalDifference)}
-                    </div>
-                  </div>
-                </div>
+          ) : undefined
+        }
+      >
+        {revision ? (
+          <>
+            <div className="row g-3 mb-3">
+              <div className="col-lg-6">
+                <DetailCard title="Revizyon Bilgileri" icon="growth" fullHeight={false}>
+                  <DetailSection
+                    items={[
+                      { label: "Kod", value: revision.code },
+                      { label: "Ad", value: revision.name },
+                      { label: "Açıklama", value: revision.description, fullWidth: true },
+                      { label: "Ayar", value: describeAdjustment(revision) },
+                      { label: "Yuvarlama", value: roundingLabel },
+                      {
+                        label: "Yuvarlama adımı",
+                        value: revision.roundingStep != null ? String(revision.roundingStep) : EMPTY_DETAIL_VALUE,
+                      },
+                      { label: "Para birimi", value: revision.currencyCode },
+                      { label: "Yürürlük", value: formatDetailDate(revision.effectiveDate) },
+                      { label: "Oluşturulma", value: formatDetailDate(revision.createdAt) },
+                    ]}
+                  />
+                </DetailCard>
               </div>
             </div>
-          </Block>
-        )}
 
-        {summary && summary.skippedRules.length > 0 && (
-          <Block>
-            <div className="alert alert-warning">
-              <div className="fw-medium mb-1">
-                <Icon name="alert-circle" className="me-1" />
-                Zam uygulanamayan {summary.skippedRules.length} kural
+            <PriceRevisionScopePanel
+              scopes={revision.scopes}
+              editable={can.edit}
+              busy={actions.addScope.isPending || actions.removeScope.isPending}
+              onAdd={(scope) => actions.addScope.mutateAsync(scope)}
+              onRemove={(scopeId) => actions.removeScope.mutateAsync(scopeId)}
+            />
+
+            {summary && summary.lineCount > 0 ? (
+              <div className="mt-3">
+                <MetricRow
+                  items={[
+                    {
+                      label:
+                        summary.excludedLineCount > 0
+                          ? `Etkilenen fiyat (${summary.excludedLineCount} hariç)`
+                          : "Etkilenen fiyat",
+                      value: summary.lineCount - summary.excludedLineCount,
+                    },
+                    { label: "Ürün", value: summary.productCount },
+                    { label: "Eski toplam", value: formatMoney(summary.totalOldValue) },
+                    {
+                      label: "Yeni toplam",
+                      value: (
+                        <>
+                          {formatMoney(summary.totalNewValue)}
+                          <div className={summary.totalDifference > 0 ? "text-danger small" : "text-success small"}>
+                            {summary.totalDifference > 0 ? "+" : ""}
+                            {formatMoney(summary.totalDifference)}
+                          </div>
+                        </>
+                      ),
+                    },
+                  ]}
+                />
               </div>
-              <ul className="mb-0 small">
-                {summary.skippedRules.map((rule) => (
-                  <li key={rule.pricingRuleId}>
-                    {rule.productName} · {rule.pricingRuleName} — {rule.reason}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Block>
-        )}
+            ) : null}
 
-        <Block>
-          <div className="d-flex flex-wrap gap-2 align-items-center">
-            {can.preview && (
-              <Button
-                color="info"
-                disabled={actions.preview.isPending || revision.scopes.length === 0}
-                onClick={() =>
-                  run(async () => {
-                    const result = await actions.preview.mutateAsync();
-                    setPage(1);
-                    if (result.lineCount === 0) {
-                      showWarning("Kapsama giren fiyat bulunamadı.");
-                    }
-                  }, "Önizleme tazelendi.")
+            {summary && summary.skippedRules.length > 0 ? (
+              <InlineAlert
+                color="warning"
+                className="mt-3"
+                title={`Zam uygulanamayan ${summary.skippedRules.length} kural`}
+                message={
+                  <ul className="mb-0 small">
+                    {summary.skippedRules.map((rule) => (
+                      <li key={rule.pricingRuleId}>
+                        {rule.productName} · {rule.pricingRuleName} — {rule.reason}
+                      </li>
+                    ))}
+                  </ul>
                 }
-              >
-                <Icon name="reload" className="me-1" />
-                {summary?.lineCount ? "Önizlemeyi Tazele" : "Önizle"}
-              </Button>
-            )}
+              />
+            ) : null}
 
-            {can.submit && (
-              <Button
-                color="primary"
-                disabled={actions.submit.isPending}
-                onClick={() => run(() => actions.submit.mutateAsync(), "Onaya gönderildi.")}
-              >
-                <Icon name="send" className="me-1" />
-                Onaya Gönder
-              </Button>
-            )}
-
-            {can.decide && (
-              <>
+            <div className="d-flex flex-wrap gap-2 align-items-center mt-3">
+              {can.preview && (
                 <Button
-                  color="success"
-                  disabled={actions.approve.isPending}
-                  onClick={() => run(() => actions.approve.mutateAsync(undefined), "Revizyon onaylandı.")}
+                  color="info"
+                  disabled={actions.preview.isPending || revision.scopes.length === 0}
+                  onClick={() =>
+                    run(async () => {
+                      const result = await actions.preview.mutateAsync();
+                      setPage(1);
+                      if (result.lineCount === 0) {
+                        showWarning("Kapsama giren fiyat bulunamadı.");
+                      }
+                    }, "Önizleme tazelendi.")
+                  }
                 >
-                  <Icon name="check" className="me-1" />
-                  Onayla
+                  <Icon name="reload" className="me-1" />
+                  {summary?.lineCount ? "Önizlemeyi Tazele" : "Önizle"}
                 </Button>
-                <Button color="danger" outline onClick={() => setRejectOpen(true)}>
-                  <Icon name="cross" className="me-1" />
-                  Reddet
+              )}
+
+              {can.submit && (
+                <Button
+                  color="primary"
+                  disabled={actions.submit.isPending}
+                  onClick={() => run(() => actions.submit.mutateAsync(), "Onaya gönderildi.")}
+                >
+                  <Icon name="send" className="me-1" />
+                  Onaya Gönder
                 </Button>
-              </>
-            )}
+              )}
 
-            {can.apply && (
-              <Button color="primary" onClick={() => setConfirmApply(true)}>
-                <Icon name="check-circle" className="me-1" />
-                Uygula
-              </Button>
-            )}
+              {can.decide && (
+                <>
+                  <Button
+                    color="success"
+                    disabled={actions.approve.isPending}
+                    onClick={() => run(() => actions.approve.mutateAsync(undefined), "Revizyon onaylandı.")}
+                  >
+                    <Icon name="check" className="me-1" />
+                    Onayla
+                  </Button>
+                  <Button color="danger" outline onClick={() => setRejectOpen(true)}>
+                    <Icon name="cross" className="me-1" />
+                    Reddet
+                  </Button>
+                </>
+              )}
 
-            {can.rollback && (
-              <Button color="warning" onClick={() => setConfirmRollback(true)}>
-                <Icon name="undo" className="me-1" />
-                Geri Al
-              </Button>
-            )}
+              {can.apply && (
+                <Button color="primary" onClick={() => setConfirmApply(true)}>
+                  <Icon name="check-circle" className="me-1" />
+                  Uygula
+                </Button>
+              )}
 
-            {can.cancel && (
-              <Button
-                color="light"
-                disabled={actions.cancel.isPending}
-                onClick={() => run(() => actions.cancel.mutateAsync(), "Revizyon iptal edildi.")}
-              >
-                İptal Et
-              </Button>
-            )}
-          </div>
+              {can.rollback && (
+                <Button color="warning" onClick={() => setConfirmRollback(true)}>
+                  <Icon name="undo" className="me-1" />
+                  Geri Al
+                </Button>
+              )}
 
-          {revision.approvalNote && (
-            <div className="alert alert-light mt-3 mb-0">
-              <strong>Onay notu:</strong> {revision.approvalNote}
+              {can.cancel && (
+                <Button
+                  color="light"
+                  disabled={actions.cancel.isPending}
+                  onClick={() => run(() => actions.cancel.mutateAsync(), "Revizyon iptal edildi.")}
+                >
+                  İptal Et
+                </Button>
+              )}
             </div>
-          )}
-        </Block>
 
-        <Block>
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <h6 className="title mb-0">Etkilenen Fiyatlar</h6>
-            <select
-              className="form-select w-auto"
-              value={targetTypeFilter ?? ""}
-              onChange={(event) => {
-                setTargetTypeFilter(event.target.value ? Number(event.target.value) : undefined);
-                setPage(1);
-              }}
-            >
-              <option value="">Tüm hedef türleri</option>
-              {TARGET_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+            {revision.approvalNote ? (
+              <InlineAlert
+                color="info"
+                className="mt-3"
+                title="Onay notu"
+                message={revision.approvalNote}
+              />
+            ) : null}
 
-          <DataTableServer
-            columns={columns}
-            items={linePage?.items ?? []}
-            page={page}
-            pageSize={PAGE_SIZE}
-            totalItems={linePage?.totalCount ?? 0}
-            onPageChange={setPage}
-            isLoading={linesLoading}
-            emptyTitle="Henüz önizleme yapılmadı"
-            emptyIcon="growth"
-            rowKey={(it) => it.id}
-          />
-        </Block>
-      </Content>
+            <div className="mt-3">
+              <DataTableServer
+                title="Etkilenen Fiyatlar"
+                toolbar={
+                  <select
+                    className="form-select"
+                    value={targetTypeFilter ?? ""}
+                    onChange={(event) => {
+                      setTargetTypeFilter(event.target.value ? Number(event.target.value) : undefined);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="">Tüm hedef türleri</option>
+                    {TARGET_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                }
+                columns={columns}
+                items={linePage?.items ?? []}
+                page={page}
+                pageSize={PAGE_SIZE}
+                totalItems={linePage?.totalCount ?? 0}
+                onPageChange={setPage}
+                isLoading={linesLoading}
+                emptyTitle="Henüz önizleme yapılmadı"
+                emptyIcon="growth"
+                rowKey={(it) => it.id}
+              />
+            </div>
+          </>
+        ) : null}
+      </DetailPage>
 
       <ConfirmDialog
         open={confirmApply}

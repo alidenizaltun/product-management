@@ -6,6 +6,10 @@ import Head from "@/layout/head/Head";
 import Icon from "@/components/icon/Icon";
 import { Block } from "@/components/Component";
 import PageHeader from "./PageHeader";
+import { LoadingButton } from "./LoadingButton";
+import { DetailSkeleton, FormSkeleton } from "./LoadingSkeleton";
+import { StatusAlert } from "./NotificationAlert";
+import StickyActionBar from "./StickyActionBar";
 
 // ─── Breadcrumb ───────────────────────────────────────────────────────────────
 
@@ -113,6 +117,7 @@ interface DetailPageProps {
   loading?: boolean;
   error?: boolean;
   errorMessage?: string;
+  onRetry?: () => void;
   onBack?: () => void;
   backTo?: string;
   onEdit?: () => void;
@@ -131,6 +136,7 @@ export const DetailPage: React.FC<DetailPageProps> = ({
   loading,
   error,
   errorMessage,
+  onRetry,
   onBack,
   backTo,
   onEdit,
@@ -147,8 +153,8 @@ export const DetailPage: React.FC<DetailPageProps> = ({
         title={loading ? "Yükleniyor..." : title}
         description={subtitle}
         actions={
-          headerActions ?? (
-            !loading && !error ? (
+          !loading && !error
+            ? (headerActions ?? (
               <div className="d-flex gap-2 align-items-center flex-wrap">
                 {badges}
                 {(editTo || onEdit) && (
@@ -171,37 +177,37 @@ export const DetailPage: React.FC<DetailPageProps> = ({
                   </Button>
                 )}
               </div>
-            ) : undefined
-          )
+            ))
+            : undefined
         }
       />
       <Block>
         {loading ? (
-          <div className="card card-bordered">
-            <div className="card-inner d-flex align-items-center gap-3 py-5">
-              <span className="spinner-border spinner-border-sm text-primary" />
-              <span>Yükleniyor...</span>
-            </div>
-          </div>
+          <DetailSkeleton />
         ) : error ? (
           <div className="card card-bordered">
-            <div className="card-inner text-center py-5">
-              <Icon name="cross-circle" className="fs-1 text-danger d-block mb-3" />
-              <p className="text-soft mb-3">
-                {errorMessage ?? "Kayıt bulunamadı veya yüklenirken bir hata oluştu."}
-              </p>
+            <div className="card-inner">
+              <StatusAlert
+                status="error"
+                messages={{
+                  error: errorMessage ?? "Kayıt bulunamadı veya yüklenirken bir hata oluştu.",
+                }}
+                onRetry={onRetry}
+              />
               {(backTo || onBack) && (
-                backTo ? (
-                  <Link to={backTo} className="btn btn-light btn-sm">
-                    <Icon name="arrow-left" className="me-1" />
-                    Geri Dön
-                  </Link>
-                ) : (
-                  <Button color="light" size="sm" onClick={onBack}>
-                    <Icon name="arrow-left" className="me-1" />
-                    Geri Dön
-                  </Button>
-                )
+                <div className="text-center">
+                  {backTo ? (
+                    <Link to={backTo} className="btn btn-light btn-sm">
+                      <Icon name="arrow-left" className="me-1" />
+                      Geri Dön
+                    </Link>
+                  ) : (
+                    <Button color="light" size="sm" onClick={onBack}>
+                      <Icon name="arrow-left" className="me-1" />
+                      Geri Dön
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -228,6 +234,8 @@ interface FormPageProps {
   cancelLabel?: string;
   submitDisabled?: boolean;
   error?: string | null;
+  /** Long forms only — header actions scroll away, so a sticky save bar is added. */
+  stickySave?: boolean;
   children: React.ReactNode;
 }
 
@@ -244,6 +252,7 @@ export const FormPage: React.FC<FormPageProps> = ({
   cancelLabel = "İptal",
   submitDisabled,
   error,
+  stickySave = false,
   children,
 }) => (
   <>
@@ -258,6 +267,7 @@ export const FormPage: React.FC<FormPageProps> = ({
             <div className="d-flex gap-2">
               <Button
                 color="light"
+                outline
                 type="button"
                 disabled={saving}
                 onClick={onCancel}
@@ -265,24 +275,17 @@ export const FormPage: React.FC<FormPageProps> = ({
               >
                 {cancelLabel}
               </Button>
-              <Button
+              <LoadingButton
                 color="primary"
                 type="submit"
-                disabled={saving || submitDisabled}
+                disabled={submitDisabled || loading}
+                loading={saving}
+                loadingText="Kaydediliyor..."
                 className="py-2"
               >
-                {saving ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" />
-                    Kaydediliyor...
-                  </>
-                ) : (
-                  <>
-                    <Icon name="save" className="me-1" />
-                    {submitLabel}
-                  </>
-                )}
-              </Button>
+                <Icon name="save" className="me-1" />
+                {submitLabel}
+              </LoadingButton>
             </div>
           }
         />
@@ -295,19 +298,29 @@ export const FormPage: React.FC<FormPageProps> = ({
           )}
           {loading ? (
             <div className="card card-bordered">
-              <div className="card-inner d-flex align-items-center gap-3 py-5">
-                <span className="spinner-border spinner-border-sm text-primary" />
-                <span>Yükleniyor...</span>
+              <div className="card-inner">
+                <FormSkeleton fields={6} columns={2} />
               </div>
             </div>
           ) : (
             children
           )}
         </Block>
+        {stickySave && !loading ? (
+          <StickyActionBar
+            loading={saving}
+            disabled={submitDisabled}
+            onCancel={onCancel}
+            cancelLabel={cancelLabel}
+            submitLabel={submitLabel}
+          />
+        ) : null}
       </form>
     </Content>
   </>
 );
+
+export type { DetailPageProps, FormPageProps, BreadcrumbItem };
 
 // ─── TwoColumnLayout ──────────────────────────────────────────────────────────
 

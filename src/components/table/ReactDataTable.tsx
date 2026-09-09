@@ -49,7 +49,7 @@ const Export = ({ data }) => {
           </button>{" "}
         </div>
       </div>
-      <Modal isOpen={modal} className="modal-dialog-centered text-center" size="sm">
+      <Modal isOpen={modal} backdrop="static" className="modal-dialog-centered text-center" size="sm">
         <ModalBody className="text-center m-2">
           <h5>Copied to clipboard</h5>
         </ModalBody>

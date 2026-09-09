@@ -138,8 +138,8 @@ export async function fillSoftwareProductGeneralInfo(
   const advancedToggle = page.getByRole("button", { name: /gelişmiş kimlik ve satış ayarları/i });
   await advancedToggle.click();
 
-  await setCheckbox(page, "Satılabilir", values.isSellable);
-  await setCheckbox(page, "Satın Alınabilir", values.isPurchasable);
+  await setCheckbox(page, "Satışa açık", values.isSellable);
+  await setCheckbox(page, "Bayiler satın alabilir", values.isPurchasable);
 }
 
 export async function saveGeneralInfo(page: Page): Promise<void> {
@@ -164,15 +164,15 @@ export async function expectGeneralInfoValues(page: Page, values: SoftwareProduc
   await expect(page.getByLabel("Vergi Kodu")).toHaveValue(values.taxCode);
 
   const advancedToggle = page.getByRole("button", { name: /gelişmiş kimlik ve satış ayarları/i });
-  const purchasable = page.getByRole("checkbox", { name: "Satın Alınabilir" });
+  const purchasable = page.getByRole("checkbox", { name: "Bayiler satın alabilir" });
   if ((await purchasable.count()) === 0) {
     await advancedToggle.click();
   }
 
-  await expect(page.getByRole("checkbox", { name: "Satılabilir" })).toBeChecked({
+  await expect(page.getByRole("checkbox", { name: "Satışa açık" })).toBeChecked({
     checked: values.isSellable,
   });
-  await expect(page.getByRole("checkbox", { name: "Satın Alınabilir" })).toBeChecked({
+  await expect(page.getByRole("checkbox", { name: "Bayiler satın alabilir" })).toBeChecked({
     checked: values.isPurchasable,
   });
 }
@@ -235,6 +235,13 @@ export async function openProductPricing(page: Page, productId: string): Promise
   await page.goto(`/pricing/product-pricing?productId=${productId}`);
   await expect(page.getByRole("heading", { name: "Satış Planları" })).toBeVisible({ timeout: 20_000 });
   await waitForContentLoaded(page);
+}
+
+/** Fiyatlandırma ızgarasındaki bir satış planı kartı (illüstrasyonlu kart). */
+export function salesPlanCard(page: Page, planName: string) {
+  return page.locator(".sales-plan-card").filter({
+    has: page.getByRole("heading", { name: planName, exact: true }),
+  });
 }
 
 export async function openModules(page: Page, productId: string): Promise<void> {

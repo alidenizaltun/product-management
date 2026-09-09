@@ -11,6 +11,16 @@ export async function waitForContentLoaded(page: Page, timeout = 20_000): Promis
     .waitFor({ state: "detached", timeout })
     .catch(() => {});
   await page
+    .locator(".placeholder-glow")
+    .first()
+    .waitFor({ state: "detached", timeout })
+    .catch(() => {});
+  await page
+    .getByRole("status", { name: "Yükleniyor..." })
+    .first()
+    .waitFor({ state: "detached", timeout })
+    .catch(() => {});
+  await page
     .getByText("Yükleniyor...")
     .first()
     .waitFor({ state: "detached", timeout })

@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "reactstrap";
 import type { LicenseOfferingForm } from "@/pages/products/types/productEditor.types";
-import { formatMoney, getModelMeta } from "./LicenseOfferingFormFields";
+import { getModelMeta } from "./LicenseOfferingFormFields";
 import { usePermission } from "@/application/hooks/usePermission";
 
 interface SalesPlanListPanelProps {
@@ -40,17 +40,25 @@ const SalesPlanListPanel: React.FC<SalesPlanListPanelProps> = ({ offerings, onCr
                     <div className="row g-3">
                         {offerings.map((offering, index) => {
                             const meta = getModelMeta(Number(offering.licenseModel ?? 2));
+                            const planName = offering.name || `Plan #${index + 1}`;
                             return (
                                 <div className="col-sm-4 col-xl-3" key={offering.id ?? offering._tempId ?? index}>
-                                    <div className="card card-bordered h-100">
+                                    <div className="card card-bordered product-card sales-plan-card h-100">
+                                        <div
+                                            className="sales-plan-card-art card-img-top bg-lighter d-flex align-items-center justify-content-center overflow-hidden"
+                                            data-license-model={String(meta.value)}
+                                            aria-hidden="true"
+                                        >
+                                            <em className={`icon ni ni-${meta.icon} fs-1 text-${meta.color}`} />
+                                        </div>
                                         <div className="card-inner d-flex flex-column h-100">
-                                            <div className="d-flex justify-content-between align-items-start mb-2">
+                                            <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
                                                 <span className={`badge badge-dim bg-${meta.color} fs-11px`}>{meta.label}</span>
                                                 <span className={`badge bg-${offering.isActive ? "success" : "secondary"}`}>
                                                     {offering.isActive ? "Aktif" : "Pasif"}
                                                 </span>
                                             </div>
-                                            <h6 className="title mb-1">{offering.name || `Plan #${index + 1}`}</h6>
+                                            <h6 className="title product-title mb-1">{planName}</h6>
                                             {canEdit && (
                                                 <div className="d-flex flex-wrap gap-1 mt-auto pt-2">
                                                     <Button color="light" size="sm" type="button" onClick={() => onEdit(index)}>

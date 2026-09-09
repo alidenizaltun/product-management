@@ -13,9 +13,9 @@ vi.mock("@/infrastructure/api/repositories", () => ({
     },
 }));
 
-const FormHost: React.FC<{ kind?: number }> = ({ kind = 2 }) => {
+const FormHost: React.FC<{ kind?: number; name?: string }> = ({ kind = 2, name = "E2E Yazılım" }) => {
     const form = useForm<ProductFormValues>({
-        defaultValues: { ...buildDefaultValues(), kind, name: "E2E Yazılım", productCode: "PRD-E2E" },
+        defaultValues: { ...buildDefaultValues(), kind, name, productCode: "PRD-E2E" },
     });
 
     return (
@@ -24,6 +24,9 @@ const FormHost: React.FC<{ kind?: number }> = ({ kind = 2 }) => {
         </FormProvider>
     );
 };
+
+const skuInput = () => screen.getByRole("textbox", { name: /sku \/ ürün kodu/i });
+const suggestButton = () => screen.getByRole("button", { name: /^öner$/i });
 
 describe("GeneralInfoTab", () => {
     it("yazılım ürününde vergi oranı ve vergi kodu alanlarını gösterir", () => {
@@ -35,13 +38,46 @@ describe("GeneralInfoTab", () => {
         expect(screen.getByLabelText("Detaylı Açıklama")).toBeInTheDocument();
     });
 
-    it("gelişmiş ayarlarda satılabilir ve satın alınabilir anahtarlarını açar", async () => {
+    it("ürün adı boşken Öner düğmesini devre dışı bırakır", () => {
+        render(<FormHost name="" />);
+
+        expect(suggestButton()).toBeDisabled();
+    });
+
+    it("Öner ile adından kod üretir ve ikinci tıklamada farklı kod yazar", async () => {
         const user = userEvent.setup();
         render(<FormHost />);
 
+        await user.click(suggestButton());
+        const firstCode = (skuInput() as HTMLInputElement).value;
+        expect(firstCode).toMatch(/^PRD-E2E-YAZILIM-[A-Z0-9]+$/);
+        expect(firstCode).not.toBe("PRD-E2E");
+
+        await user.click(suggestButton());
+        const secondCode = (skuInput() as HTMLInputElement).value;
+        expect(secondCode).toMatch(/^PRD-E2E-YAZILIM-[A-Z0-9]+$/);
+        expect(secondCode).not.toBe(firstCode);
+    });
+
+    it("yazılım ürününde stok takibini gizler, satış anahtarlarını B2B etiketleriyle gösterir", async () => {
+        const user = userEvent.setup();
+        render(<FormHost kind={2} />);
+
         await user.click(screen.getByRole("button", { name: /gelişmiş kimlik ve satış ayarları/i }));
 
-        expect(screen.getByRole("checkbox", { name: "Satılabilir" })).toBeInTheDocument();
-        expect(screen.getByRole("checkbox", { name: "Satın Alınabilir" })).toBeInTheDocument();
+        expect(screen.getByRole("checkbox", { name: "Satışa açık" })).toBeInTheDocument();
+        expect(screen.getByRole("checkbox", { name: "Bayiler satın alabilir" })).toBeInTheDocument();
+        expect(screen.queryByRole("checkbox", { name: "Stok Takibi" })).not.toBeInTheDocument();
+    });
+
+    it("yazılım olmayan üründe stok takibini düzenlenebilir anahtar olarak gösterir", async () => {
+        const user = userEvent.setup();
+        render(<FormHost kind={1} />);
+
+        await user.click(screen.getByRole("button", { name: /gelişmiş kimlik ve satış ayarları/i }));
+
+        const stockSwitch = screen.getByRole("checkbox", { name: "Stok Takibi" });
+        expect(stockSwitch).toBeInTheDocument();
+        expect(stockSwitch).toBeEnabled();
     });
 });

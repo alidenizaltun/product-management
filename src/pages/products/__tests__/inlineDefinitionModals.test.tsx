@@ -67,6 +67,7 @@ describe("Sınıflandırma inline tanım modalları", () => {
         await userEvent.click(createCategory);
         const dialog = await screen.findByRole("dialog");
         expect(within(dialog).getByRole("heading", { name: "Yeni Kategori Tanımı" })).toBeInTheDocument();
+        expect(within(dialog).queryByText(/Kod sistem tarafından üretilir/)).not.toBeInTheDocument();
         expect(router.state.location.pathname).toBe("/product-info/classification");
 
         await userEvent.click(within(dialog).getByRole("button", { name: "Oluştur" }));
@@ -152,6 +153,8 @@ describe("Bölgeler inline tanım modalı", () => {
         await userEvent.click(createRegion);
         const dialog = await screen.findByRole("dialog");
         expect(within(dialog).getByRole("heading", { name: "Yeni Bölge Tanımı" })).toBeInTheDocument();
+        expect(within(dialog).queryByText(/Kod sistem tarafından üretilir/)).not.toBeInTheDocument();
+        expect(within(dialog).queryByLabelText(/^Sıra/)).not.toBeInTheDocument();
 
         await userEvent.type(within(dialog).getByLabelText(/^Ad/), "Ege");
         await userEvent.click(within(dialog).getByRole("button", { name: "Oluştur" }));
@@ -163,5 +166,15 @@ describe("Bölgeler inline tanım modalı", () => {
         expect(await screen.findByText("Ege")).toBeInTheDocument();
         expect(router.state.location.pathname).toBe("/product-info/regions");
         expect(screen.queryByText("Bölge tanım sayfası")).not.toBeInTheDocument();
+    });
+
+    it("hızlı ekleme formunda Sıra alanı göstermez", async () => {
+        renderSection("/product-info/regions?productId=prod-001", <RegionsPage />);
+
+        await userEvent.click(await screen.findByRole("button", { name: "Yeni Bölge Tanımı" }));
+        const dialog = await screen.findByRole("dialog");
+
+        expect(within(dialog).queryByLabelText(/^Sıra/)).not.toBeInTheDocument();
+        expect(within(dialog).queryByRole("spinbutton")).not.toBeInTheDocument();
     });
 });

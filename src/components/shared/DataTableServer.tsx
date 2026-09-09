@@ -8,6 +8,7 @@ import {
 } from "@/components/Component";
 import DataTablePagination from "@/components/pagination/DataTablePagination";
 import EmptyState from "./EmptyState";
+import { TableSkeleton } from "./LoadingSkeleton";
 
 export interface DataColumn<T> {
   key: string;
@@ -34,6 +35,12 @@ interface DataTableServerProps<T> {
   rowKey?: (item: T, index: number) => React.Key;
 }
 
+function toolsHeaderClass(className?: string) {
+  if (!className?.includes("nk-tb-col-tools")) return className;
+  if (className.includes("text-end")) return className;
+  return `${className} text-end`;
+}
+
 function DataTableServer<T>({
   title,
   columns,
@@ -51,40 +58,68 @@ function DataTableServer<T>({
   rowKey,
 }: DataTableServerProps<T>) {
   const showEmpty = !isLoading && items.length === 0;
+  const showPagination = !isLoading && !showEmpty && totalItems > 0;
+  const skeletonRows = Math.min(Math.max(pageSize, 1), 8);
+
+  const header = (
+    <DataTableHead>
+      {columns.map((column) => (
+        <DataTableRow key={column.key} className={toolsHeaderClass(column.className)} size={column.size}>
+          <span className="sub-text">{column.title}</span>
+        </DataTableRow>
+      ))}
+    </DataTableHead>
+  );
 
   return (
-    <DataTable className="" bodyClassName="" title={title}>
-      {(title || toolbar) ? (
+    <DataTable className="card-stretch" bodyClassName="" title={title}>
+      {title || toolbar ? (
         <div className="card-inner position-relative card-tools-toggle">
           <div className="card-title-group">
             {title ? (
               <div className="card-title">
                 <h6 className="title mb-0">{title}</h6>
               </div>
-            ) : <div />}
-            {toolbar ? <div className="card-tools">{toolbar}</div> : null}
+            ) : (
+              <div />
+            )}
+            {toolbar ? (
+              <div className="card-tools">
+                <div className="form-inline flex-nowrap gx-3">{toolbar}</div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
 
-      <DataTableBody compact={false} className="" bodyclass="">
-        <DataTableHead>
-          {columns.map((column) => (
-            <DataTableRow key={column.key} className={column.className} size={column.size}>
-              <span className="sub-text">{column.title}</span>
-            </DataTableRow>
-          ))}
-        </DataTableHead>
-
-        {isLoading ? (
-          <DataTableItem className="">
-            <div className="d-flex align-items-center gap-2 py-3 px-3">
-              <span className="spinner-border spinner-border-sm text-primary" />
-              <span className="text-soft">Yükleniyor...</span>
-            </div>
-          </DataTableItem>
-        ) : (
-          items.map((item, index) => (
+      {isLoading ? (
+        <div
+          className="card-inner p-0"
+          role="status"
+          aria-busy="true"
+          aria-live="polite"
+          aria-label="Yükleniyor..."
+        >
+          <TableSkeleton rows={skeletonRows} columns={columns.length} />
+        </div>
+      ) : showEmpty ? (
+        <>
+          <DataTableBody compact className="" bodyclass="">
+            {header}
+          </DataTableBody>
+          <div className="card-inner">
+            <EmptyState
+              icon={emptyIcon}
+              title={emptyTitle}
+              description={emptyDescription}
+              action={emptyAction}
+            />
+          </div>
+        </>
+      ) : (
+        <DataTableBody compact className="" bodyclass="">
+          {header}
+          {items.map((item, index) => (
             <DataTableItem key={rowKey ? rowKey(item, index) : index} className="">
               {columns.map((column) => (
                 <DataTableRow key={column.key} className={column.className} size={column.size}>
@@ -92,22 +127,11 @@ function DataTableServer<T>({
                 </DataTableRow>
               ))}
             </DataTableItem>
-          ))
-        )}
-      </DataTableBody>
+          ))}
+        </DataTableBody>
+      )}
 
-      {showEmpty ? (
-        <div className="card-inner">
-          <EmptyState
-            icon={emptyIcon}
-            title={emptyTitle}
-            description={emptyDescription}
-            action={emptyAction}
-          />
-        </div>
-      ) : null}
-
-      {totalItems > 0 ? (
+      {showPagination ? (
         <div className="card-inner">
           <DataTablePagination
             itemPerPage={pageSize}

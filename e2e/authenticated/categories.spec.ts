@@ -15,6 +15,7 @@ test.describe("Categories (authenticated) - list/detail/form", () => {
     // İzole CI DB'sinde e2e job'u en az bir kategoriyi API üzerinden önceden
     // seed'ler (bkz. ci.yml); paylaşımlı dev DB'de zaten veri var.
     await page.goto("/definitions/categories");
+    await waitForContentLoaded(page);
     const detailLink = page.getByTitle("Detay").first();
     await expect(detailLink).toBeVisible();
     await detailLink.click();

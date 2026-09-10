@@ -29,13 +29,13 @@ const skuInput = () => screen.getByRole("textbox", { name: /sku \/ ürün kodu/i
 const suggestButton = () => screen.getByRole("button", { name: /^öner$/i });
 
 describe("GeneralInfoTab", () => {
-    it("yazılım ürününde vergi oranı ve vergi kodu alanlarını gösterir", () => {
+    it("yazılım ürününde açıklama alanlarını gösterir, ürün seviyesi vergi alanlarını göstermez", () => {
         render(<FormHost />);
 
-        expect(screen.getByLabelText("Vergi Oranı")).toBeInTheDocument();
-        expect(screen.getByLabelText("Vergi Kodu")).toBeInTheDocument();
         expect(screen.getByLabelText("Kısa Açıklama")).toBeInTheDocument();
         expect(screen.getByLabelText("Detaylı Açıklama")).toBeInTheDocument();
+        expect(screen.queryByLabelText("Vergi Oranı")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Vergi Kodu")).not.toBeInTheDocument();
     });
 
     it("ürün adı boşken Öner düğmesini devre dışı bırakır", () => {

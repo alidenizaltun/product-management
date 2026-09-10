@@ -68,7 +68,7 @@ export interface ProductRegionDto {
   regionCode?: string | null;
   regionName?: string | null;
   currencyCode: string;
-  /** Boşsa ürünün kendi KDV oranı geçerlidir. */
+  /** Bölgeye özel KDV oranı. */
   taxRate?: number | null;
   isDefault: boolean;
   isActive: boolean;

@@ -119,8 +119,6 @@ export const buildDefaultValues = (): ProductFormValues => ({
     trackInventory: false,
     defaultCurrencyCode: DEFAULT_CURRENCY_CODE,
     unitDefinitionId: "",
-    taxRate: 0,
-    taxCode: "",
     tags: "",
     metadataJson: "",
 
@@ -171,8 +169,6 @@ export const mapProductToForm = (product: ProductDetailDto): ProductFormValues =
         trackInventory: Boolean(product.trackInventory),
         defaultCurrencyCode: product.defaultCurrencyCode ?? DEFAULT_CURRENCY_CODE,
         unitDefinitionId: product.unitDefinitionId ?? "",
-        taxRate: product.taxRate ?? 0,
-        taxCode: product.taxCode ?? "",
         tags: product.tags ?? "",
         metadataJson: product.metadataJson ?? "",
 
@@ -465,8 +461,6 @@ export const buildFullProductPayload = (
         trackInventory: Number(values.kind ?? 1) === 2 ? false : Boolean(values.trackInventory),
         defaultCurrencyCode: values.defaultCurrencyCode,
         unitDefinitionId: Number(values.kind ?? 1) === 1 ? values.unitDefinitionId || undefined : undefined,
-        taxRate: Number.isFinite(values.taxRate) ? values.taxRate : 0,
-        taxCode: values.taxCode || undefined,
         tags: values.tags || undefined,
         metadataJson: values.metadataJson || undefined,
     };

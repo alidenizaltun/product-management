@@ -17,8 +17,6 @@ export interface CreatedSoftwareProduct {
 export interface SoftwareProductGeneralInfo {
   shortDescription: string;
   description: string;
-  taxRate: number;
-  taxCode: string;
   isSellable: boolean;
   isPurchasable: boolean;
 }
@@ -43,8 +41,6 @@ export function defaultSoftwareProductGeneralInfo(name: string): SoftwareProduct
   return {
     shortDescription: `${name} kısa açıklama`,
     description: `${name} detaylı açıklama`,
-    taxRate: 18,
-    taxCode: "E2E-KDV",
     isSellable: true,
     isPurchasable: false,
   };
@@ -132,8 +128,6 @@ export async function fillSoftwareProductGeneralInfo(
 ): Promise<void> {
   await page.getByLabel("Kısa Açıklama").fill(values.shortDescription);
   await page.getByLabel("Detaylı Açıklama").fill(values.description);
-  await page.getByLabel("Vergi Oranı").fill(String(values.taxRate));
-  await page.getByLabel("Vergi Kodu").fill(values.taxCode);
 
   const advancedToggle = page.getByRole("button", { name: /gelişmiş kimlik ve satış ayarları/i });
   await advancedToggle.click();
@@ -160,8 +154,6 @@ export async function saveGeneralInfo(page: Page): Promise<void> {
 export async function expectGeneralInfoValues(page: Page, values: SoftwareProductGeneralInfo): Promise<void> {
   await expect(page.getByLabel("Kısa Açıklama")).toHaveValue(values.shortDescription);
   await expect(page.getByLabel("Detaylı Açıklama")).toHaveValue(values.description);
-  expect(Number(await page.getByLabel("Vergi Oranı").inputValue())).toBe(values.taxRate);
-  await expect(page.getByLabel("Vergi Kodu")).toHaveValue(values.taxCode);
 
   const advancedToggle = page.getByRole("button", { name: /gelişmiş kimlik ve satış ayarları/i });
   const purchasable = page.getByRole("checkbox", { name: "Bayiler satın alabilir" });

@@ -13,7 +13,7 @@ const GeneralInfoPage: React.FC = () => (
                 <div className="card-inner border-bottom">
                     <h5 className="title mb-1">Genel Bilgiler</h5>
                     <p className="text-soft mb-0">
-                        Ürünün adı, kodu, türü, açıklamaları ile satılabilirlik ve vergi bilgileri.
+                        Ürünün adı, kodu, türü, açıklamaları ve satılabilirlik bilgileri.
                     </p>
                 </div>
                 <div className="card-inner">

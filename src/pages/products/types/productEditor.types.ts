@@ -21,7 +21,7 @@ export interface ProductRegionForm {
   id?: string;
   regionId: string;
   currencyCode: string;
-  /** Boş bırakılırsa ürünün kendi KDV oranı geçerlidir. */
+  /** Bölgeye özel KDV oranı. */
   taxRate?: number;
   isDefault: boolean;
   isActive: boolean;
@@ -266,8 +266,6 @@ export interface ProductFormValues {
   trackInventory: boolean;
   defaultCurrencyCode: string;
   unitDefinitionId?: string;
-  taxRate: number;
-  taxCode?: string;
   tags?: string;
   metadataJson?: string;
 

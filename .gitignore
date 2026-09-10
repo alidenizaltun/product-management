@@ -20,6 +20,9 @@ dist-ssr
 /playwright/.auth/
 .env.test
 
+# Local agent run artifacts
+.task-orchestrator/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
